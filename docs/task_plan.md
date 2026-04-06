@@ -9,40 +9,40 @@ Phase 1
 ## Phases
 
 ### Phase 1: Server Stack Research
-- [ ] Research Node.js + Express + `ws` for WebSocket game servers
-- [ ] Research Python + FastAPI + WebSockets for game servers
-- [ ] Compare: latency, simplicity, ESP8266 compat, community examples
-- [ ] Document findings
-- **Status:** in_progress
+- [x] Research Node.js + Express + `ws` for WebSocket game servers
+- [x] Research Python + FastAPI + WebSockets for game servers
+- [x] Compare: latency, simplicity, ESP8266 compat, community examples
+- [x] Document findings
+- **Status:** complete
 
 ### Phase 2: ESP8266 Client Research
-- [ ] Research Arduino WebSocket client libraries for ESP8266
-- [ ] Research WiFiManager vs hardcoded WiFi config
-- [ ] Research IR break-beam sensor best practices / debounce patterns
-- [ ] Research OTA update options (ArduinoOTA)
-- [ ] Document findings
-- **Status:** pending
+- [x] Research Arduino WebSocket client libraries for ESP8266
+- [x] Research WiFiManager vs hardcoded WiFi config
+- [x] Research IR break-beam sensor best practices / debounce patterns
+- [x] Research OTA update options (ArduinoOTA)
+- [x] Document findings
+- **Status:** complete
 
 ### Phase 3: Frontend Display Research
-- [ ] Research Pixi.js for 2D game rendering (race track)
-- [ ] Research Phaser.js for 2D game rendering
-- [ ] Research vanilla Canvas + CSS animations approach
-- [ ] Evaluate theming/sprite support for each option
-- [ ] Document findings
-- **Status:** pending
+- [x] Research Pixi.js for 2D game rendering (race track)
+- [x] Research Phaser.js for 2D game rendering
+- [x] Research vanilla Canvas + CSS animations approach
+- [x] Evaluate theming/sprite support for each option
+- [x] Document findings
+- **Status:** complete
 
 ### Phase 4: Motor Controller Research
-- [ ] Research stepper motor control on ESP8266 (AccelStepper, etc.)
-- [ ] Research I²C GPIO expanders (MCP23017) with ESP8266
-- [ ] Research servo vs stepper tradeoffs for linear positioning
-- [ ] Document findings
-- **Status:** pending
+- [x] Research stepper motor control on ESP8266 (AccelStepper, etc.)
+- [x] Research I²C GPIO expanders (MCP23017) with ESP8266
+- [x] Research servo vs stepper tradeoffs for linear positioning
+- [x] Document findings
+- **Status:** complete
 
 ### Phase 5: User Decisions
 - [ ] Present research summary with recommendations
 - [ ] Ask user for final decisions on each open question
 - [ ] Document decisions
-- **Status:** pending
+- **Status:** in_progress
 
 ### Phase 6: Finalize Architecture
 - [ ] Update PRD with all resolved decisions
