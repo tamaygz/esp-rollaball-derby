@@ -160,8 +160,11 @@ Our display is **not an interactive game** — it's a passive visualization:
 ## Technical Decisions
 | Decision | Rationale |
 |----------|-----------|
-| Standalone Arduino (not ESPHome) | Low latency, portability, no HA dependency (PRD §3.6) |
-
+| Standalone Arduino (not ESPHome) | Low latency, portability, no HA dependency (PRD §3.6) || **Node.js + Express + `ws`** | Raw WS protocol, single JS runtime, 22.7k star lib, best ESP compat, most community examples |
+| **Pixi.js** for display | 450KB (3x smaller than Phaser), 2x faster rendering, no unused physics/audio overhead. Only need sprite + tween |
+| **WiFiManager AP portal** | One-call setup, captive portal for WiFi creds at events, essential for portability |
+| **gilmaimon/ArduinoWebsockets** | Modern C++ API, lambda callbacks, RFC-6455 complete, good ESP8266 support |
+| Motor type **deferred** | Decision postponed to Phase 3 (physical board build) — needs physical track dimensions first |
 ## Issues Encountered
 | Issue | Resolution |
 |-------|------------|

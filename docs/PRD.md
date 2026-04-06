@@ -187,7 +187,7 @@ A self-hosted, local-network multiplayer system with:
 - Single JS runtime for both server and frontend build tooling.
 - `ws` library is lightweight and ESP8266 Arduino WebSocket libs speak the same protocol natively.
 
-> **Decision: TBD** — awaiting user confirmation.
+> **Decision: Node.js + Express + `ws`** — confirmed by user. Raw WebSocket protocol, single JS runtime, best ESP8266 compatibility.
 
 ### 3.3 Component Specifications
 
@@ -195,7 +195,7 @@ A self-hosted, local-network multiplayer system with:
 
 | Property | Specification |
 |----------|--------------|
-| Runtime | TBD (see comparison above) |
+| Runtime | Node.js (LTS) + Express + `ws` library |
 | Protocol | WebSocket (RFC 6455) for real-time; HTTP REST for config/admin |
 | Persistence | SQLite for game history; in-memory for active game state |
 | Frontend | Single-page app served by the same process |
@@ -389,11 +389,12 @@ ESPHome + Home Assistant was evaluated and rejected for this project:
 
 | # | Decision | Options | Status |
 |---|----------|---------|--------|
-| 1 | Server tech stack | Node.js + Express + WS **vs** Python + FastAPI + WebSockets | **Awaiting decision** (see comparison in §3.2) |
-| 2 | Frontend framework for display | Vanilla JS + Canvas **vs** React/Svelte + CSS animations **vs** Pixi.js/Phaser for game rendering | TBD |
-| 3 | Motor type for physical board | 28BYJ-48 steppers (cheap, slow) **vs** NEMA 17 (precise, faster) **vs** Servos (positional, simple) | TBD |
-| 4 | ESP8266 WiFi config method | Hardcoded SSID/pass **vs** AP mode captive portal (WiFiManager) | TBD |
+| 1 | Server tech stack | Node.js + Express + WS **vs** Python + FastAPI + WebSockets | **Decided: Node.js + Express + `ws`** |
+| 2 | Frontend framework for display | Vanilla JS + Canvas **vs** React/Svelte + CSS animations **vs** Pixi.js/Phaser for game rendering | **Decided: Pixi.js** |
+| 3 | Motor type for physical board | 28BYJ-48 steppers (cheap, slow) **vs** NEMA 17 (precise, faster) **vs** Servos (positional, simple) | **Deferred to Phase 3** (physical board build) |
+| 4 | ESP8266 WiFi config method | Hardcoded SSID/pass **vs** AP mode captive portal (WiFiManager) | **Decided: WiFiManager AP portal** |
 | 5 | ESPHome / Home Assistant integration | Use ESPHome **vs** standalone Arduino firmware | **Decided: Standalone** (see §3.6) |
+| 6 | ESP8266 WebSocket client library | Links2004/arduinoWebSockets **vs** gilmaimon/ArduinoWebsockets | **Decided: gilmaimon/ArduinoWebsockets** |
 
 ---
 
