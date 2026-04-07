@@ -44,6 +44,7 @@ function createGameRouter(gameState, connectionManager, botManager) {
 
   // POST /reset
   router.post('/reset', (req, res) => {
+    connectionManager.cancelAutoReset();
     if (botManager) botManager.onGameReset();
     gameState.reset();
     connectionManager.broadcastState();

@@ -5,13 +5,28 @@ const { randomUUID } = require('crypto');
 const VALID_TYPES = new Set(['sensor', 'web', 'motor', 'display']);
 const HTML_TAG_PATTERN = /<[^>]*>/g;
 
+const AUTO_RESET_DELAY_MS = 15_000;
+
 class ConnectionManager {
   constructor(gameState) {
-    this.gameState = gameState;
-    this.clients = new Map(); // id → { ws, type, playerId, id }
+    this.gameState     = gameState;
+    this.clients       = new Map(); // id → { ws, type, playerId, id }
+    this._botManager   = null;
+    this._autoResetTimer = null;
   }
 
   // ─── Public ───────────────────────────────────────────────────────────────
+
+  setBotManager(botManager) {
+    this._botManager = botManager;
+  }
+
+  cancelAutoReset() {
+    if (this._autoResetTimer !== null) {
+      clearTimeout(this._autoResetTimer);
+      this._autoResetTimer = null;
+    }
+  }
 
   handleConnection(ws) {
     const clientId = randomUUID();
@@ -120,6 +135,16 @@ class ConnectionManager {
       type: 'winner',
       payload: { playerId: player.id, name: player.name },
     });
+
+    // Auto-reset after 15 s so the screen clears without manual intervention.
+    this.cancelAutoReset();
+    this._autoResetTimer = setTimeout(() => {
+      this._autoResetTimer = null;
+      if (this._botManager) this._botManager.onGameReset();
+      this.gameState.reset();
+      this.broadcastState();
+      this.broadcastPositions();
+    }, AUTO_RESET_DELAY_MS);
   }
 
   // ─── Private ──────────────────────────────────────────────────────────────

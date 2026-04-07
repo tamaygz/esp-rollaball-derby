@@ -68,6 +68,7 @@ const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
 connectionManager = new ConnectionManager(gameState);
 botManager = new BotManager(gameState, connectionManager);
+connectionManager.setBotManager(botManager);
 
 wss.on('connection', (ws) => {
   connectionManager.handleConnection(ws);

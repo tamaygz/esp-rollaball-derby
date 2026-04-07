@@ -54,6 +54,9 @@
     if (!raceTrack) {
       await _initScene(state.config && state.config.theme);
     }
+    if (winnerOverlay && winnerOverlay.visible && state.status !== 'finished') {
+      winnerOverlay.hide();
+    }
     await raceTrack.setState(state);
   }
 
