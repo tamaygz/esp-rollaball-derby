@@ -86,25 +86,26 @@ describe('GameState — score()', () => {
     assert.equal(updated.position, 3);
   });
 
-  test('rejects invalid points — 2', () => {
+  test('increments position correctly (+2)', () => {
     const game = makeGame();
     const player = addConnectedPlayer(game);
     game.start();
-    assert.throws(() => game.score(player.id, 2), /Points must be 1 or 3/);
+    const { player: updated } = game.score(player.id, 2);
+    assert.equal(updated.position, 2);
   });
 
   test('rejects invalid points — 0', () => {
     const game = makeGame();
     const player = addConnectedPlayer(game);
     game.start();
-    assert.throws(() => game.score(player.id, 0), /Points must be 1 or 3/);
+    assert.throws(() => game.score(player.id, 0), /Points must be 1, 2, or 3/);
   });
 
   test('rejects invalid points — -1', () => {
     const game = makeGame();
     const player = addConnectedPlayer(game);
     game.start();
-    assert.throws(() => game.score(player.id, -1), /Points must be 1 or 3/);
+    assert.throws(() => game.score(player.id, -1), /Points must be 1, 2, or 3/);
   });
 
   test('rate limits two rapid successive scores', () => {

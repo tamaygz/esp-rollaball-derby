@@ -163,10 +163,10 @@ class ConnectionManager {
   _handleScore(clientId, ws, payload) {
     const { playerId, points } = payload;
 
-    if (!playerId || (points !== 1 && points !== 3)) {
+    if (!playerId || (points !== 1 && points !== 2 && points !== 3)) {
       this._send(ws, {
         type: 'error',
-        payload: { message: 'Invalid score payload: playerId required, points must be 1 or 3' },
+        payload: { message: 'Invalid score payload: playerId required, points must be 1, 2, or 3' },
       });
       return;
     }

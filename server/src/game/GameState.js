@@ -196,8 +196,8 @@ class GameState {
       throw new Error(`Cannot score: game is '${this.status}', must be 'running'`);
     }
 
-    if (points !== 1 && points !== 3) {
-      throw new Error('Points must be 1 or 3');
+    if (points !== 1 && points !== 2 && points !== 3) {
+      throw new Error('Points must be 1, 2, or 3');
     }
 
     const player = this.players.get(playerId);
