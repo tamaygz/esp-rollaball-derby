@@ -180,6 +180,21 @@ class GameState {
     }
   }
 
+  /**
+   * Mark an existing player as connected again (used when a client reconnects
+   * and supplies its previously issued player ID).
+   *
+   * @param {string} id - The player ID issued on the original registration.
+   * @returns {object|null} The player object, or null if no such player exists.
+   */
+  reconnectPlayer(id) {
+    const player = this.players.get(id);
+    if (!player) return null;
+    player.connected = true;
+    player.connectedAt = Date.now();
+    return player;
+  }
+
   renamePlayer(id, name) {
     const player = this.players.get(id);
     if (!player) {

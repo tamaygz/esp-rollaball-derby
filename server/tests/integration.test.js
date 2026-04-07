@@ -193,6 +193,83 @@ describe('Integration — WebSocket flow', () => {
     assert.equal(gameState.players.size, 0);
   });
 
+  test('reconnect with stale playerId falls back to new registration gracefully', async () => {
+    gameState.reset();
+    gameState.players.clear();
+
+    // Reconnecting with a player ID that the server no longer knows (e.g., server
+    // restarted) should fall through to normal first-time registration without error.
+    const ws = await wsConnect(port);
+    const regPromise = waitForMessage(ws, (m) => m.type === 'registered', 2000);
+    ws.send(
+      JSON.stringify({
+        type: 'register',
+        payload: { type: 'sensor', playerName: 'Returner', playerId: 'stale-unknown-id' },
+      })
+    );
+    const registered = await regPromise;
+
+    assert.equal(registered.payload.name, 'Returner');
+    assert.equal(registered.payload.playerType, 'sensor');
+    assert.equal(gameState.players.size, 1);
+
+    ws.close();
+  });
+
+  test('reconnect while game is running reuses player entry', async () => {
+    gameState.reset();
+    gameState.players.clear();
+
+    // Register a sensor player
+    const ws1 = await wsConnect(port);
+    const regPromise1 = waitForMessage(ws1, (m) => m.type === 'registered', 2000);
+    ws1.send(JSON.stringify({ type: 'register', payload: { type: 'sensor', playerName: 'Runner' } }));
+    const registered1 = await regPromise1;
+    const playerId = registered1.payload.id;
+
+    // Start the game via REST
+    await new Promise((resolve, reject) => {
+      const req = http.request(
+        {
+          hostname: '127.0.0.1', port, path: '/api/game/start', method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        },
+        (res) => { res.resume(); res.on('end', resolve); }
+      );
+      req.on('error', reject);
+      req.end();
+    });
+
+    assert.equal(gameState.getStatus(), 'running');
+    assert.equal(gameState.players.size, 1);
+
+    // Disconnect while game is running — player is marked disconnected, not deleted
+    ws1.close();
+    await new Promise((r) => setTimeout(r, 50));
+    assert.equal(gameState.players.size, 1);
+    assert.equal(gameState.players.get(playerId).connected, false);
+
+    // Reconnect with the original player ID — server should reuse existing entry
+    const ws2 = await wsConnect(port);
+    const regPromise2 = waitForMessage(ws2, (m) => m.type === 'registered', 2000);
+    ws2.send(
+      JSON.stringify({
+        type: 'register',
+        payload: { type: 'sensor', playerName: 'Runner', playerId },
+      })
+    );
+    const registered2 = await regPromise2;
+
+    // Same ID and name — no duplicate player created
+    assert.equal(registered2.payload.id, playerId);
+    assert.equal(registered2.payload.name, 'Runner');
+    assert.equal(gameState.players.size, 1);
+    assert.equal(gameState.players.get(playerId).connected, true);
+
+    ws2.close();
+    gameState.reset();
+  });
+
   test('invalid JSON sends error message, does not crash', async () => {
     const ws = await wsConnect(port);
 

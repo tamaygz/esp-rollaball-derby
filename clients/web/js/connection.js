@@ -85,10 +85,14 @@ Derby.Connection = (function () {
       reconnectDelay = INITIAL_DELAY; // reset backoff on successful connect
       _setStatus('connected');
 
-      // Register as web client
+      // Register as web client; include the persisted player ID (if any) so the
+      // server can reconnect this client to its existing player entry rather than
+      // creating a new one.
       var payload = { type: 'web' };
       if (_currentPlayerName) payload.playerName = _currentPlayerName;
-      thisWs.send(JSON.stringify({ type: 'register', payload: payload }));
+      var storedId = localStorage.getItem('derby-player-id');
+      if (storedId) payload.playerId = storedId;
+      ws.send(JSON.stringify({ type: 'register', payload: payload }));
     });
 
     ws.addEventListener('message', function (event) {

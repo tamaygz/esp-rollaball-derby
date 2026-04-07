@@ -213,7 +213,43 @@ describe('GameState — updateConfig()', () => {
   });
 });
 
-// ─── Name assignment ──────────────────────────────────────────────────────────
+// ─── reconnectPlayer() ───────────────────────────────────────────────────────
+
+describe('GameState — reconnectPlayer()', () => {
+  test('returns null for unknown player', () => {
+    const game = makeGame();
+    assert.equal(game.reconnectPlayer('nonexistent'), null);
+  });
+
+  test('marks a disconnected player as connected again', () => {
+    const game = makeGame();
+    const player = addConnectedPlayer(game, 'p1', 'Alice', 'sensor');
+    game.start(); // must be running so disconnectPlayer marks as !connected rather than deleting
+    game.disconnectPlayer('p1');
+    assert.equal(game.players.get('p1').connected, false);
+    const result = game.reconnectPlayer('p1');
+    assert.ok(result);
+    assert.equal(result.connected, true);
+  });
+
+  test('is idempotent for an already-connected player', () => {
+    const game = makeGame();
+    addConnectedPlayer(game, 'p1', 'Alice', 'sensor');
+    const result = game.reconnectPlayer('p1');
+    assert.ok(result);
+    assert.equal(result.connected, true);
+  });
+
+  test('preserves the existing player entry (no duplicate created)', () => {
+    const game = makeGame();
+    addConnectedPlayer(game, 'p1', 'Alice', 'sensor');
+    game.start(); // running state so disconnectPlayer keeps the entry
+    game.disconnectPlayer('p1');
+    game.reconnectPlayer('p1');
+    assert.equal(game.players.size, 1);
+    assert.equal(game.players.get('p1').name, 'Alice');
+  });
+});
 
 describe('GameState — assignName()', () => {
   test('returns a non-empty string', () => {
