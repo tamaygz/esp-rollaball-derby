@@ -109,16 +109,25 @@ static void handleHttpConfig() {
 
     bool changed = false;
     if (doc["server_ip"].is<const char*>()) {
-        strlcpy(g_serverIp, doc["server_ip"], sizeof(g_serverIp));
-        changed = true;
+        const char* serverIp = doc["server_ip"];
+        if (strcmp(serverIp, g_serverIp) != 0) {
+            strlcpy(g_serverIp, serverIp, sizeof(g_serverIp));
+            changed = true;
+        }
     }
     if (doc["server_port"].is<const char*>()) {
-        strlcpy(g_serverPort, doc["server_port"], sizeof(g_serverPort));
-        changed = true;
+        const char* serverPort = doc["server_port"];
+        if (strcmp(serverPort, g_serverPort) != 0) {
+            strlcpy(g_serverPort, serverPort, sizeof(g_serverPort));
+            changed = true;
+        }
     }
     if (doc["player_name"].is<const char*>()) {
-        strlcpy(g_playerName, doc["player_name"], sizeof(g_playerName));
-        changed = true;
+        const char* playerName = doc["player_name"];
+        if (strcmp(playerName, g_playerName) != 0) {
+            strlcpy(g_playerName, playerName, sizeof(g_playerName));
+            changed = true;
+        }
     }
 
     if (changed) {
