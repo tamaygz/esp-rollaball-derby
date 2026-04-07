@@ -34,18 +34,19 @@ Derby.LED = (function () {
   }
 
   function _initSimulator() {
-    if (typeof Derby.LEDSimulator === 'undefined') {
+    if (!Derby.LEDSimulator) {
       console.warn('[LED] LEDSimulator not loaded');
       return;
     }
-    _simulator = new Derby.LEDSimulator();
+    // LEDSimulator is a singleton, not a constructor
+    _simulator = Derby.LEDSimulator;
     _simulator.init('led-simulator');
     _simulator.setConfig({ ledCount: 60, topology: 'strip' });
     _simulator.start();
     
     // Start with a default rainbow effect
     setTimeout(function () {
-      if (typeof Derby.LEDEffects !== 'undefined') {
+      if (Derby.LEDEffects) {
         _simulator.playEffect('rainbow', { speed: 1000 });
       }
     }, 100);
@@ -189,27 +190,9 @@ Derby.LED = (function () {
       selectDevice(device.id);
     });
 
-    // Initialize mini LED preview
-    setTimeout(function () {
-      var canvas = card.querySelector('.led-mini-preview');
-      if (canvas && typeof Derby.LEDSimulator !== 'undefined') {
-        var miniSim = new Derby.LEDSimulator();
-        var uniqueId = 'mini-' + device.id;
-        canvas.id = uniqueId;
-        miniSim.init(uniqueId);
-        miniSim.setConfig({ 
-          ledCount: Math.min(device.ledCount || 10, 20), 
-          topology: 'strip' 
-        });
-        miniSim.start();
-        
-        // Show a subtle pulse effect
-        if (typeof Derby.LEDEffects !== 'undefined') {
-          var deviceColor = device.playerColor || '#90cdf4';
-          miniSim.playEffect('pulse', { color: deviceColor, speed: 2000 });
-        }
-      }
-    }, 100);
+    // Mini LED preview — the simulator is a singleton so we can't create
+    // multiple instances.  Skipping mini-preview on device cards for now.
+    // TODO: refactor LEDSimulator into a constructor to support multiple canvases.
 
     return card;
   }
@@ -417,20 +400,6 @@ Derby.LED = (function () {
       .catch(function (err) {
         _showError('Sync failed: ' + err.message);
       });
-  }
-
-  // ── Simulator Update ────────────────────────────────────────────────────────
-
-  function _updateSimulator() {
-    if (!Derby.LEDSimulator) return;
-
-    var ledCount = parseInt(_el('led-count').value, 10);
-    var topology = _el('led-topology').value;
-
-    Derby.LEDSimulator.setConfig({
-      ledCount: ledCount,
-      topology: topology,
-    });
   }
 
   // ── UI Helpers ──────────────────────────────────────────────────────────────

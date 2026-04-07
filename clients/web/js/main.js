@@ -80,7 +80,7 @@ window.Derby = window.Derby || {};
   Derby.Admin.init();
   Derby.Test.init();
   Derby.Bots.init();
-  if (Derby.LED) Derby.LED.init();
+  try { if (Derby.LED) Derby.LED.init(); } catch (e) { console.error('[Derby] LED init failed:', e); }
 
   // ── Player name (localStorage persistence) ────────────────────────────────
 

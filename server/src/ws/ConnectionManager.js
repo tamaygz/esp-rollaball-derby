@@ -117,6 +117,24 @@ class ConnectionManager {
     return list;
   }
 
+  _getDeviceList() {
+    const devices = [];
+    for (const client of this.clients.values()) {
+      if (client.type !== 'sensor' && client.type !== 'motor') continue;
+      const player = client.playerId
+        ? this.gameState.players.get(client.playerId)
+        : null;
+      devices.push({
+        id: client.id,
+        type: client.type,
+        name: player ? player.name : (client.chipType || 'Unknown'),
+        ledCount: client.reportedLedCount || 0,
+        connected: client.ws.readyState === 1,
+      });
+    }
+    return devices;
+  }
+
   kickClient(clientId) {
     const client = this.clients.get(clientId);
     if (!client) return false;
@@ -158,6 +176,7 @@ class ConnectionManager {
   broadcastState() {
     const state = this.gameState.toJSON();
     state.connectedClients = this.getConnectedCounts();
+    state.devices = this._getDeviceList();
     this.broadcastAll({ type: 'state', payload: state });
   }
 

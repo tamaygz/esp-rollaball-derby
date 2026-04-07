@@ -19,6 +19,7 @@
   <nav class="page-nav">
     <span class="nav-active">⚙️ Admin</span>
     <a href="devices.html">📡 Devices</a>
+    <a href="leds.html">💡 LEDs</a>
     <a href="/flash-sensor" target="_blank" rel="noopener">⚡ Flash Sensor</a>
   </nav>
 
@@ -138,112 +139,6 @@
       <ul id="event-log" class="event-log" aria-live="polite" aria-relevant="additions"></ul>
     </section>
 
-    <!-- LED Configuration -->
-    <section class="card card-wide" id="card-led">
-      <h2>💡 LED Configuration</h2>
-      <div class="led-layout">
-        
-        <!-- Device List -->
-        <div class="led-device-section">
-          <h3>Connected Devices</h3>
-          <div id="led-device-list" class="led-device-list">
-            <p class="empty-msg">No LED-capable devices connected.</p>
-          </div>
-          <button id="led-sync-all" class="btn btn-secondary btn-sm">Sync All Devices</button>
-        </div>
-
-        <!-- Configuration Panel -->
-        <div class="led-config-section">
-          <h3>LED Settings</h3>
-          <p class="hint">Select a device to configure its LED strip.</p>
-          
-          <div class="form-group">
-            <label for="led-count">LED Count</label>
-            <input type="number" id="led-count" min="1" max="300" value="50">
-            <span class="hint">ESP8266: max 300, ESP32: max 1000</span>
-          </div>
-
-          <div class="form-group">
-            <label for="led-pin">GPIO Pin</label>
-            <select id="led-pin">
-              <option value="D1">D1 (GPIO5)</option>
-              <option value="D2">D2 (GPIO4)</option>
-              <option value="D3">D3 (GPIO0)</option>
-              <option value="D4" selected>D4 (GPIO2)</option>
-              <option value="D5">D5 (GPIO14)</option>
-              <option value="D6">D6 (GPIO12)</option>
-              <option value="D7">D7 (GPIO13)</option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label for="led-topology">Topology</label>
-            <select id="led-topology">
-              <option value="strip" selected>Strip (Linear)</option>
-              <option value="matrix_zigzag">Matrix (Zigzag)</option>
-              <option value="matrix_progressive">Matrix (Progressive)</option>
-              <option value="ring">Ring (Circular)</option>
-            </select>
-          </div>
-
-          <div id="led-matrix-dims" class="form-group hidden">
-            <label>Matrix Dimensions</label>
-            <div class="form-row">
-              <input type="number" id="led-matrix-rows" min="4" max="32" value="8" placeholder="Rows">
-              <span>×</span>
-              <input type="number" id="led-matrix-cols" min="4" max="32" value="8" placeholder="Cols">
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label for="led-brightness">Brightness (%)</label>
-            <input type="range" id="led-brightness" min="0" max="100" value="80">
-            <span id="led-brightness-value">80%</span>
-          </div>
-
-          <button id="led-save-config" class="btn btn-success">Save Configuration</button>
-          <div id="led-error" class="error-msg hidden"></div>
-          <div id="led-success" class="success-msg hidden"></div>
-        </div>
-
-        <!-- Preview & Effects -->
-        <div class="led-preview-section">
-          <h3>LED Preview</h3>
-          <canvas id="led-simulator" class="led-simulator"></canvas>
-
-          <h3>Test Effects</h3>
-          <div class="form-group">
-            <label for="led-effect-select">Effect</label>
-            <select id="led-effect-select">
-              <option value="">— Select Effect —</option>
-              <option value="solid">Solid Color</option>
-              <option value="blink">Blink</option>
-              <option value="pulse">Pulse (Breathing)</option>
-              <option value="rainbow">Rainbow</option>
-              <option value="chase">Chase</option>
-              <option value="sparkle">Sparkle</option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label for="led-color">Color</label>
-            <select id="led-color">
-              <!-- Populated by led-admin.js -->
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label for="led-speed">Speed (ms)</label>
-            <input type="range" id="led-speed" min="100" max="5000" value="1000">
-            <span id="led-speed-value">1000ms</span>
-          </div>
-
-          <button id="led-test-effect" class="btn btn-primary">Test on Device</button>
-        </div>
-
-      </div>
-    </section>
-
   </main>
 
   <script src="js/connection.js"></script>
@@ -251,9 +146,6 @@
   <script src="js/admin.js"></script>
   <script src="js/test.js"></script>
   <script src="js/bots.js"></script>
-  <script src="js/led-effects.js"></script>
-  <script src="js/led-simulator.js"></script>
-  <script src="js/led-admin.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>
