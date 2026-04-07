@@ -4,13 +4,13 @@ version: 1.0
 date_created: 2026-04-07
 last_updated: 2026-04-07
 owner: "@tamaygz"
-status: "Planned"
+status: "In Progress"
 tags: [feature, firmware, esp8266, arduino, platformio, sensor]
 ---
 
 # Client ESP8266 Sensor — Implementation Plan
 
-![Status: Planned](https://img.shields.io/badge/status-Planned-blue)
+![Status: In Progress](https://img.shields.io/badge/status-In%20Progress-yellow)
 
 PlatformIO project for ESP8266 (Wemos D1 Mini) sensor client firmware. Reads IR break-beam sensors (+1 and +3 holes) and sends score events to the game server via WebSocket.
 
