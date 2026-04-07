@@ -47,9 +47,9 @@ Connect to `ws://localhost:3000`. All messages are JSON `{ type, payload }`.
 
 | `type` | Direction | Description |
 |--------|-----------|-------------|
-| `register` | client→server | Register with `{ type: "web"\|"sensor"\|"display"\|"motor", playerName? }` |
+| `register` | client→server | Register with `{ type: "web"\|"sensor"\|"display"\|"motor", playerName?, playerId? }`. Include `playerId` to reconnect to an existing player session. |
 | `registered` | server→client | Confirms registration with `{ id, name, playerType }` |
-| `score` | client→server | `{ playerId, points }` — sensor or web test client |
+| `score` | client→server | `{ playerId, points }` — points must be 1, 2, or 3 |
 | `state` | server→broadcast | Full game state snapshot |
 | `scored` | server→broadcast | `{ playerName, points, newPosition }` |
 | `winner` | server→broadcast | `{ name, id }` |
@@ -69,9 +69,9 @@ Config fields (`trackLength`, `maxPlayers`, `theme`) can only be changed in `idl
 
 ```
 server/tests/
-├── gameState.test.js        (27 tests — state machine, scoring, rate-limiting, names)
-├── connectionManager.test.js (13 tests — WS hub, routing, broadcasts, disconnects)
-└── integration.test.js       (9 tests  — full HTTP+WS lifecycle)
+├── gameState.test.js         — state machine, scoring, rate-limiting, config, names, auto-theme
+├── connectionManager.test.js — WS hub, routing, broadcasts, disconnects, reconnect
+└── integration.test.js       — full HTTP+WS lifecycle, REST endpoints, clients API
 ```
 
-Run: `npm test` — all 49 tests should pass.
+Run: `npm test` — all tests should pass.
