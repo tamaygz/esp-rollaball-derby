@@ -4,13 +4,13 @@ version: 1.0
 date_created: 2026-04-07
 last_updated: 2026-04-07
 owner: "@tamaygz"
-status: "Planned"
+status: "Completed"
 tags: [feature, frontend, client, admin, testing]
 ---
 
 # Client Web — Implementation Plan
 
-![Status: Planned](https://img.shields.io/badge/status-Planned-blue)
+![Status: Completed](https://img.shields.io/badge/status-Completed-brightgreen)
 
 The web test client serves two purposes: (1) a development/testing tool that simulates ESP8266 sensor input by sending score events via buttons, and (2) a game host admin panel for configuring, starting, pausing, and resetting the game. It's a vanilla JavaScript SPA served by the game server — no build step, no framework.
 
