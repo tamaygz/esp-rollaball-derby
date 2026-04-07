@@ -115,6 +115,67 @@
     if (rs) rs.textContent = 'Last updated: ' + _ts();
   }
 
+  // ── Sensor Remote Config ─────────────────────────────────────────────────────
+
+  function _configureSensor(sensorIp, serverIp, serverPort, playerName) {
+    return fetch('/api/sensors/configure', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sensorIp: sensorIp, serverIp: serverIp, serverPort: serverPort, playerName: playerName }),
+    }).then(function (res) { return res.json().then(function (body) { return { ok: res.ok, body: body }; }); });
+  }
+
+  function _initSensorConfigForm() {
+    var form       = _el('sensor-config-form');
+    var btnSubmit  = _el('btn-sensor-config');
+    var statusEl   = _el('sensor-config-status');
+    var inputServerIp   = _el('input-server-ip');
+    var inputServerPort = _el('input-server-port');
+
+    if (!form) return;
+
+    // Pre-fill server IP and port from the current page origin.
+    if (inputServerIp && !inputServerIp.value) {
+      inputServerIp.value = window.location.hostname;
+    }
+    if (inputServerPort && !inputServerPort.value) {
+      inputServerPort.value = window.location.port || '3000';
+    }
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      var sensorIp   = (_el('input-sensor-ip')   || {}).value || '';
+      var serverIp   = (inputServerIp             || {}).value || '';
+      var serverPort = (inputServerPort           || {}).value || '3000';
+      var playerName = (_el('input-player-name')  || {}).value || '';
+
+      if (!sensorIp.trim()) {
+        if (statusEl) statusEl.textContent = 'Enter the sensor IP first.';
+        return;
+      }
+
+      if (btnSubmit) btnSubmit.disabled = true;
+      if (statusEl) statusEl.textContent = 'Sending…';
+
+      _configureSensor(sensorIp.trim(), serverIp.trim(), serverPort.trim(), playerName.trim())
+        .then(function (result) {
+          if (result.ok) {
+            if (statusEl) statusEl.textContent = '✅ Config sent — sensor is rebooting.';
+          } else {
+            var msg = (result.body && result.body.error) ? result.body.error : 'Unknown error';
+            if (statusEl) statusEl.textContent = '❌ ' + _esc(msg);
+          }
+        })
+        .catch(function (e) {
+          if (statusEl) statusEl.textContent = '❌ Request failed: ' + _esc(e.message);
+        })
+        .finally(function () {
+          if (btnSubmit) btnSubmit.disabled = false;
+        });
+    });
+  }
+
   // ── Refresh ─────────────────────────────────────────────────────────────────
 
   function _refresh() {
@@ -136,6 +197,8 @@
 
   var btnRefresh = _el('btn-refresh');
   if (btnRefresh) btnRefresh.addEventListener('click', _refresh);
+
+  _initSensorConfigForm();
 
   // Pause polling when the tab is hidden to save server resources
   document.addEventListener('visibilitychange', function () {

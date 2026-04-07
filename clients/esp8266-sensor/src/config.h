@@ -15,6 +15,9 @@
 #define WS_BACKOFF_MIN_MS  1000UL
 #define WS_BACKOFF_MAX_MS  30000UL
 
+// ─── HTTP Config Server ───────────────────────────────────────────────────────
+#define HTTP_CONFIG_PORT  80        // Accepts POST /config to update server IP/port/name
+
 // ─── WiFiManager AP ───────────────────────────────────────────────────────────
 #define WIFIMANAGER_AP_PREFIX  "Derby-Sensor-"
 

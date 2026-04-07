@@ -655,3 +655,12 @@ input:disabled, select:disabled {
   transition: background 0.15s;
 }
 .btn-kick:hover { background: rgba(229,62,62,0.28); }
+
+/* ─── Sensor Remote Config Form ─────────────────────────────────────────────── */
+.sensor-config-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+

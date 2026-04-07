@@ -14,6 +14,7 @@ const createGameRouter = require('./routes/game');
 const createPlayersRouter = require('./routes/players');
 const createClientsRouter = require('./routes/clients');
 const createBotsRouter = require('./routes/bots');
+const createSensorsRouter = require('./routes/sensors');
 
 const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
@@ -57,6 +58,7 @@ app.use('/api/game', (req, res, next) => createGameRouter(gameState, connectionM
 app.use('/api/players', (req, res, next) => createPlayersRouter(gameState, connectionManager)(req, res, next));
 app.use('/api/clients', (req, res, next) => createClientsRouter(gameState, connectionManager)(req, res, next));
 app.use('/api/bots', (req, res, next) => createBotsRouter(botManager)(req, res, next));
+app.use('/api/sensors', createSensorsRouter());
 
 // ─── Global error handler ─────────────────────────────────────────────────────
 

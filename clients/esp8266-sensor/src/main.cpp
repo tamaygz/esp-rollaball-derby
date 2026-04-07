@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <ESP8266WiFi.h>
+#include <ESP8266WebServer.h>
 #include <WiFiManager.h>
 #include <LittleFS.h>
 #include <ArduinoJson.h>
@@ -10,9 +11,14 @@
 #include "led.h"
 
 // ─── Global Instances ─────────────────────────────────────────────────────────
-static WSClient   wsClient;
-static Sensors    sensors;
-static StatusLed  led;
+static WSClient        wsClient;
+static Sensors         sensors;
+static StatusLed       led;
+static ESP8266WebServer httpServer(HTTP_CONFIG_PORT);
+
+// Flag set by the /config handler so the reboot happens after the HTTP response
+// has been flushed to the client.
+static bool g_pendingRestart = false;
 
 // ─── Runtime Config (loaded from LittleFS, populated by WiFiManager) ──────────
 static char g_serverIp  [40] = "192.168.1.200";
@@ -82,6 +88,50 @@ static void onSaveParams() {
     saveConfig();
 }
 
+// ─── HTTP Config Server ───────────────────────────────────────────────────────
+
+// POST /config  { "server_ip": "...", "server_port": "3000", "player_name": "..." }
+// Updates LittleFS config and schedules a reboot so the sensor reconnects to
+// the new server.  Any omitted JSON fields keep their current values.
+static void handleHttpConfig() {
+    if (httpServer.method() != HTTP_POST) {
+        httpServer.send(405, "application/json", "{\"error\":\"Method Not Allowed\"}");
+        return;
+    }
+
+    String body = httpServer.arg("plain");
+    JsonDocument doc;
+    DeserializationError err = deserializeJson(doc, body);
+    if (err) {
+        httpServer.send(400, "application/json", "{\"error\":\"Invalid JSON\"}");
+        return;
+    }
+
+    bool changed = false;
+    if (doc["server_ip"].is<const char*>()) {
+        strlcpy(g_serverIp, doc["server_ip"], sizeof(g_serverIp));
+        changed = true;
+    }
+    if (doc["server_port"].is<const char*>()) {
+        strlcpy(g_serverPort, doc["server_port"], sizeof(g_serverPort));
+        changed = true;
+    }
+    if (doc["player_name"].is<const char*>()) {
+        strlcpy(g_playerName, doc["player_name"], sizeof(g_playerName));
+        changed = true;
+    }
+
+    if (changed) {
+        saveConfig();
+        Serial.printf("[CFG] Remote update — ip=%s port=%s name=%s — rebooting\n",
+                      g_serverIp, g_serverPort, g_playerName);
+        httpServer.send(200, "application/json", "{\"ok\":true}");
+        g_pendingRestart = true;
+    } else {
+        httpServer.send(200, "application/json", "{\"ok\":true,\"changed\":false}");
+    }
+}
+
 // ─── Setup ────────────────────────────────────────────────────────────────────
 
 void setup() {
@@ -135,6 +185,12 @@ void setup() {
 
     uint16_t port = static_cast<uint16_t>(atoi(g_serverPort));
     wsClient.begin(g_serverIp, port, g_playerName);
+
+    // HTTP config server — lets the Node.js admin push new config without
+    // needing to re-open the WiFiManager captive portal.
+    httpServer.on("/config", handleHttpConfig);
+    httpServer.begin();
+    Serial.printf("[HTTP] Config server listening on port %d\n", HTTP_CONFIG_PORT);
 }
 
 // ─── Loop ─────────────────────────────────────────────────────────────────────
@@ -159,6 +215,14 @@ void loop() {
     if (!s_wifiWasConnected) {
         s_wifiWasConnected = true;
         Serial.printf("[WiFi] Reconnected — IP: %s\n", WiFi.localIP().toString().c_str());
+    }
+
+    httpServer.handleClient();
+
+    // Reboot after the HTTP response has been flushed (flagged by handleHttpConfig).
+    if (g_pendingRestart) {
+        delay(200);
+        ESP.restart();
     }
 
     wsClient.loop();
