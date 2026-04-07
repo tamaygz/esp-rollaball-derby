@@ -7,7 +7,8 @@
  *   Applies a scale-bounce (grow then spring back) and a brief white flash
  *   to any Pixi DisplayObject via gsap.
  *
- * Relies on the global `gsap` object loaded from CDN.
+ * Relies on the global `gsap` object loaded locally by the display client
+ * (for example, from `vendor/gsap.min.js`), not from a CDN.
  */
 var ScoringEffect = (function () {
 
