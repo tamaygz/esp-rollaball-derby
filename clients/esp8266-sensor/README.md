@@ -61,7 +61,7 @@ On first boot (no saved credentials) the device opens a WiFi access point named 
 
 | Field | Description | Default |
 |-------|-------------|---------|
-| Server IP | LAN IP of the game server | `192.168.4.1` |
+| Server IP | LAN IP of the game server | `192.168.1.200` |
 | Server Port | Port the server listens on | `3000` |
 | Player Name | Optional label for this player lane | _(empty — server assigns one)_ |
 
