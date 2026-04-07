@@ -1,17 +1,19 @@
 # Roll-a-Ball Derby — ESP8266 Sensor Client
 
-PlatformIO firmware for the **Wemos D1 Mini** (ESP8266) sensor node. Reads two IR break-beam sensors (+1 and +3 scoring holes) and sends score events to the game server via WebSocket.
+PlatformIO firmware for the **Wemos D1 Mini** (ESP8266) sensor node. Reads three IR break-beam sensors (+1, +2, and +3 scoring holes) and sends score events to the game server via WebSocket.
 
 ## Hardware
 
 | Signal | D1 Mini pin | GPIO | Notes |
 |--------|-------------|------|-------|
 | +1 sensor | D1 | GPIO5 | Active-LOW (INPUT_PULLUP) |
-| +3 sensor | D2 | GPIO4 | Active-LOW (INPUT_PULLUP) |
+| +2 sensor | D2 | GPIO4 | Active-LOW (INPUT_PULLUP) |
+| +3 sensor | D5 | GPIO14 | Active-LOW (INPUT_PULLUP) |
 | Status LED | LED_BUILTIN | GPIO2 | Active-LOW (built-in) |
 
-Connect the collector/output of each IR break-beam receiver to the pin, and GND to the sensor GND. The emitter side is powered from 3.3 V. Both sensor pins are configured as `INPUT_PULLUP` so **no external pull-up resistors are required** — the ESP8266 internal pull-ups (~47 kΩ) hold the line HIGH; the sensor pulls it LOW when the beam is broken.
+Connect the collector/output of each IR break-beam receiver to the pin, and GND to the sensor GND. The emitter side is powered from 3.3 V. All three sensor pins are configured as `INPUT_PULLUP` so **no external pull-up resistors are required** — the ESP8266 internal pull-ups (~47 kΩ) hold the line HIGH; the sensor pulls it LOW when the beam is broken.
 
+Each scoring hole has its own sensor input: breaking the `+1`, `+2`, or `+3` beam causes the firmware to report the corresponding `points` value (`1`, `2`, or `3`) to the server.
 ## Requirements
 
 - Wemos D1 Mini (ESP8266, 4 MB flash)
