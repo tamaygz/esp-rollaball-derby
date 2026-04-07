@@ -40,6 +40,13 @@ Derby.Admin = (function () {
     }).then(function (res) { return res.json(); });
   }
 
+  function _delete(path) {
+    return fetch(path, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+    }).then(function (res) { return res.json(); });
+  }
+
   // ── Game control ────────────────────────────────────────────────────────────
 
   function _onStart() {
@@ -86,12 +93,22 @@ Derby.Admin = (function () {
   // ── Player management ───────────────────────────────────────────────────────
 
   function renamePlayer(id, name) {
-    _put('/api/players/' + encodeURIComponent(id), { name: name })
+    return _put('/api/players/' + encodeURIComponent(id), { name: name })
       .then(function (data) {
         if (data.error) console.error('[Derby.Admin] Rename failed:', data.error);
       })
       .catch(function (e) {
         console.error('[Derby.Admin] Rename error:', e.message);
+      });
+  }
+
+  function removePlayer(id) {
+    return _delete('/api/players/' + encodeURIComponent(id))
+      .then(function (data) {
+        if (data.error) console.error('[Derby.Admin] Remove failed:', data.error);
+      })
+      .catch(function (e) {
+        console.error('[Derby.Admin] Remove error:', e.message);
       });
   }
 
@@ -109,5 +126,5 @@ Derby.Admin = (function () {
     if (formCfg)   formCfg.addEventListener('submit', _onSaveConfig);
   }
 
-  return { init: init, renamePlayer: renamePlayer };
+  return { init: init, renamePlayer: renamePlayer, removePlayer: removePlayer };
 }());

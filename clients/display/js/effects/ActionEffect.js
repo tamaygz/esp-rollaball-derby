@@ -147,6 +147,12 @@ var ActionEffect = (function () {
     _tintFlash(lane, 0xFFFFFF, 130);
   }
 
+  function _fxScore2(lane) {
+    _scaleBounce(lane, 1.62);
+    _tintFlash(lane, 0xFFFFFF, 150);
+    _laneFlash(lane, 0x88CCFF, 0.18, 0.5);
+  }
+
   function _fxScore3(lane) {
     _scaleBounce(lane, 1.85);
     _tintFlash(lane, 0xFFD700, 200);
@@ -189,6 +195,7 @@ var ActionEffect = (function () {
 
     var hasZeroRoll      = events.indexOf('zero_roll')       >= 0;
     var hasScore1        = events.indexOf('score_1')         >= 0;
+    var hasScore2        = events.indexOf('score_2')         >= 0;
     var hasScore3        = events.indexOf('score_3')         >= 0;
     var hasStreakZero3x  = events.indexOf('streak_zero_3x')  >= 0;
     var hasStreakThree2x = events.indexOf('streak_three_2x') >= 0;
@@ -198,6 +205,7 @@ var ActionEffect = (function () {
     // Base effects fire immediately
     if (hasZeroRoll) _fxZeroRoll(lane);
     if (hasScore1)   _fxScore1(lane);
+    if (hasScore2)   _fxScore2(lane);
     if (hasScore3)   _fxScore3(lane);
 
     // Streak effects fire after base (so their pop-ups appear on top)

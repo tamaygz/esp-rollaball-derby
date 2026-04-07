@@ -27,6 +27,8 @@ window.Derby = window.Derby || {};
         var name = msg.payload.name;
         var ptype = msg.payload.playerType;
         Derby.State.setMyId(id);
+        // Persist so the next reconnect can supply this ID and reuse the entry.
+        localStorage.setItem('derby-player-id', id);
         var infoEl = _el('my-id-info');
         if (infoEl) {
           infoEl.textContent = 'You: ' + name + ' (' + ptype + ') — ID: ' + id.slice(0, 8) + '…';
@@ -40,6 +42,8 @@ window.Derby = window.Derby || {};
         Derby.State.render(msg.payload);
         // Keep score buttons in sync after a state update
         if (Derby.Test) Derby.Test.syncButtons();
+        // Keep bots in sync (start/stop timers, refresh player list)
+        if (Derby.Bots) Derby.Bots.syncState(msg.payload);
         break;
 
       case 'scored': {
@@ -73,6 +77,7 @@ window.Derby = window.Derby || {};
 
   Derby.Admin.init();
   Derby.Test.init();
+  Derby.Bots.init();
 
   // ── Player name (localStorage persistence) ────────────────────────────────
 

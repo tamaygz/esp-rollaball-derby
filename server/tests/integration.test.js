@@ -14,6 +14,7 @@ const ConnectionManager = require('../src/ws/ConnectionManager');
 const healthRouter = require('../src/routes/health');
 const createGameRouter = require('../src/routes/game');
 const createPlayersRouter = require('../src/routes/players');
+const createClientsRouter = require('../src/routes/clients');
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -31,6 +32,9 @@ function startServer() {
     );
     app.use('/api/players', (req, res, next) =>
       createPlayersRouter(gameState, connectionManager)(req, res, next)
+    );
+    app.use('/api/clients', (req, res, next) =>
+      createClientsRouter(gameState, connectionManager)(req, res, next)
     );
 
     const server = http.createServer(app);
@@ -232,6 +236,83 @@ describe('Integration — WebSocket flow', () => {
     assert.equal(gameState.players.size, 0);
   });
 
+  test('reconnect with stale playerId falls back to new registration gracefully', async () => {
+    gameState.reset();
+    gameState.players.clear();
+
+    // Reconnecting with a player ID that the server no longer knows (e.g., server
+    // restarted) should fall through to normal first-time registration without error.
+    const ws = await wsConnect(port);
+    const regPromise = waitForMessage(ws, (m) => m.type === 'registered', 2000);
+    ws.send(
+      JSON.stringify({
+        type: 'register',
+        payload: { type: 'sensor', playerName: 'Returner', playerId: 'stale-unknown-id' },
+      })
+    );
+    const registered = await regPromise;
+
+    assert.equal(registered.payload.name, 'Returner');
+    assert.equal(registered.payload.playerType, 'sensor');
+    assert.equal(gameState.players.size, 1);
+
+    ws.close();
+  });
+
+  test('reconnect while game is running reuses player entry', async () => {
+    gameState.reset();
+    gameState.players.clear();
+
+    // Register a sensor player
+    const ws1 = await wsConnect(port);
+    const regPromise1 = waitForMessage(ws1, (m) => m.type === 'registered', 2000);
+    ws1.send(JSON.stringify({ type: 'register', payload: { type: 'sensor', playerName: 'Runner' } }));
+    const registered1 = await regPromise1;
+    const playerId = registered1.payload.id;
+
+    // Start the game via REST
+    await new Promise((resolve, reject) => {
+      const req = http.request(
+        {
+          hostname: '127.0.0.1', port, path: '/api/game/start', method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        },
+        (res) => { res.resume(); res.on('end', resolve); }
+      );
+      req.on('error', reject);
+      req.end();
+    });
+
+    assert.equal(gameState.getStatus(), 'running');
+    assert.equal(gameState.players.size, 1);
+
+    // Disconnect while game is running — player is marked disconnected, not deleted
+    ws1.close();
+    await new Promise((r) => setTimeout(r, 50));
+    assert.equal(gameState.players.size, 1);
+    assert.equal(gameState.players.get(playerId).connected, false);
+
+    // Reconnect with the original player ID — server should reuse existing entry
+    const ws2 = await wsConnect(port);
+    const regPromise2 = waitForMessage(ws2, (m) => m.type === 'registered', 2000);
+    ws2.send(
+      JSON.stringify({
+        type: 'register',
+        payload: { type: 'sensor', playerName: 'Runner', playerId },
+      })
+    );
+    const registered2 = await regPromise2;
+
+    // Same ID and name — no duplicate player created
+    assert.equal(registered2.payload.id, playerId);
+    assert.equal(registered2.payload.name, 'Runner');
+    assert.equal(gameState.players.size, 1);
+    assert.equal(gameState.players.get(playerId).connected, true);
+
+    ws2.close();
+    gameState.reset();
+  });
+
   test('invalid JSON sends error message, does not crash', async () => {
     const ws = await wsConnect(port);
 
@@ -312,6 +393,70 @@ describe('Integration — REST API', () => {
   test('PUT /api/game/config rejects invalid trackLength', async () => {
     const res = await restRequest('PUT', '/api/game/config', { trackLength: 9999 });
     assert.equal(res.status, 400);
+    assert.ok(res.body.error);
+  });
+
+  test('DELETE /api/players/:id removes player when idle', async () => {
+    gameState.reset();
+    gameState.players.clear();
+    gameState.addPlayer('pid1', 'Toby', 'sensor');
+    assert.equal(gameState.players.size, 1);
+    const res = await restRequest('DELETE', '/api/players/pid1');
+    assert.equal(res.status, 200);
+    assert.equal(res.body.removed, true);
+    assert.equal(gameState.players.size, 0);
+  });
+
+  test('DELETE /api/players/:id returns 404 for unknown player', async () => {
+    const res = await restRequest('DELETE', '/api/players/no-such-player');
+    assert.equal(res.status, 404);
+    assert.ok(res.body.error);
+  });
+
+  test('GET /api/clients returns list of connected clients', async () => {
+    const ws = await wsConnect(port);
+    const regPromise = waitForMessage(ws, (m) => m.type === 'registered', 2000);
+    ws.send(JSON.stringify({ type: 'register', payload: { type: 'sensor', playerName: 'ListTest' } }));
+    await regPromise;
+
+    const res = await restRequest('GET', '/api/clients');
+    assert.equal(res.status, 200);
+    assert.ok(Array.isArray(res.body));
+    assert.ok(res.body.length >= 1);
+    const mine = res.body.find((c) => c.playerName === 'ListTest');
+    assert.ok(mine);
+    assert.equal(mine.type, 'sensor');
+
+    ws.close();
+  });
+
+  test('DELETE /api/clients/:id kicks a connected client', async () => {
+    const ws = await wsConnect(port);
+    const regPromise = waitForMessage(ws, (m) => m.type === 'registered', 2000);
+    ws.send(JSON.stringify({ type: 'register', payload: { type: 'web', playerName: 'KickMe' } }));
+    const reg = await regPromise;
+
+    // Locate the WS client ID via GET /api/clients
+    const listRes = await restRequest('GET', '/api/clients');
+    const entry = listRes.body.find((c) => c.playerName === 'KickMe');
+    assert.ok(entry, 'client should be listed before kick');
+
+    const kickRes = await restRequest('DELETE', '/api/clients/' + entry.id);
+    assert.equal(kickRes.status, 200);
+    assert.equal(kickRes.body.kicked, true);
+
+    // Give server a tick to process the close
+    await new Promise((r) => setTimeout(r, 50));
+
+    // Client should now be gone from the list
+    const afterRes = await restRequest('GET', '/api/clients');
+    const stillThere = afterRes.body.find((c) => c.id === entry.id);
+    assert.equal(stillThere, undefined, 'kicked client should not appear in list');
+  });
+
+  test('DELETE /api/clients/:id returns 404 for unknown client', async () => {
+    const res = await restRequest('DELETE', '/api/clients/no-such-id');
+    assert.equal(res.status, 404);
     assert.ok(res.body.error);
   });
 });

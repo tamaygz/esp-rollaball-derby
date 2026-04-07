@@ -279,11 +279,11 @@ describe('ConnectionManager — _handleScore()', () => {
     const { cm, ws, clientId, gameState } = setupRunningGame();
     const [playerId] = gameState.players.keys();
 
-    cm._handleScore(clientId, ws, { playerId, points: 2 });
+    cm._handleScore(clientId, ws, { playerId, points: 5 });
 
     const err = ws.sent.find((m) => m.type === 'error');
     assert.ok(err, 'should receive error message');
-    assert.match(err.payload.message, /points must be 0, 1, or 3/i);
+    assert.match(err.payload.message, /points must be 0, 1, 2, or 3/i);
   });
 });
 
