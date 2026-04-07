@@ -107,10 +107,18 @@
   <p class="subtitle">Flash the IR sensor firmware to a Wemos D1 Mini — no toolchain required.</p>
 
   <div class="browser-warn" id="browser-warn">
-    ⚠️ <strong>Unsupported browser.</strong> Web Serial requires
-    <a href="https://www.google.com/chrome/" target="_blank" rel="noopener">Chrome</a> or
-    <a href="https://www.microsoft.com/edge" target="_blank" rel="noopener">Edge</a> 89+ on desktop.
-    Safari and Firefox are not supported.
+    ⚠️ <strong id="warn-heading">Web Serial unavailable.</strong>
+    <span id="warn-unsupported">
+      Web Serial requires
+      <a href="https://www.google.com/chrome/" target="_blank" rel="noopener">Chrome</a> or
+      <a href="https://www.microsoft.com/edge" target="_blank" rel="noopener">Edge</a> 89+ on desktop.
+      Safari and Firefox are not supported.
+    </span>
+    <span id="warn-insecure" style="display:none">
+      Web Serial only works in a <strong>secure context</strong>.
+      Open this page from <code>http://localhost:3000/flash-sensor</code> (same machine as the server),
+      or serve the game server over HTTPS.
+    </span>
   </div>
 
   <div class="steps">
@@ -136,16 +144,26 @@
   </p>
 </div>
 
-<!-- ESP Web Tools — browser-based WebSerial flasher by ESPHome -->
+<!-- ESP Web Tools — pinned to v10.2.1 with integrity hash to prevent supply-chain tampering -->
 <script
   type="module"
-  src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"
+  src="https://unpkg.com/esp-web-tools@10.2.1/dist/web/install-button.js?module"
+  integrity="sha384-2Ea4WL8tjFb0qQKUqBoX45KlPVoUgL+Z3zUqsD0MHmtJ3faDbfNyZulLg/LfYDUZ"
+  crossorigin="anonymous"
 ></script>
 
 <script>
-  // Show a warning if Web Serial is not available (Firefox, Safari).
-  if (!('serial' in navigator)) {
+  // Show a warning if Web Serial is unavailable (Firefox/Safari) or
+  // if the page is not in a secure context (non-localhost plain HTTP).
+  const hasSerial  = ('serial' in navigator);
+  const isSecure   = window.isSecureContext;
+  if (!hasSerial || !isSecure) {
     document.getElementById('browser-warn').style.display = 'block';
+    if (hasSerial && !isSecure) {
+      // Browser supports Web Serial but secure context is missing.
+      document.getElementById('warn-unsupported').style.display = 'none';
+      document.getElementById('warn-insecure').style.display    = 'inline';
+    }
   }
 </script>
 

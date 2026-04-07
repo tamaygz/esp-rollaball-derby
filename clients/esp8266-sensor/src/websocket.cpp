@@ -43,6 +43,8 @@ void WSClient::_connect() {
 }
 
 void WSClient::_sendRegister() {
+    // Buffer covers: type(10) + payload.type(10) + playerName(≤21) + playerId(≤40 UUID) + JSON overhead ≈ 150 bytes; 256 gives ample headroom.
+    char buf[256];
     JsonDocument doc;
     doc["type"] = "register";
     JsonObject payload = doc["payload"].to<JsonObject>();
@@ -55,9 +57,8 @@ void WSClient::_sendRegister() {
         payload["playerId"] = _playerId;
     }
 
-    String msg;
-    serializeJson(doc, msg);
-    _client.send(msg);
+    serializeJson(doc, buf, sizeof(buf));
+    _client.send(buf);
     Serial.println("[WS] Register sent");
 }
 
@@ -71,15 +72,16 @@ void WSClient::sendScore(int points) {
         return;
     }
 
+    // Buffer covers: type(7) + playerId(≤40 UUID) + points(1 digit) + JSON overhead ≈ 80 bytes; 128 gives ample headroom.
+    char buf[128];
     JsonDocument doc;
     doc["type"] = "score";
     JsonObject payload = doc["payload"].to<JsonObject>();
     payload["playerId"] = _playerId;
     payload["points"]   = points;
 
-    String msg;
-    serializeJson(doc, msg);
-    _client.send(msg);
+    serializeJson(doc, buf, sizeof(buf));
+    _client.send(buf);
     Serial.printf("[WS] Score sent: playerId=%s points=%d\n", _playerId.c_str(), points);
 }
 

@@ -73,13 +73,15 @@ jobs:
       - name: Create or update GitHub Release
         run: |
           TAG="${{ inputs.tag }}"
-          # Try to view the existing release; treat only "release not found" as a missing release.
-          if gh release view "$TAG" 2>&1 | grep -q "release not found"; then
+          # Use exit code to detect whether the release already exists.
+          # If gh release view exits 0 the release exists → upload/clobber.
+          # Any non-zero exit means it doesn't exist yet → create it.
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" dist/firmware.bin --clobber
+          else
             gh release create "$TAG" dist/firmware.bin \
               --title "Sensor Firmware $TAG" \
-              --notes $'Pre-compiled ESP8266 sensor firmware for the Roll-a-Ball Derby sensor node.\n\n**Flash without any toolchain**: open `http://<server-ip>:3000/flash-sensor` in Chrome or Edge, plug in the Wemos D1 Mini via USB, and click *Install*.'
-          else
-            gh release upload "$TAG" dist/firmware.bin --clobber
+              --notes $'Pre-compiled ESP8266 sensor firmware for the Roll-a-Ball Derby sensor node.\n\n**Flash without any toolchain**: open `http://localhost:3000/flash-sensor` in Chrome or Edge (on the same machine as the server), plug in the Wemos D1 Mini via USB, and click *Install*.'
           fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

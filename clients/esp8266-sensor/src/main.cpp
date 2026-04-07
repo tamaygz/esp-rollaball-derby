@@ -98,7 +98,9 @@ void setup() {
     if (!LittleFS.begin()) {
         Serial.println("[CFG] LittleFS mount failed — formatting...");
         LittleFS.format();
-        LittleFS.begin();
+        if (!LittleFS.begin()) {
+            Serial.println("[CFG] LittleFS mount failed after format — continuing without persistent config");
+        }
     }
     loadConfig();
 
@@ -161,18 +163,24 @@ void loop() {
 
     wsClient.loop();
 
+    int points = sensors.check();
+
     if (wsClient.isConnected()) {
         led.setState(LedState::WS_CONNECTED);
 
         // Only send score events once a playerId has been assigned by the server.
         if (!wsClient.getPlayerId().isEmpty()) {
-            int points = sensors.check();
             if (points > 0) {
                 Serial.printf("[SENSOR] Triggered: +%d\n", points);
                 wsClient.sendScore(points);
             }
+        } else if (points > 0) {
+            Serial.printf("[SENSOR] Dropped trigger while waiting for player assignment: +%d\n", points);
         }
     } else {
         led.setState(LedState::WIFI_ONLY);
+        if (points > 0) {
+            Serial.printf("[SENSOR] Dropped offline trigger: +%d\n", points);
+        }
     }
 }
