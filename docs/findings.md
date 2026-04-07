@@ -13,10 +13,12 @@
 ## Open Decisions (from PRD §6)
 | # | Decision | Options | Status |
 |---|----------|---------|--------|
-| 1 | Server stack | Node.js + WS vs Python + FastAPI | Researching |
-| 2 | Frontend framework | Canvas vs React/Svelte vs Pixi.js/Phaser | Researching |
-| 3 | Motor type | 28BYJ-48 vs NEMA 17 vs Servos | Researching |
-| 4 | WiFi config | Hardcoded vs WiFiManager AP portal | Researching |
+| 1 | Server stack | Node.js + WS vs Python + FastAPI | **Decided: Node.js + Express + `ws`** |
+| 2 | Frontend framework | Canvas vs React/Svelte vs Pixi.js/Phaser | **Decided: Pixi.js** |
+| 3 | Motor type | 28BYJ-48 vs NEMA 17 vs Servos | **Deferred to Phase 3** |
+| 4 | WiFi config | Hardcoded vs WiFiManager AP portal | **Decided: WiFiManager AP portal** |
+| 5 | ESPHome / Home Assistant | Use ESPHome vs standalone Arduino | **Decided: Standalone** |
+| 6 | ESP8266 WebSocket lib | Links2004 vs gilmaimon | **Decided: gilmaimon/ArduinoWebsockets** |
 
 ## Research Findings
 
