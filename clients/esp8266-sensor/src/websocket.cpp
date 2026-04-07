@@ -142,7 +142,7 @@ GameEvent WSClient::pollEvent() {
 }
 
 void WSClient::_onEvent(WebsocketsEvent event, String data) {
-
+    if (event == WebsocketsEvent::ConnectionOpened) {
         Serial.println("[WS] Connected");
         _connected = true;
         _backoffMs = WS_BACKOFF_MIN_MS;  // reset backoff on successful connection

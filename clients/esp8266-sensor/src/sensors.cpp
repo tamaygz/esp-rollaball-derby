@@ -13,7 +13,7 @@ static volatile unsigned long s_lastTrigger3  = 0;
 
 // ─── ISR handlers ─────────────────────────────────────────────────────────────
 
-void ICACHE_RAM_ATTR Sensors::_isr1() {
+void IRAM_ATTR Sensors::_isr1() {
     unsigned long now = millis();
     // Arithmetic handles millis() 49-day rollover correctly for unsigned long.
     if (now - s_lastTrigger1 >= DEBOUNCE_MS) {
@@ -22,7 +22,7 @@ void ICACHE_RAM_ATTR Sensors::_isr1() {
     }
 }
 
-void ICACHE_RAM_ATTR Sensors::_isr2() {
+void IRAM_ATTR Sensors::_isr2() {
     unsigned long now = millis();
     if (now - s_lastTrigger2 >= DEBOUNCE_MS) {
         s_lastTrigger2 = now;
@@ -30,7 +30,7 @@ void ICACHE_RAM_ATTR Sensors::_isr2() {
     }
 }
 
-void ICACHE_RAM_ATTR Sensors::_isr3() {
+void IRAM_ATTR Sensors::_isr3() {
     unsigned long now = millis();
     if (now - s_lastTrigger3 >= DEBOUNCE_MS) {
         s_lastTrigger3 = now;

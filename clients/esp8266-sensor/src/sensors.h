@@ -16,7 +16,7 @@ public:
     int check();
 
 private:
-    static void ICACHE_RAM_ATTR _isr1();
-    static void ICACHE_RAM_ATTR _isr2();
-    static void ICACHE_RAM_ATTR _isr3();
+    static void IRAM_ATTR _isr1();
+    static void IRAM_ATTR _isr2();
+    static void IRAM_ATTR _isr3();
 };
