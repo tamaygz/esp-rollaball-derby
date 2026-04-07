@@ -130,6 +130,7 @@ Derby.State = (function () {
             '<span class="player-color-dot" style="background:' + color + '"></span>' +
             '<span class="player-name" data-id="' + _esc(p.id) + '" data-name="' + _esc(p.name) + '">' + displayName + '</span>' +
             '<button class="btn-edit-name" data-id="' + _esc(p.id) + '" title="Rename player" aria-label="Rename player">✏️</button>' +
+            '<button class="btn-remove-player" data-id="' + _esc(p.id) + '" data-name="' + _esc(p.name) + '" title="Remove player" aria-label="Remove player ' + _esc(p.name) + '">🗑️</button>' +
             '<span class="player-type-badge">' + _esc(p.type) + '</span>' +
             '<span class="player-status">' + dot + '</span>' +
           '</div>' +
@@ -148,6 +149,16 @@ Derby.State = (function () {
     editBtns.forEach(function (btn) {
       btn.addEventListener('click', function () {
         _startNameEdit(btn.dataset.id);
+      });
+    });
+
+    // Attach remove listeners
+    var removeBtns = container.querySelectorAll('.btn-remove-player');
+    removeBtns.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var name = btn.dataset.name || 'this player';
+        if (!window.confirm('Remove "' + name + '" from the game?')) return;
+        Derby.Admin.removePlayer(btn.dataset.id);
       });
     });
   }
@@ -227,12 +238,20 @@ Derby.State = (function () {
   // ── Public API ──────────────────────────────────────────────────────────────
 
   function render(state) {
-    _current = state;
-    var status  = state.status  || 'idle';
-    var config  = state.config  || _current.config;
-    var players = state.players || [];
-    var counts  = state.connectedClients || { total: 0, sensor: 0, web: 0, motor: 0, display: 0 };
+    var previous = _current;
+    state = state || {};
 
+    var status = state.status || previous.status || 'idle';
+    var config = state.config || previous.config || { trackLength: 15, maxPlayers: 16, theme: 'horse' };
+    var players = state.players || previous.players || [];
+    var counts = state.connectedClients || previous.connectedClients || { total: 0, sensor: 0, web: 0, motor: 0, display: 0 };
+
+    _current = {
+      status: status,
+      config: config,
+      players: players,
+      connectedClients: counts,
+    };
     _renderStatusBadge(status);
     _renderClientsSummary(counts);
     _renderButtons(status);

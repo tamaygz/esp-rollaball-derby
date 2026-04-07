@@ -25,8 +25,10 @@ Derby.Test = (function () {
     var playerId = select ? select.value : '';
     var canScore = (status === 'running') && !!playerId;
     var btn1 = _el('btn-score-1');
+    var btn2 = _el('btn-score-2');
     var btn3 = _el('btn-score-3');
     if (btn1) btn1.disabled = !canScore;
+    if (btn2) btn2.disabled = !canScore;
     if (btn3) btn3.disabled = !canScore;
   }
 
@@ -40,6 +42,7 @@ Derby.Test = (function () {
   function init() {
     var select = _el('score-player');
     var btn1   = _el('btn-score-1');
+    var btn2   = _el('btn-score-2');
     var btn3   = _el('btn-score-3');
 
     if (select) {
@@ -50,6 +53,13 @@ Derby.Test = (function () {
       btn1.addEventListener('click', function () {
         _flash(btn1);
         _sendScore(1);
+      });
+    }
+
+    if (btn2) {
+      btn2.addEventListener('click', function () {
+        _flash(btn2);
+        _sendScore(2);
       });
     }
 

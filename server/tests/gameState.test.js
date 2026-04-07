@@ -86,25 +86,26 @@ describe('GameState — score()', () => {
     assert.equal(updated.position, 3);
   });
 
-  test('rejects invalid points — 2', () => {
+  test('increments position correctly (+2)', () => {
     const game = makeGame();
     const player = addConnectedPlayer(game);
     game.start();
-    assert.throws(() => game.score(player.id, 2), /Points must be 1 or 3/);
+    const { player: updated } = game.score(player.id, 2);
+    assert.equal(updated.position, 2);
   });
 
   test('rejects invalid points — 0', () => {
     const game = makeGame();
     const player = addConnectedPlayer(game);
     game.start();
-    assert.throws(() => game.score(player.id, 0), /Points must be 1 or 3/);
+    assert.throws(() => game.score(player.id, 0), /Points must be 1, 2, or 3/);
   });
 
   test('rejects invalid points — -1', () => {
     const game = makeGame();
     const player = addConnectedPlayer(game);
     game.start();
-    assert.throws(() => game.score(player.id, -1), /Points must be 1 or 3/);
+    assert.throws(() => game.score(player.id, -1), /Points must be 1, 2, or 3/);
   });
 
   test('rate limits two rapid successive scores', () => {
@@ -210,9 +211,72 @@ describe('GameState — updateConfig()', () => {
     assert.equal(cfg.maxPlayers, 8);
     assert.equal(cfg.theme, 'camel');
   });
+
+  test('accepts "auto" as a valid theme', () => {
+    const game = makeGame();
+    const cfg = game.updateConfig({ theme: 'auto' });
+    assert.equal(cfg.theme, 'auto');
+  });
 });
 
-// ─── Name assignment ──────────────────────────────────────────────────────────
+// ─── auto-theme resolution on start() ────────────────────────────────────────
+
+describe('GameState — auto-theme resolution', () => {
+  test('start() resolves "auto" theme to a concrete theme', () => {
+    const game = makeGame();
+    game.updateConfig({ theme: 'auto' });
+    addConnectedPlayer(game);
+    game.start();
+    assert.notEqual(game.config.theme, 'auto');
+    assert.ok(['horse', 'camel'].includes(game.config.theme));
+  });
+
+  test('start() preserves explicit theme unchanged', () => {
+    const game = makeGame();
+    game.updateConfig({ theme: 'camel' });
+    addConnectedPlayer(game);
+    game.start();
+    assert.equal(game.config.theme, 'camel');
+  });
+});
+
+// ─── reconnectPlayer() ───────────────────────────────────────────────────────
+
+describe('GameState — reconnectPlayer()', () => {
+  test('returns null for unknown player', () => {
+    const game = makeGame();
+    assert.equal(game.reconnectPlayer('nonexistent'), null);
+  });
+
+  test('marks a disconnected player as connected again', () => {
+    const game = makeGame();
+    const player = addConnectedPlayer(game, 'p1', 'Alice', 'sensor');
+    game.start(); // must be running so disconnectPlayer marks as !connected rather than deleting
+    game.disconnectPlayer('p1');
+    assert.equal(game.players.get('p1').connected, false);
+    const result = game.reconnectPlayer('p1');
+    assert.ok(result);
+    assert.equal(result.connected, true);
+  });
+
+  test('is idempotent for an already-connected player', () => {
+    const game = makeGame();
+    addConnectedPlayer(game, 'p1', 'Alice', 'sensor');
+    const result = game.reconnectPlayer('p1');
+    assert.ok(result);
+    assert.equal(result.connected, true);
+  });
+
+  test('preserves the existing player entry (no duplicate created)', () => {
+    const game = makeGame();
+    addConnectedPlayer(game, 'p1', 'Alice', 'sensor');
+    game.start(); // running state so disconnectPlayer keeps the entry
+    game.disconnectPlayer('p1');
+    game.reconnectPlayer('p1');
+    assert.equal(game.players.size, 1);
+    assert.equal(game.players.get('p1').name, 'Alice');
+  });
+});
 
 describe('GameState — assignName()', () => {
   test('returns a non-empty string', () => {

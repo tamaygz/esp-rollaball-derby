@@ -20,7 +20,6 @@ Derby.Connection = (function () {
   var MAX_DELAY = 30000;
   var _currentPlayerName = '';
   var _handlers = [];
-  var _shouldReconnect = false; // gates auto-reconnect; false during intentional close
 
   // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -55,10 +54,10 @@ Derby.Connection = (function () {
   function connect(playerName) {
     _currentPlayerName = (typeof playerName === 'string') ? playerName.trim() : '';
 
-    // Close any existing socket before re-opening; suppress its close-listener
-    // so the stale socket doesn't trigger another reconnect cycle.
+    // Close any stale socket. Because ws is reassigned below before the old
+    // socket can fire its 'close' event, the per-socket guard (ws === thisWs)
+    // will evaluate false for the stale socket and suppress spurious reconnects.
     if (ws && ws.readyState !== WebSocket.CLOSED) {
-      _shouldReconnect = false;
       ws.close();
     }
     if (reconnectTimer) {
@@ -66,11 +65,11 @@ Derby.Connection = (function () {
       reconnectTimer = null;
     }
 
-    _shouldReconnect = true;
     _setStatus('connecting');
 
+    var thisWs;
     try {
-      ws = new WebSocket(_wsUrl());
+      thisWs = new WebSocket(_wsUrl());
     } catch (e) {
       console.error('[Derby.Connection] WebSocket init error', e);
       _setStatus('disconnected');
@@ -78,13 +77,21 @@ Derby.Connection = (function () {
       return;
     }
 
+    // Update the shared reference *before* attaching listeners so that any
+    // close event from a previously-open socket cannot match thisWs.
+    ws = thisWs;
+
     ws.addEventListener('open', function () {
       reconnectDelay = INITIAL_DELAY; // reset backoff on successful connect
       _setStatus('connected');
 
-      // Register as web client
+      // Register as web client; include the persisted player ID (if any) so the
+      // server can reconnect this client to its existing player entry rather than
+      // creating a new one.
       var payload = { type: 'web' };
       if (_currentPlayerName) payload.playerName = _currentPlayerName;
+      var storedId = localStorage.getItem('derby-player-id');
+      if (storedId) payload.playerId = storedId;
       ws.send(JSON.stringify({ type: 'register', payload: payload }));
     });
 
@@ -96,7 +103,9 @@ Derby.Connection = (function () {
 
     ws.addEventListener('close', function () {
       _setStatus('disconnected');
-      if (_shouldReconnect) _scheduleReconnect();
+      // Only schedule a reconnect if this is still the active socket.
+      // Stale sockets (closed by connect() or disconnect()) will not match.
+      if (ws === thisWs) _scheduleReconnect();
     });
 
     ws.addEventListener('error', function () {
@@ -127,12 +136,12 @@ Derby.Connection = (function () {
   }
 
   function disconnect() {
-    _shouldReconnect = false;
     if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
-    if (ws) {
-      ws.close();
-      ws = null;
-    }
+    // Null ws *before* closing so the 'close' handler's (ws === thisWs) guard
+    // evaluates false and does not trigger an unwanted reconnect.
+    var closing = ws;
+    ws = null;
+    if (closing) closing.close();
     reconnectDelay = INITIAL_DELAY;
     _setStatus('disconnected');
   }
