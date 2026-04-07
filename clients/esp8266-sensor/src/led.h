@@ -1,5 +1,6 @@
 #pragma once
 #include <Arduino.h>
+#include <leds/LedController.h>
 
 // One step of a non-blocking LED sequence: LED on/off for a given duration.
 struct LedStep { bool on; unsigned long ms; };
@@ -31,6 +32,7 @@ public:
 private:
     static constexpr uint8_t SEQ_MAX = 14; // enough for 6 on+off pairs
 
+    LedController _controller;           // Uses LedController for WS2812B or single LED
     uint8_t       _pin          = LED_BUILTIN;
     LedState      _state        = LedState::NO_WIFI;
     LedState      _resumeState  = LedState::NO_WIFI; // restored after sequence

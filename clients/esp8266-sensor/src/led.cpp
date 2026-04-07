@@ -1,12 +1,24 @@
 #include "led.h"
 
-// Wemos D1 Mini built-in LED is connected active-LOW (HIGH = off, LOW = on).
-static constexpr bool LED_ACTIVE_LOW = true;
+// Color definitions for status LED (using HSV for smooth, vibrant colors)
+static const HsvColor COLOR_OFF(0, 0, 0);         // Black (off)
+static const HsvColor COLOR_NO_WIFI(0, 255, 255);  // Red (no WiFi)
+static const HsvColor COLOR_WIFI(30, 255, 255);    // Orange (WiFi only)
+static const HsvColor COLOR_WS(120, 255, 255);     // Green (WebSocket connected)
 
 void StatusLed::begin(uint8_t pin) {
     _pin = pin;
-    pinMode(_pin, OUTPUT);
+    
+    // Initialize LedController with 1 LED
+    // Note: For WS2812B status LED. ESP8266 DMA requires GPIO3.
+    if (!_controller.begin(1, _pin)) {
+        Serial.println("[StatusLed] ERROR: Failed to initialize LED controller");
+        return;
+    }
+    
+    _controller.setBrightness(128);  // 50% brightness for status LED
     _write(false);
+    _controller.show();
 }
 
 void StatusLed::setState(LedState state) {
@@ -21,11 +33,15 @@ void StatusLed::setState(LedState state) {
     _lastToggle = millis();
 
     if (state == LedState::WS_CONNECTED) {
-        _write(true);
+        _controller.setPixel(0, COLOR_WS);
+        _controller.show();
     }
 }
 
 void StatusLed::loop() {
+    // Call LedController loop for WiFi yield
+    _controller.loop();
+
     if (_inSeq) {
         unsigned long now = millis();
         if (now - _seqStart >= _seq[_seqIdx].ms) {
@@ -35,7 +51,13 @@ void StatusLed::loop() {
                 _inSeq      = false;
                 _state      = _resumeState;
                 _lastToggle = now;
-                _write(_state == LedState::WS_CONNECTED);
+                
+                if (_state == LedState::WS_CONNECTED) {
+                    _controller.setPixel(0, COLOR_WS);
+                } else {
+                    _controller.setPixel(0, COLOR_OFF);
+                }
+                _controller.show();
                 return;
             }
             _seqStart = now;
@@ -61,7 +83,30 @@ void StatusLed::loop() {
 
 void StatusLed::_write(bool on) {
     _ledOn = on;
-    digitalWrite(_pin, LED_ACTIVE_LOW ? !on : on);
+    
+    if (!on) {
+        _controller.setPixel(0, COLOR_OFF);
+    } else {
+        // Choose color based on current state
+        HsvColor color;
+        switch (_state) {
+            case LedState::NO_WIFI:
+                color = COLOR_NO_WIFI;  // Red
+                break;
+            case LedState::WIFI_ONLY:
+                color = COLOR_WIFI;     // Orange
+                break;
+            case LedState::WS_CONNECTED:
+                color = COLOR_WS;       // Green
+                break;
+            default:
+                color = COLOR_OFF;
+                break;
+        }
+        _controller.setPixel(0, color);
+    }
+    
+    _controller.show();
 }
 
 void StatusLed::_startSeq(const LedStep* steps, uint8_t len) {

@@ -5,7 +5,8 @@
 #define PIN_SENSOR_1  5           // D1 → GPIO5  → +1 hole IR break-beam
 #define PIN_SENSOR_2  14          // D5 → GPIO14 → +2 hole IR break-beam
 #define PIN_SENSOR_3  4           // D2 → GPIO4  → +3 hole IR break-beam
-#define PIN_LED       LED_BUILTIN // Built-in LED (active LOW on Wemos D1 Mini)
+#define PIN_LED       3           // GPIO3 (RX) → WS2812B status LED (DMA method)
+                                  // Note: GPIO3 conflicts with Serial debugging on ESP8266
 
 // ─── Sensor Debounce ──────────────────────────────────────────────────────────
 #define DEBOUNCE_MS   500UL       // Minimum ms between valid triggers per sensor
