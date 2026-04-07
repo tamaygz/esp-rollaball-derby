@@ -21,7 +21,7 @@ All communication over WebSocket (`ws://`). The server is the single source of t
 | `clients/assets/` | ✅ Complete | Horse + camel SVG themes |
 | `clients/web/` | ✅ Complete | Admin SPA at `/admin` — game controls, config, bots, score testing |
 | `clients/display/` | ✅ Complete | Pixi.js race visualization at `/display` with action effects |
-| `clients/esp8266-sensor/` | � In progress | PlatformIO, WiFi, WebSocket, IR sensors via interrupts, status LED, web flashing |
+| `clients/esp8266-sensor/` | 🚧 In progress | PlatformIO, WiFi, WebSocket, IR sensors via interrupts, status LED, web flashing |
 | `clients/esp8266-motor/` | ⏳ Deferred | Phase 3 |
 
 ## Key Features
