@@ -448,12 +448,14 @@ describe('Integration — REST API', () => {
     const entry = listRes.body.find((c) => c.playerName === 'KickMe');
     assert.ok(entry, 'client should be listed before kick');
 
+    // Wait for the client WebSocket to actually close after the kick
+    const closePromise = new Promise((resolve) => ws.on('close', resolve));
+
     const kickRes = await restRequest('DELETE', '/api/clients/' + entry.id);
     assert.equal(kickRes.status, 200);
     assert.equal(kickRes.body.kicked, true);
 
-    // Give server a tick to process the close
-    await new Promise((r) => setTimeout(r, 50));
+    await closePromise;
 
     // Client should now be gone from the list
     const afterRes = await restRequest('GET', '/api/clients');

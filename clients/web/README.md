@@ -18,6 +18,7 @@ No build step. The game server serves this directory statically at `/admin`.
 
 1. Start the server: `cd server && npm start`
 2. Open `http://localhost:3000/admin` in a browser
+3. Open `http://localhost:3000/admin/devices.html` for the devices debug page
 
 Player name is remembered in `localStorage` (key: `derby-player-name`).
 

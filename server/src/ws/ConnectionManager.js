@@ -45,7 +45,29 @@ class ConnectionManager {
   kickClient(clientId) {
     const client = this.clients.get(clientId);
     if (!client) return false;
-    try { client.ws.close(); } catch (_) { /* ignore */ }
+
+    const { ws } = client;
+
+    if (ws.readyState === 3 /* CLOSED */) {
+      this._handleDisconnect(clientId);
+      return true;
+    }
+
+    try {
+      if (typeof ws.terminate === 'function') {
+        const terminateTimer = setTimeout(() => {
+          try { ws.terminate(); } catch (_) { /* ignore */ }
+        }, 1000);
+
+        ws.once('close', () => clearTimeout(terminateTimer));
+      }
+
+      ws.close();
+    } catch (_) {
+      try {
+        if (typeof ws.terminate === 'function') ws.terminate();
+      } catch (_) { /* ignore */ }
+    }
     return true;
   }
 
