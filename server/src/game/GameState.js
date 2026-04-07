@@ -3,7 +3,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const VALID_THEMES = ['horse', 'camel'];
+const CONCRETE_THEMES = ['horse', 'camel'];
+const VALID_THEMES = [...CONCRETE_THEMES, 'auto'];
 const RATE_LIMIT_MS = 300;
 
 class GameState {
@@ -77,6 +78,12 @@ class GameState {
     if (connected.length === 0) {
       throw new Error('Cannot start: no players connected');
     }
+
+    // Resolve 'auto' theme to a random concrete theme at game start
+    if (this.config.theme === 'auto') {
+      this.config.theme = CONCRETE_THEMES[Math.floor(Math.random() * CONCRETE_THEMES.length)];
+    }
+
     this.status = 'running';
     this.startedAt = Date.now();
   }

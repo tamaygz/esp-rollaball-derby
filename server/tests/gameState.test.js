@@ -211,6 +211,33 @@ describe('GameState — updateConfig()', () => {
     assert.equal(cfg.maxPlayers, 8);
     assert.equal(cfg.theme, 'camel');
   });
+
+  test('accepts "auto" as a valid theme', () => {
+    const game = makeGame();
+    const cfg = game.updateConfig({ theme: 'auto' });
+    assert.equal(cfg.theme, 'auto');
+  });
+});
+
+// ─── auto-theme resolution on start() ────────────────────────────────────────
+
+describe('GameState — auto-theme resolution', () => {
+  test('start() resolves "auto" theme to a concrete theme', () => {
+    const game = makeGame();
+    game.updateConfig({ theme: 'auto' });
+    addConnectedPlayer(game);
+    game.start();
+    assert.notEqual(game.config.theme, 'auto');
+    assert.ok(['horse', 'camel'].includes(game.config.theme));
+  });
+
+  test('start() preserves explicit theme unchanged', () => {
+    const game = makeGame();
+    game.updateConfig({ theme: 'camel' });
+    addConnectedPlayer(game);
+    game.start();
+    assert.equal(game.config.theme, 'camel');
+  });
 });
 
 // ─── reconnectPlayer() ───────────────────────────────────────────────────────
