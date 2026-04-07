@@ -20,6 +20,7 @@ Derby.Connection = (function () {
   var MAX_DELAY = 30000;
   var _currentPlayerName = '';
   var _handlers = [];
+  var _shouldReconnect = false; // gates auto-reconnect; false during intentional close
 
   // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -54,9 +55,10 @@ Derby.Connection = (function () {
   function connect(playerName) {
     _currentPlayerName = (typeof playerName === 'string') ? playerName.trim() : '';
 
-    // Close any existing socket before re-opening
+    // Close any existing socket before re-opening; suppress its close-listener
+    // so the stale socket doesn't trigger another reconnect cycle.
     if (ws && ws.readyState !== WebSocket.CLOSED) {
-      ws.onclose = null; // prevent stale reconnect loop
+      _shouldReconnect = false;
       ws.close();
     }
     if (reconnectTimer) {
@@ -64,6 +66,7 @@ Derby.Connection = (function () {
       reconnectTimer = null;
     }
 
+    _shouldReconnect = true;
     _setStatus('connecting');
 
     try {
@@ -93,7 +96,7 @@ Derby.Connection = (function () {
 
     ws.addEventListener('close', function () {
       _setStatus('disconnected');
-      _scheduleReconnect();
+      if (_shouldReconnect) _scheduleReconnect();
     });
 
     ws.addEventListener('error', function () {
@@ -124,9 +127,9 @@ Derby.Connection = (function () {
   }
 
   function disconnect() {
+    _shouldReconnect = false;
     if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
     if (ws) {
-      ws.onclose = null;
       ws.close();
       ws = null;
     }

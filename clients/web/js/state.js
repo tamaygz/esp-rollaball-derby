@@ -129,7 +129,7 @@ Derby.State = (function () {
           '<div class="player-header">' +
             '<span class="player-color-dot" style="background:' + color + '"></span>' +
             '<span class="player-name" data-id="' + _esc(p.id) + '" data-name="' + _esc(p.name) + '">' + displayName + '</span>' +
-            '<button class="btn-edit-name" data-id="' + _esc(p.id) + '" title="Rename player">✏️</button>' +
+            '<button class="btn-edit-name" data-id="' + _esc(p.id) + '" title="Rename player" aria-label="Rename player">✏️</button>' +
             '<span class="player-type-badge">' + _esc(p.type) + '</span>' +
             '<span class="player-status">' + dot + '</span>' +
           '</div>' +
@@ -177,8 +177,8 @@ Derby.State = (function () {
     function commit() {
       if (committed) return;
       committed = true;
-      // input.value is plain text from a text input — no HTML stripping needed here;
-      // the server sanitizes and rejects anything unsafe.
+      // input.value comes from a text input, so normalize it here with trim/length limiting;
+      // the server may still apply its own sanitization before storing the final name.
       var newName = input.value.trim().slice(0, MAX_NAME_LEN);
       if (newName && newName !== current) {
         Derby.Admin.renamePlayer(playerId, newName);
