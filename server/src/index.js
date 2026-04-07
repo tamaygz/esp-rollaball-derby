@@ -7,11 +7,13 @@ const express = require('express');
 const { WebSocketServer } = require('ws');
 
 const GameState = require('./game/GameState');
+const BotManager = require('./game/BotManager');
 const ConnectionManager = require('./ws/ConnectionManager');
 const healthRouter = require('./routes/health');
 const createGameRouter = require('./routes/game');
 const createPlayersRouter = require('./routes/players');
 const createClientsRouter = require('./routes/clients');
+const createBotsRouter = require('./routes/bots');
 
 const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
@@ -43,12 +45,14 @@ app.use('/assets', express.static(path.join(__dirname, '..', '..', 'clients', 'a
 // Placeholder — connectionManager created after HTTP server; routes mounted later.
 // We forward a proxy so routes always see the current connectionManager reference.
 let connectionManager;
+let botManager;
 
 app.use('/api/health', healthRouter);
 
-app.use('/api/game', (req, res, next) => createGameRouter(gameState, connectionManager)(req, res, next));
+app.use('/api/game', (req, res, next) => createGameRouter(gameState, connectionManager, botManager)(req, res, next));
 app.use('/api/players', (req, res, next) => createPlayersRouter(gameState, connectionManager)(req, res, next));
 app.use('/api/clients', (req, res, next) => createClientsRouter(gameState, connectionManager)(req, res, next));
+app.use('/api/bots', (req, res, next) => createBotsRouter(botManager)(req, res, next));
 
 // ─── Global error handler ─────────────────────────────────────────────────────
 
@@ -63,6 +67,7 @@ const server = http.createServer(app);
 
 const wss = new WebSocketServer({ server });
 connectionManager = new ConnectionManager(gameState);
+botManager = new BotManager(gameState, connectionManager);
 
 wss.on('connection', (ws) => {
   connectionManager.handleConnection(ws);
@@ -79,4 +84,4 @@ server.listen(PORT, HOST, () => {
   );
 });
 
-module.exports = { app, server, gameState, connectionManager: () => connectionManager };
+module.exports = { app, server, gameState, connectionManager: () => connectionManager, botManager: () => botManager };

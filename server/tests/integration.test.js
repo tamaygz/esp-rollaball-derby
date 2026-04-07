@@ -10,11 +10,13 @@ const { WebSocketServer } = require('ws');
 const WebSocket = require('ws');
 
 const GameState = require('../src/game/GameState');
+const BotManager = require('../src/game/BotManager');
 const ConnectionManager = require('../src/ws/ConnectionManager');
 const healthRouter = require('../src/routes/health');
 const createGameRouter = require('../src/routes/game');
 const createPlayersRouter = require('../src/routes/players');
 const createClientsRouter = require('../src/routes/clients');
+const createBotsRouter = require('../src/routes/bots');
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -25,10 +27,11 @@ function startServer() {
 
     const gameState = new GameState();
     let connectionManager;
+    let botManager;
 
     app.use('/api/health', healthRouter);
     app.use('/api/game', (req, res, next) =>
-      createGameRouter(gameState, connectionManager)(req, res, next)
+      createGameRouter(gameState, connectionManager, botManager)(req, res, next)
     );
     app.use('/api/players', (req, res, next) =>
       createPlayersRouter(gameState, connectionManager)(req, res, next)
@@ -36,10 +39,14 @@ function startServer() {
     app.use('/api/clients', (req, res, next) =>
       createClientsRouter(gameState, connectionManager)(req, res, next)
     );
+    app.use('/api/bots', (req, res, next) =>
+      createBotsRouter(botManager)(req, res, next)
+    );
 
     const server = http.createServer(app);
     const wss = new WebSocketServer({ server });
     connectionManager = new ConnectionManager(gameState);
+    botManager = new BotManager(gameState, connectionManager);
 
     wss.on('connection', (ws) => connectionManager.handleConnection(ws));
 
@@ -456,6 +463,72 @@ describe('Integration — REST API', () => {
 
   test('DELETE /api/clients/:id returns 404 for unknown client', async () => {
     const res = await restRequest('DELETE', '/api/clients/no-such-id');
+    assert.equal(res.status, 404);
+    assert.ok(res.body.error);
+  });
+});
+
+// ─── Bot REST API ─────────────────────────────────────────────────────────────
+
+describe('Integration — Bot REST API', () => {
+  let env;
+
+  before(async () => { env = await startServer(); });
+  after(() => env.server.close());
+
+  function restRequest(method, urlPath, body) {
+    return new Promise((resolve, reject) => {
+      const opts = {
+        hostname: '127.0.0.1',
+        port: env.port,
+        path: urlPath,
+        method,
+        headers: { 'Content-Type': 'application/json' },
+      };
+      const req = http.request(opts, (res) => {
+        let data = '';
+        res.on('data', (c) => { data += c; });
+        res.on('end', () => {
+          try { resolve({ status: res.statusCode, body: JSON.parse(data) }); }
+          catch { resolve({ status: res.statusCode, body: data }); }
+        });
+      });
+      req.on('error', reject);
+      if (body) req.write(JSON.stringify(body));
+      req.end();
+    });
+  }
+
+  test('POST /api/bots creates a server-side bot', async () => {
+    const res = await restRequest('POST', '/api/bots');
+    assert.equal(res.status, 201);
+    assert.ok(res.body.id);
+    assert.ok(res.body.playerId);
+    assert.ok(res.body.playerName);
+    // Player should exist in game state
+    assert.ok(env.gameState.players.has(res.body.playerId));
+    assert.equal(env.gameState.players.get(res.body.playerId).type, 'bot');
+  });
+
+  test('GET /api/bots lists all bots', async () => {
+    const res = await restRequest('GET', '/api/bots');
+    assert.equal(res.status, 200);
+    assert.ok(Array.isArray(res.body));
+    assert.ok(res.body.length >= 1);
+  });
+
+  test('DELETE /api/bots/:id removes a bot', async () => {
+    const create = await restRequest('POST', '/api/bots');
+    const botId = create.body.id;
+    const del = await restRequest('DELETE', '/api/bots/' + botId);
+    assert.equal(del.status, 200);
+    assert.equal(del.body.removed, true);
+    // Player should be removed from game state
+    assert.equal(env.gameState.players.has(botId), false);
+  });
+
+  test('DELETE /api/bots/:id returns 404 for unknown bot', async () => {
+    const res = await restRequest('DELETE', '/api/bots/no-such-bot');
     assert.equal(res.status, 404);
     assert.ok(res.body.error);
   });
