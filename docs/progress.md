@@ -124,3 +124,100 @@
 | gameState.test.js (27 tests)     | — | pass | pass | ✅ |
 | connectionManager.test.js (13 tests) | — | pass | pass | ✅ |
 | integration.test.js (9 tests)    | — | pass | pass | ✅ |
+
+---
+
+## Session: 2026-04-07 (cont.) — Display Client Build
+
+### Phase: Display Client
+- **Status:** complete
+- Actions taken:
+  - Implemented `plan/feature-client-display-1.md` — fullscreen Pixi.js SPA at `/display`
+  - Theme-aware rendering: horse and camel themes with auto-random selection
+  - Lane rendering with player sprites, track backgrounds, finish flags
+  - Smooth position tweening (gsap) and scoring animations
+  - Status overlays (idle / paused) and connection status dot
+  - Winner overlay with confetti celebration
+  - Auto-reconnect with exponential backoff
+  - Pixi.js v8 + gsap v3 bundled locally in `vendor/` for offline LAN use
+- Files created:
+  - `clients/display/index.html` — entry point
+  - `clients/display/css/style.css` — fullscreen reset, status dot
+  - `clients/display/js/main.js` — Pixi app init, message routing
+  - `clients/display/js/connection.js` — WebSocket client (display type)
+  - `clients/display/js/ThemeManager.js` — theme asset loading
+  - `clients/display/js/scene/RaceTrack.js` — all-lanes container
+  - `clients/display/js/scene/Lane.js` — single player lane
+  - `clients/display/js/effects/ScoringEffect.js` — scale-bounce + tint flash
+  - `clients/display/js/effects/WinnerOverlay.js` — celebration + confetti
+  - `clients/display/vendor/` — pixi.js + gsap (offline bundles)
+
+---
+
+## Session: 2026-04-07 (cont.) — Enhanced Scoring + Action Effects
+
+### Phase: +2 Scoring, Events Pipeline, Action Effects
+- **Status:** complete
+- Actions taken:
+  - Added +2 point scoring support (0/1/2/3 all valid)
+  - Added auto-theme resolution: `'auto'` theme resolves to random horse/camel at game start
+  - Added WebSocket reconnect with `playerId` — players keep their identity on reconnect
+  - Added player removal (`DELETE /api/players/:id`)
+  - Added `/api/clients` route (list/kick WebSocket clients)
+  - Built streak tracking in GameState: consecutive zeros (3x threshold) and +3s (2x threshold)
+  - Built rank-change detection: `took_lead` and `became_last` events
+  - Server `scored` message now includes `events[]` array with up to 8 event types
+  - Built `ActionEffect.js` — visual effect dispatcher for all 8 event types:
+    - `zero_roll` → shrink-bounce + red flash + 😢 popup
+    - `score_1` → scale-bounce + white tint flash
+    - `score_2` → bigger bounce + blue lane flash
+    - `score_3` → large bounce + gold flash + ⭐ "+3!" popup
+    - `streak_zero_3x` → dark pulse + 😭 "3× ZERO" popup
+    - `streak_three_2x` → orange glow + 🔥 "HOT!" popup
+    - `took_lead` → gold aura + 👑 "LEAD!" popup
+    - `became_last` → dark-red flash + 👎 "LAST!" popup
+  - Lane.js extended with `_flashOverlay`, `_popupContainer` for effects
+  - Tests expanded from 49 → 78 (streaks, rank events, reconnect, +2 scoring, auto-theme)
+- Files created/modified:
+  - `clients/display/js/effects/ActionEffect.js` — event-driven effect dispatcher (222 lines)
+  - Modified: `server/src/game/GameState.js` — streaks, events, +2 scoring, auto-theme
+  - Modified: `server/src/ws/ConnectionManager.js` — events in scored, reconnect, positions broadcast
+  - Modified: `server/src/routes/{players,clients}.js` — remove player, list/kick clients
+  - Modified: `clients/display/js/scene/Lane.js` — flash overlay, popup container
+  - Modified: `clients/display/js/main.js` — events routing to ActionEffect
+
+---
+
+## Session: 2026-04-07 (cont.) — Server-Side Bot Players
+
+### Phase: BotManager
+- **Status:** complete
+- Actions taken:
+  - Created `BotManager.js` — server-side autonomous bot players (no WS connection needed)
+  - Bots create players with type `'bot'`, get auto-assigned names
+  - Bots roll at random 2–8 s intervals with human-like probability distribution
+  - Full events pipeline works for bots (streaks, rank changes, zero rolls)
+  - Created REST API: `GET/POST/DELETE /api/bots`
+  - Wired BotManager into game routes (start/pause/reset lifecycle hooks)
+  - Rewrote admin client `bots.js` — simple REST-based UI (no more client-side timers/player-overwriting bug)
+  - Admin HTML simplified: single "🤖 Add Bot" button instead of player dropdown
+  - Tests expanded from 78 → 101 (19 BotManager unit tests + 4 bot REST integration tests)
+- Files created:
+  - `server/src/game/BotManager.js` — autonomous bot player manager (188 lines)
+  - `server/src/routes/bots.js` — REST router (39 lines)
+  - `server/tests/botManager.test.js` — 19 tests
+- Files modified:
+  - `server/src/index.js` — BotManager wiring + /api/bots route
+  - `server/src/routes/game.js` — botManager lifecycle hooks (onGameStart/Stop/Reset)
+  - `server/tests/integration.test.js` — 4 bot REST API integration tests
+  - `clients/web/js/bots.js` — rewritten to use REST API
+  - `clients/web/index.html` — simplified bot section
+
+## Test Results (Final)
+| Test | Input | Expected | Actual | Status |
+|------|-------|----------|--------|--------|
+| botManager.test.js (19 tests)        | — | pass | pass | ✅ |
+| gameState.test.js (37 tests)         | — | pass | pass | ✅ |
+| connectionManager.test.js (27 tests) | — | pass | pass | ✅ |
+| integration.test.js (18 tests)       | — | pass | pass | ✅ |
+| **Total: 101 tests**                 | — | pass | pass | ✅ |

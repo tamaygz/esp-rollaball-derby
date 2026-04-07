@@ -4,13 +4,13 @@ version: 1.0
 date_created: 2026-04-07
 last_updated: 2026-04-07
 owner: "@tamaygz"
-status: "Planned"
+status: "Completed"
 tags: [feature, frontend, display, pixi]
 ---
 
 # Client Display — Implementation Plan
 
-![Status: Planned](https://img.shields.io/badge/status-Planned-blue)
+![Status: Completed](https://img.shields.io/badge/status-Completed-brightgreen)
 
 The display client is a fullscreen SPA rendered on a beamer/TV connected to the game server. It shows horizontal stacked lanes (one per player), animated player figures that move from start to finish as scores come in, and themed visuals (horse race, camel race). It receives all state updates via WebSocket and has no user input — purely a spectator view.
 
@@ -153,3 +153,16 @@ The display client is a fullscreen SPA rendered on a beamer/TV connected to the 
 - [Server Web Plan](feature-server-web-1.md)
 - [Pixi.js v8 docs](https://pixijs.com/8.x/guides)
 - [gsap docs](https://gsap.com/docs/v3/)
+
+## 9. Implementation Notes (Post-Completion)
+
+Completed with the following additions beyond the original plan:
+
+- **ActionEffect.js** — full event-driven effects pipeline replacing the simple scoring flash:
+  - 8 event types (zero_roll, score_1/2/3, streak_zero_3x, streak_three_2x, took_lead, became_last)
+  - Per-event visual treatments: scale-bounces, tint flashes, lane flashes, emoji popups
+  - Streak effects delayed slightly to layer on top of base score effects
+  - Rank effects fire last for visual prominence
+- **Vendor bundles** — Pixi.js + gsap shipped in `vendor/` for offline LAN use (not CDN)
+- **SVG sizing** — all SVGs use explicit width/height at 3× viewBox for crisp Pixi texture rendering
+- **Events array** — display consumes full `events[]` from server `scored` messages; falls back to deriving events from `points` for backwards compatibility

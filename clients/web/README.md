@@ -5,11 +5,10 @@ Vanilla JS SPA served by the game server at `/admin`. Dual purpose: game host ad
 ## Features
 
 - **Game controls** — Start, pause/resume, reset
-- **Config** — track length, max players, theme (locked while game running)
+- **Config** — track length, max players, theme including auto-random (locked while game running)
 - **Players** — live list with progress bars, inline rename, remove, connection status
 - **Score simulator** — send +1 / +2 / +3 via WebSocket to test sensor flow
-- **Bots** — add per-player bots that auto-score at human-like random intervals
-- **Devices page** — debug view of all connected ESP/WS clients with kick support
+- **Server-side bots** — add/remove autonomous bot players via REST API
 - **Event log** — real-time feed of all game events
 - **Auto-reconnect** — exponential backoff (1s → 30s) on WS disconnect
 
@@ -27,8 +26,7 @@ Player name is remembered in `localStorage` (key: `derby-player-name`).
 
 ```
 clients/web/
-├── index.html          — Admin SPA shell
-├── devices.html        — ESP/WS devices debug page
+├── index.html          — SPA shell, 8 card sections
 ├── css/
 │   └── style.css       — dark theme, CSS custom properties, responsive grid
 └── js/
@@ -36,12 +34,11 @@ clients/web/
     ├── state.js        — State tracker + DOM renderer (Derby.State)
     ├── admin.js        — REST game controls + player rename/remove (Derby.Admin)
     ├── test.js         — Score simulation panel (Derby.Test)
-    ├── bots.js         — Bot management panel (Derby.Bots)
-    ├── devices.js      — Devices debug page logic
+    ├── bots.js         — Server-side bot management (Derby.Bots)
     └── main.js         — Entry point, message router
 ```
 
-Scripts load in order: `connection → state → admin → test → bots → main`. The devices page loads only `devices.js`.
+Scripts load in order: `connection → state → admin → test → bots → main`.
 
 ## Module Namespace
 
@@ -53,7 +50,7 @@ All modules live on `window.Derby`:
 | `Derby.State` | Render full game state to DOM, log entries, winner banner |
 | `Derby.Admin` | REST POST start/pause/reset, PUT config/rename, DELETE player |
 | `Derby.Test` | Score button state management, send score via WS |
-| `Derby.Bots` | Add/remove bots per player, auto-score at random intervals |
+| `Derby.Bots` | REST GET/POST/DELETE /api/bots, render bot list with status badges |
 
 ## Security
 

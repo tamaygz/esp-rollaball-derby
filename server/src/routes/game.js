@@ -3,9 +3,9 @@
 const { Router } = require('express');
 
 /**
- * Creates a game router bound to the given gameState and connectionManager.
+ * Creates a game router bound to the given gameState, connectionManager, and botManager.
  */
-function createGameRouter(gameState, connectionManager) {
+function createGameRouter(gameState, connectionManager, botManager) {
   const router = Router();
 
   // GET / — full game state with connected client counts
@@ -19,6 +19,7 @@ function createGameRouter(gameState, connectionManager) {
   router.post('/start', (req, res) => {
     try {
       gameState.start();
+      if (botManager) botManager.onGameStart();
       connectionManager.broadcastState();
       res.json({ ok: true });
     } catch (err) {
@@ -29,9 +30,13 @@ function createGameRouter(gameState, connectionManager) {
   // POST /pause
   router.post('/pause', (req, res) => {
     try {
-      gameState.pause();
+      const newStatus = gameState.pause();
+      if (botManager) {
+        if (newStatus === 'running') botManager.onGameStart();
+        else botManager.onGameStop();
+      }
       connectionManager.broadcastState();
-      res.json({ status: gameState.getStatus() });
+      res.json({ status: newStatus });
     } catch (err) {
       res.status(400).json({ error: err.message });
     }
@@ -39,6 +44,7 @@ function createGameRouter(gameState, connectionManager) {
 
   // POST /reset
   router.post('/reset', (req, res) => {
+    if (botManager) botManager.onGameReset();
     gameState.reset();
     connectionManager.broadcastState();
     connectionManager.broadcastPositions();

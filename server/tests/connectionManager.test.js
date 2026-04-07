@@ -234,7 +234,58 @@ describe('ConnectionManager — _handleDisconnect()', () => {
   });
 });
 
-// ─── getConnectedCounts() ─────────────────────────────────────────────────────
+// ─── _handleScore() ──────────────────────────────────────────────────────────
+
+describe('ConnectionManager — _handleScore()', () => {
+  function setupRunningGame() {
+    const gameState = new GameState();
+    const cm = new ConnectionManager(gameState);
+    const ws = makeMockWs();
+
+    cm.handleConnection(ws);
+    const [clientId] = cm.clients.keys();
+    cm._handleRegister(clientId, ws, { type: 'sensor', playerName: 'Rider' });
+    gameState.start();
+
+    return { gameState, cm, ws, clientId };
+  }
+
+  test('broadcast scored message includes events array', () => {
+    const { cm, ws, clientId, gameState } = setupRunningGame();
+    const [playerId] = gameState.players.keys();
+
+    cm._handleScore(clientId, ws, { playerId, points: 1 });
+
+    const scored = ws.sent.find((m) => m.type === 'scored');
+    assert.ok(scored, 'should receive scored message');
+    assert.ok(Array.isArray(scored.payload.events), 'events should be an array');
+    assert.ok(scored.payload.events.includes('score_1'));
+  });
+
+  test('zero-point score accepted — event zero_roll, position unchanged', () => {
+    const { cm, ws, clientId, gameState } = setupRunningGame();
+    const [playerId] = gameState.players.keys();
+
+    cm._handleScore(clientId, ws, { playerId, points: 0 });
+
+    const scored = ws.sent.find((m) => m.type === 'scored');
+    assert.ok(scored, 'should receive scored message');
+    assert.equal(scored.payload.points, 0);
+    assert.equal(scored.payload.newPosition, 0);
+    assert.ok(scored.payload.events.includes('zero_roll'));
+  });
+
+  test('invalid points value sends error', () => {
+    const { cm, ws, clientId, gameState } = setupRunningGame();
+    const [playerId] = gameState.players.keys();
+
+    cm._handleScore(clientId, ws, { playerId, points: 5 });
+
+    const err = ws.sent.find((m) => m.type === 'error');
+    assert.ok(err, 'should receive error message');
+    assert.match(err.payload.message, /points must be 0, 1, 2, or 3/i);
+  });
+});
 
 describe('ConnectionManager — getConnectedCounts()', () => {
   test('counts clients by type', () => {
