@@ -50,24 +50,21 @@ void Sensors::begin() {
 }
 
 int Sensors::check() {
-    // Disable interrupts while reading+clearing flags to ensure atomicity.
+    // Disable interrupts around the full read+clear sequence to ensure atomicity.
+    int triggered = 0;
+
+    noInterrupts();
     if (s_triggered1) {
-        noInterrupts();
         s_triggered1 = false;
-        interrupts();
-        return 1;
-    }
-    if (s_triggered2) {
-        noInterrupts();
+        triggered = 1;
+    } else if (s_triggered2) {
         s_triggered2 = false;
-        interrupts();
-        return 2;
-    }
-    if (s_triggered3) {
-        noInterrupts();
+        triggered = 2;
+    } else if (s_triggered3) {
         s_triggered3 = false;
-        interrupts();
-        return 3;
+        triggered = 3;
     }
-    return 0;
+    interrupts();
+
+    return triggered;
 }
