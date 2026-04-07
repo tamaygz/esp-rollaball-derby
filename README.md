@@ -17,9 +17,9 @@ All communication over WebSocket (`ws://`). The server is the single source of t
 
 | Component | Status | Notes |
 |-----------|--------|-------|
-| `server/` | ✅ Complete | 49 tests passing |
+| `server/` | ✅ Complete | Tested Node.js server |
 | `clients/assets/` | ✅ Complete | Horse + camel SVG themes |
-| `clients/web/` | ✅ Complete | PR #1 open (admin SPA at `/admin`) |
+| `clients/web/` | ✅ Complete | Admin SPA at `/admin` |
 | `clients/display/` | 🔲 Not started | Pixi.js race visualization — next |
 | `clients/esp8266-sensor/` | 🔲 Not started | IR sensor firmware |
 | `clients/esp8266-motor/` | ⏳ Deferred | Phase 3 |
