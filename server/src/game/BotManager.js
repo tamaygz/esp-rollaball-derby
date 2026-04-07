@@ -16,10 +16,10 @@ const { randomUUID } = require('crypto');
  *   56–100 → 0 points  (~44.6 %)
  */
 
-const MIN_DELAY_MS     = 2000;
+const MIN_DELAY_MS     = 345;
 const RANDOM_RANGE_MS  = 6000;
 const STAGGER_BASE_MS  = 500;
-const STAGGER_RANGE_MS = 2000;
+const STAGGER_RANGE_MS = 1466;
 
 class BotManager {
   /**
