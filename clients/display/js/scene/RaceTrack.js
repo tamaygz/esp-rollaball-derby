@@ -179,6 +179,16 @@ class RaceTrack extends PIXI.Container {
     if (lane) lane.triggerScoringEffect();
   }
 
+  /**
+   * Trigger action effects for the given events on a player's lane.
+   * @param {string}   playerId
+   * @param {string[]} events    Event strings from the server scored message.
+   */
+  triggerEffect(playerId, events) {
+    var lane = this._lanes.get(playerId);
+    if (lane) lane.triggerEffect(events);
+  }
+
   // ── Resize ───────────────────────────────────────────────────────────────────
 
   resize(w, h) {

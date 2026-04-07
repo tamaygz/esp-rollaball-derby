@@ -90,21 +90,24 @@ describe('GameState — score()', () => {
     const game = makeGame();
     const player = addConnectedPlayer(game);
     game.start();
-    assert.throws(() => game.score(player.id, 2), /Points must be 1 or 3/);
-  });
-
-  test('rejects invalid points — 0', () => {
-    const game = makeGame();
-    const player = addConnectedPlayer(game);
-    game.start();
-    assert.throws(() => game.score(player.id, 0), /Points must be 1 or 3/);
+    assert.throws(() => game.score(player.id, 2), /Points must be 0, 1, or 3/);
   });
 
   test('rejects invalid points — -1', () => {
     const game = makeGame();
     const player = addConnectedPlayer(game);
     game.start();
-    assert.throws(() => game.score(player.id, -1), /Points must be 1 or 3/);
+    assert.throws(() => game.score(player.id, -1), /Points must be 0, 1, or 3/);
+  });
+
+  test('accepts zero points (zero roll) — position unchanged, event zero_roll', () => {
+    const game = makeGame();
+    const player = addConnectedPlayer(game);
+    game.start();
+    const { player: updated, winner, events } = game.score(player.id, 0);
+    assert.equal(updated.position, 0);
+    assert.equal(winner, false);
+    assert.ok(events.includes('zero_roll'));
   });
 
   test('rate limits two rapid successive scores', () => {
@@ -241,5 +244,177 @@ describe('GameState — assignName()', () => {
       pool.push(game.assignName());
     }
     assert.ok(pool.includes(first));
+  });
+});
+
+// ─── Streak tracking ──────────────────────────────────────────────────────────
+
+describe('GameState — streak tracking', () => {
+  function noRateLimit(game, id) {
+    game.players.get(id).lastScoredAt = null;
+  }
+
+  test('streak_zero_3x fires after 3 consecutive zero rolls', () => {
+    const game = makeGame();
+    const player = addConnectedPlayer(game);
+    game.start();
+
+    noRateLimit(game, player.id);
+    game.score(player.id, 0);
+    noRateLimit(game, player.id);
+    game.score(player.id, 0);
+    noRateLimit(game, player.id);
+    const { events } = game.score(player.id, 0);
+    assert.ok(events.includes('streak_zero_3x'));
+    assert.ok(events.includes('zero_roll'));
+  });
+
+  test('streak_zero_3x does NOT fire after only 2 consecutive zeros', () => {
+    const game = makeGame();
+    const player = addConnectedPlayer(game);
+    game.start();
+
+    noRateLimit(game, player.id);
+    game.score(player.id, 0);
+    noRateLimit(game, player.id);
+    const { events } = game.score(player.id, 0);
+    assert.ok(!events.includes('streak_zero_3x'));
+  });
+
+  test('consecutiveZeros resets after a non-zero score', () => {
+    const game = makeGame();
+    const player = addConnectedPlayer(game);
+    game.start();
+
+    noRateLimit(game, player.id);
+    game.score(player.id, 0);
+    noRateLimit(game, player.id);
+    game.score(player.id, 0);
+    // Breaks the streak
+    noRateLimit(game, player.id);
+    game.score(player.id, 1);
+    noRateLimit(game, player.id);
+    game.score(player.id, 0);
+
+    assert.equal(game.players.get(player.id).consecutiveZeros, 1);
+  });
+
+  test('streak_three_2x fires after 2 consecutive +3 rolls', () => {
+    const game = makeGame();
+    const player = addConnectedPlayer(game);
+    game.start();
+
+    noRateLimit(game, player.id);
+    game.score(player.id, 3);
+    noRateLimit(game, player.id);
+    const { events } = game.score(player.id, 3);
+    assert.ok(events.includes('streak_three_2x'));
+    assert.ok(events.includes('score_3'));
+  });
+
+  test('streak_three_2x does NOT fire after only 1 +3 roll', () => {
+    const game = makeGame();
+    const player = addConnectedPlayer(game);
+    game.start();
+
+    noRateLimit(game, player.id);
+    const { events } = game.score(player.id, 3);
+    assert.ok(!events.includes('streak_three_2x'));
+  });
+
+  test('consecutivePlusThrees resets after a non-3 score', () => {
+    const game = makeGame();
+    const player = addConnectedPlayer(game);
+    game.start();
+
+    noRateLimit(game, player.id);
+    game.score(player.id, 3);
+    noRateLimit(game, player.id);
+    game.score(player.id, 1);
+    noRateLimit(game, player.id);
+    game.score(player.id, 3);
+
+    assert.equal(game.players.get(player.id).consecutivePlusThrees, 1);
+  });
+
+  test('streak counters reset after game reset()', () => {
+    const game = makeGame();
+    const player = addConnectedPlayer(game);
+    game.start();
+
+    noRateLimit(game, player.id);
+    game.score(player.id, 0);
+    noRateLimit(game, player.id);
+    game.score(player.id, 0);
+
+    game.reset();
+    assert.equal(game.players.get(player.id).consecutiveZeros, 0);
+    assert.equal(game.players.get(player.id).consecutivePlusThrees, 0);
+  });
+});
+
+// ─── Rank-change events ────────────────────────────────────────────────────────
+
+describe('GameState — rank-change events', () => {
+  function noRateLimit(game, id) {
+    game.players.get(id).lastScoredAt = null;
+  }
+
+  test('took_lead fires when player overtakes all others', () => {
+    const game = makeGame();
+    const p1 = addConnectedPlayer(game, 'p1', 'Alice');
+    const p2 = addConnectedPlayer(game, 'p2', 'Bob');
+    game.start();
+
+    // p1 scores first (is now leading)
+    game.score(p1.id, 3);
+    // p2 is behind; now p2 scores past p1
+    noRateLimit(game, p2.id);
+    const { events } = game.score(p2.id, 3);
+    // p2 went from 0 to 3, tied with p1 — not strictly ahead; no took_lead
+    // p1 was at 3, p2 now at 3 — tied, NOT a lead takeover (isFirst for both)
+    // Let's confirm no took_lead yet (tied is not takeover in our sort)
+    // Instead score p2 one more time so they're strictly ahead
+    noRateLimit(game, p2.id);
+    const { events: events2 } = game.score(p2.id, 1);
+    assert.ok(events2.includes('took_lead'));
+  });
+
+  test('took_lead does NOT fire when already leading', () => {
+    const game = makeGame();
+    const p1 = addConnectedPlayer(game, 'p1', 'Alice');
+    addConnectedPlayer(game, 'p2', 'Bob');
+    game.start();
+
+    game.score(p1.id, 3);
+    noRateLimit(game, p1.id);
+    const { events } = game.score(p1.id, 1);
+    // p1 was already first, should not fire took_lead
+    assert.ok(!events.includes('took_lead'));
+  });
+
+  test('took_lead does NOT fire with only one player', () => {
+    const game = makeGame();
+    const player = addConnectedPlayer(game);
+    game.start();
+    const { events } = game.score(player.id, 3);
+    assert.ok(!events.includes('took_lead'));
+  });
+
+  test('score events always include a base event', () => {
+    const game = makeGame();
+    const player = addConnectedPlayer(game);
+    game.start();
+
+    const r1 = game.score(player.id, 1);
+    assert.ok(r1.events.includes('score_1'));
+
+    player.lastScoredAt = null;
+    const r3 = game.score(player.id, 3);
+    assert.ok(r3.events.includes('score_3'));
+
+    player.lastScoredAt = null;
+    const r0 = game.score(player.id, 0);
+    assert.ok(r0.events.includes('zero_roll'));
   });
 });

@@ -58,7 +58,12 @@
   }
 
   function _handleScored(payload) {
-    if (raceTrack) raceTrack.triggerScoringEffect(payload.playerId);
+    if (!raceTrack) return;
+    // Use events from server if present; fall back to deriving from points.
+    var events = (payload.events && payload.events.length)
+      ? payload.events
+      : (payload.points === 0 ? ['zero_roll'] : payload.points === 3 ? ['score_3'] : ['score_1']);
+    raceTrack.triggerEffect(payload.playerId, events);
   }
 
   function _handleWinner(payload) {

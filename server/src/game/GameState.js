@@ -5,6 +5,8 @@ const path = require('path');
 
 const VALID_THEMES = ['horse', 'camel'];
 const RATE_LIMIT_MS = 300;
+const STREAK_ZERO_THRESHOLD  = 3;  // consecutive zeros to trigger streak_zero_3x
+const STREAK_THREE_THRESHOLD = 2;  // consecutive +3s to trigger streak_three_2x
 
 class GameState {
   constructor() {
@@ -100,6 +102,8 @@ class GameState {
     for (const player of this.players.values()) {
       player.position = 0;
       player.lastScoredAt = null;
+      player.consecutiveZeros      = 0;
+      player.consecutivePlusThrees = 0;
     }
     return this.toJSON();
   }
@@ -157,6 +161,8 @@ class GameState {
       connected: true,
       connectedAt: Date.now(),
       lastScoredAt: null,
+      consecutiveZeros:      0,
+      consecutivePlusThrees: 0,
     };
     this.players.set(id, player);
     return player;
@@ -196,8 +202,8 @@ class GameState {
       throw new Error(`Cannot score: game is '${this.status}', must be 'running'`);
     }
 
-    if (points !== 1 && points !== 3) {
-      throw new Error('Points must be 1 or 3');
+    if (points !== 0 && points !== 1 && points !== 3) {
+      throw new Error('Points must be 0, 1, or 3');
     }
 
     const player = this.players.get(playerId);
@@ -213,15 +219,68 @@ class GameState {
       throw new Error('rate limited');
     }
 
-    player.position += points;
-    player.lastScoredAt = now;
+    // ── Rankings before scoring (for rank-change detection) ──────────────────
+    const ranksBefore   = this._computeRankings();
+    const indexBefore   = ranksBefore.findIndex((p) => p.id === playerId);
+    const wasFirst      = indexBefore === 0;
+    const wasLast       = indexBefore === ranksBefore.length - 1;
 
-    if (player.position >= this.config.trackLength) {
-      this.finish(playerId);
-      return { player, winner: true };
+    // ── Update streak counters ────────────────────────────────────────────────
+    if (points === 0) {
+      player.consecutiveZeros      += 1;
+      player.consecutivePlusThrees  = 0;
+    } else if (points === 3) {
+      player.consecutiveZeros       = 0;
+      player.consecutivePlusThrees += 1;
+    } else {
+      player.consecutiveZeros       = 0;
+      player.consecutivePlusThrees  = 0;
     }
 
-    return { player, winner: false };
+    // ── Apply score ───────────────────────────────────────────────────────────
+    player.position    += points;
+    player.lastScoredAt = now;
+
+    // ── Build events array ────────────────────────────────────────────────────
+    const events = [];
+
+    if (points === 0)      events.push('zero_roll');
+    else if (points === 1) events.push('score_1');
+    else if (points === 3) events.push('score_3');
+
+    if (player.consecutiveZeros      >= STREAK_ZERO_THRESHOLD)  events.push('streak_zero_3x');
+    if (player.consecutivePlusThrees >= STREAK_THREE_THRESHOLD) events.push('streak_three_2x');
+
+    // Rank-change events only make sense with ≥2 players and a position change
+    if (points > 0 && this.players.size >= 2) {
+      const ranksAfter = this._computeRankings();
+      const indexAfter = ranksAfter.findIndex((p) => p.id === playerId);
+      const isFirst    = indexAfter === 0;
+      const isLast     = indexAfter === ranksAfter.length - 1;
+
+      if (isFirst && !wasFirst) events.push('took_lead');
+      if (isLast  && !wasLast)  events.push('became_last');
+    }
+
+    // ── Winner check ──────────────────────────────────────────────────────────
+    if (player.position >= this.config.trackLength) {
+      this.finish(playerId);
+      return { player, winner: true, events };
+    }
+
+    return { player, winner: false, events };
+  }
+
+  // ─── Rankings helper ──────────────────────────────────────────────────────
+
+  /**
+   * Returns connected players sorted by position descending.
+   * @returns {{ id: string, position: number }[]}
+   */
+  _computeRankings() {
+    return [...this.players.values()]
+      .filter((p) => p.connected)
+      .sort((a, b) => b.position - a.position);
   }
 }
 

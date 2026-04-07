@@ -168,6 +168,45 @@ describe('Integration — WebSocket flow', () => {
     assert.equal(scored.payload.playerId, playerId);
     assert.equal(scored.payload.points, 1);
     assert.equal(scored.payload.newPosition, 1);
+    assert.ok(Array.isArray(scored.payload.events), 'scored message should include events array');
+    assert.ok(scored.payload.events.includes('score_1'));
+
+    ws.close();
+  });
+
+  test('zero-point score produces scored message with zero_roll event', async () => {
+    gameState.reset();
+    gameState.players.clear();
+
+    const ws = await wsConnect(port);
+
+    const regPromise = waitForMessage(ws, (m) => m.type === 'registered');
+    ws.send(JSON.stringify({ type: 'register', payload: { type: 'sensor', playerName: 'ZeroRoller' } }));
+    const registered = await regPromise;
+    const playerId = registered.payload.id;
+
+    const runningStatePromise = waitForMessage(
+      ws,
+      (m) => m.type === 'state' && m.payload.status === 'running'
+    );
+    await new Promise((resolve, reject) => {
+      const req = http.request(
+        { hostname: '127.0.0.1', port, path: '/api/game/start', method: 'POST',
+          headers: { 'Content-Type': 'application/json' } },
+        (res) => { res.resume(); res.on('end', resolve); }
+      );
+      req.on('error', reject);
+      req.end();
+    });
+    await runningStatePromise;
+
+    const scoredPromise = waitForMessage(ws, (m) => m.type === 'scored');
+    ws.send(JSON.stringify({ type: 'score', payload: { playerId, points: 0 } }));
+
+    const scored = await scoredPromise;
+    assert.equal(scored.payload.points, 0);
+    assert.equal(scored.payload.newPosition, 0);
+    assert.ok(scored.payload.events.includes('zero_roll'));
 
     ws.close();
   });

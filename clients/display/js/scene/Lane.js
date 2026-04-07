@@ -21,7 +21,7 @@
  *   lane.resize(newW, newH);
  */
 
-/* global PIXI, gsap, ThemeManager, ScoringEffect */
+/* global PIXI, gsap, ThemeManager, ScoringEffect, ActionEffect */
 
 class Lane extends PIXI.Container {
   constructor(player, colorIndex, laneIndex, laneWidth, laneHeight) {
@@ -154,6 +154,18 @@ class Lane extends PIXI.Container {
     this._veil.rect(0, 0, w, h).fill({ color: 0x000000, alpha: 0.55 });
     this._veil.visible = !this._player.connected;
     this.addChild(this._veil);
+
+    // ── 8. Flash overlay — full-lane color for action effects ─────────────────
+    this._flashOverlay = new PIXI.Graphics();
+    this._flashOverlay.rect(0, 0, w, h).fill({ color: 0xffffff, alpha: 1.0 });
+    this._flashOverlay.tint    = 0xffffff;
+    this._flashOverlay.alpha   = 0;
+    this._flashOverlay.visible = false;
+    this.addChild(this._flashOverlay);
+
+    // ── 9. Popup container — floating emoji / text above figure ───────────────
+    this._popupContainer = new PIXI.Container();
+    this.addChild(this._popupContainer);
   }
 
   // ── Public API ───────────────────────────────────────────────────────────────
@@ -180,6 +192,19 @@ class Lane extends PIXI.Container {
   /** Flash + bounce the figure (called on scored event). */
   triggerScoringEffect() {
     ScoringEffect.scoringFlash(this._figureContainer);
+  }
+
+  /**
+   * Trigger visual effects for the given events array.
+   * Falls back to a basic scoring flash if events is empty or not provided.
+   * @param {string[]} events  Event strings from the server scored message.
+   */
+  triggerEffect(events) {
+    if (events && events.length) {
+      ActionEffect.showEffect(this, events);
+    } else {
+      ScoringEffect.scoringFlash(this._figureContainer);
+    }
   }
 
   /** Show/hide the disconnected veil. */

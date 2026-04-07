@@ -65,7 +65,7 @@ class ConnectionManager {
     }
   }
 
-  broadcastScored(player, points) {
+  broadcastScored(player, points, events) {
     this.broadcastAll({
       type: 'scored',
       payload: {
@@ -73,6 +73,7 @@ class ConnectionManager {
         playerName: player.name,
         points,
         newPosition: player.position,
+        events: events || [],
       },
     });
   }
@@ -163,19 +164,19 @@ class ConnectionManager {
   _handleScore(clientId, ws, payload) {
     const { playerId, points } = payload;
 
-    if (!playerId || (points !== 1 && points !== 3)) {
+    if (!playerId || (points !== 0 && points !== 1 && points !== 3)) {
       this._send(ws, {
         type: 'error',
-        payload: { message: 'Invalid score payload: playerId required, points must be 1 or 3' },
+        payload: { message: 'Invalid score payload: playerId required, points must be 0, 1, or 3' },
       });
       return;
     }
 
     try {
       const result = this.gameState.score(playerId, points);
-      const { player, winner } = result;
+      const { player, winner, events } = result;
 
-      this.broadcastScored(player, points);
+      this.broadcastScored(player, points, events);
       this.broadcastPositions();
       this.broadcastState();
 
