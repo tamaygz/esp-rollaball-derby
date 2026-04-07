@@ -139,6 +139,8 @@ class BotManager {
       }
     }
     this._bots.clear();
+    this.connectionManager.broadcastState();
+    this.connectionManager.broadcastPositions();
   }
 
   // ── Internal timer logic ──────────────────────────────────────────────────
