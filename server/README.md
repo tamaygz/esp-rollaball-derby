@@ -76,7 +76,7 @@ Every `scored` message includes an `events[]` array with zero or more of:
 
 ## Server-Side Bots
 
-The `BotManager` creates autonomous bot players that score at random 2–8 s intervals while the game is running. Bots:
+The `BotManager` creates autonomous bot players that score at random 345 ms–6.3 s intervals while the game is running. Bots:
 
 - Are created via `POST /api/bots` (no WebSocket connection needed)
 - Get auto-assigned player names and type `'bot'`

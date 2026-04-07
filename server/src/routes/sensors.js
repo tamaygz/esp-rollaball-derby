@@ -1,7 +1,34 @@
 'use strict';
 
 const http = require('http');
+const net  = require('net');
 const { Router } = require('express');
+
+/**
+ * Returns true if `ip` (already confirmed to be a valid IP by net.isIP()) is
+ * within an RFC 1918 / RFC 4193 private address range.  We only allow the
+ * sensor proxy to reach LAN devices, not arbitrary internet hosts.
+ */
+function _isPrivateIp(ip) {
+  // IPv4 private ranges: 10.x, 172.16-31.x, 192.168.x, 127.x (loopback)
+  if (net.isIPv4(ip)) {
+    const [a, b] = ip.split('.').map(Number);
+    return (
+      a === 10 ||
+      a === 127 ||
+      (a === 172 && b >= 16 && b <= 31) ||
+      (a === 192 && b === 168)
+    );
+  }
+  // IPv6: loopback (::1) and ULA (fc00::/7)
+  if (net.isIPv6(ip)) {
+    const norm = ip.toLowerCase();
+    if (norm === '::1') return true;
+    // ULA prefix fc00::/7 covers fc… and fd…
+    if (norm.startsWith('fc') || norm.startsWith('fd')) return true;
+  }
+  return false;
+}
 
 /**
  * Creates a sensors router that allows the admin to push a new server
@@ -20,6 +47,13 @@ function createSensorsRouter() {
 
     if (!sensorIp || typeof sensorIp !== 'string' || !sensorIp.trim()) {
       return res.status(400).json({ error: 'sensorIp is required' });
+    }
+    const trimmedSensorIp = sensorIp.trim();
+    if (!net.isIP(trimmedSensorIp)) {
+      return res.status(400).json({ error: 'sensorIp must be a valid IP address' });
+    }
+    if (!_isPrivateIp(trimmedSensorIp)) {
+      return res.status(400).json({ error: 'sensorIp must be a private/LAN IP address' });
     }
     if (!serverIp || typeof serverIp !== 'string' || !serverIp.trim()) {
       return res.status(400).json({ error: 'serverIp is required' });
@@ -48,7 +82,7 @@ function createSensorsRouter() {
 
     const payload = JSON.stringify(config);
     const options = {
-      hostname: sensorIp.trim(),
+      hostname: trimmedSensorIp,
       port:     80,
       path:     '/config',
       method:   'POST',

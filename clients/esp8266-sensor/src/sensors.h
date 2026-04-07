@@ -2,7 +2,7 @@
 #include <Arduino.h>
 #include "config.h"
 
-// Reads two IR break-beam sensors via hardware interrupts.
+// Reads three IR break-beam sensors via hardware interrupts.
 // ISRs are marked ICACHE_RAM_ATTR so they execute from IRAM (ESP8266 requirement).
 // Debounce is enforced inside the ISR using millis() — minimum DEBOUNCE_MS between
 // accepted triggers per sensor.

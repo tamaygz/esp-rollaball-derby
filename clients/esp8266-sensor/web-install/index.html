@@ -650,7 +650,15 @@ async function sendConfigViaSerial() {
   const payload = JSON.stringify({ server_ip: ip, server_port: port, player_name: name });
 
   const setP = (msg, cls = '') => {
-    cfgProgress.innerHTML = cls ? `<span class="${cls}">${msg}</span>` : msg;
+    cfgProgress.textContent = '';
+    if (cls) {
+      const span = document.createElement('span');
+      span.className = cls;
+      span.textContent = msg;
+      cfgProgress.appendChild(span);
+    } else {
+      cfgProgress.textContent = msg;
+    }
   };
 
   let serialPort = null;

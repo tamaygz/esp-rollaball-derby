@@ -6,7 +6,7 @@
       "chipFamily": "ESP8266",
       "parts": [
         {
-          "path": "https://github.com/tamaygz/esp-rollaball-derby/releases/latest/download/firmware-d1_mini.bin",
+          "path": "https://github.com/tamaygz/esp-rollaball-derby/releases/latest/download/firmware.bin",
           "offset": 0
         }
       ]

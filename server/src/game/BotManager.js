@@ -5,8 +5,8 @@ const { randomUUID } = require('crypto');
 /**
  * BotManager — creates and manages server-side bot players.
  *
- * Each bot is an autonomous player that scores at random human-like intervals
- * (2–8 s) while the game is running.  Bots are created via REST API and live
+ * Each bot is an autonomous player that scores at random intervals
+ * (345 ms – 6.3 s) while the game is running.  Bots are created via REST API and live
  * entirely on the server — no WebSocket client needed.
  *
  * Roll probability table (0–100 inclusive):
