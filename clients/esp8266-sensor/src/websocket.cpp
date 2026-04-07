@@ -114,11 +114,35 @@ void WSClient::_onMessage(WebsocketsMessage msg) {
         return;
     }
 
-    // Silently ignore other broadcast messages (state, scored, winner, positions).
+    if (strcmp(type, "countdown") == 0) {
+        int count = doc["payload"]["count"] | 0;
+        if (count >= 1) {
+            _pendingEvent = GameEvent::COUNTDOWN_TICK;
+        }
+        return;
+    }
+
+    if (strcmp(type, "winner") == 0) {
+        const char* winnerId = doc["payload"]["playerId"];
+        if (winnerId) {
+            _pendingEvent = (_playerId == winnerId)
+                            ? GameEvent::WINNER_SELF
+                            : GameEvent::WINNER_OTHER;
+        }
+        return;
+    }
+
+    // Silently ignore other broadcast messages (state, scored, positions).
+}
+
+GameEvent WSClient::pollEvent() {
+    GameEvent ev  = _pendingEvent;
+    _pendingEvent = GameEvent::NONE;
+    return ev;
 }
 
 void WSClient::_onEvent(WebsocketsEvent event, String data) {
-    if (event == WebsocketsEvent::ConnectionOpened) {
+
         Serial.println("[WS] Connected");
         _connected = true;
         _backoffMs = WS_BACKOFF_MIN_MS;  // reset backoff on successful connection

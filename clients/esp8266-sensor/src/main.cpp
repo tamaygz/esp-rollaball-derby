@@ -163,10 +163,20 @@ void loop() {
 
     wsClient.loop();
 
-    int points = sensors.check();
+    int points    = sensors.check();
+    GameEvent ev  = wsClient.pollEvent();
 
     if (wsClient.isConnected()) {
         led.setState(LedState::WS_CONNECTED);
+
+        // Game event LED feedback
+        if (ev == GameEvent::COUNTDOWN_TICK) {
+            led.triggerCountdownTick();
+        } else if (ev == GameEvent::WINNER_SELF) {
+            led.triggerWinner();
+        } else if (ev == GameEvent::WINNER_OTHER) {
+            led.triggerLoser();
+        }
 
         // Only send score events once a playerId has been assigned by the server.
         if (!wsClient.getPlayerId().isEmpty()) {
