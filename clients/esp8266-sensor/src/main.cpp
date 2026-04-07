@@ -15,7 +15,7 @@ static Sensors    sensors;
 static StatusLed  led;
 
 // ─── Runtime Config (loaded from LittleFS, populated by WiFiManager) ──────────
-static char g_serverIp  [40] = "192.168.4.1";
+static char g_serverIp  [40] = "192.168.1.200";
 static char g_serverPort[ 6] = "3000";
 static char g_playerName[21] = "";
 
