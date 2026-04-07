@@ -40,6 +40,8 @@ window.Derby = window.Derby || {};
         Derby.State.render(msg.payload);
         // Keep score buttons in sync after a state update
         if (Derby.Test) Derby.Test.syncButtons();
+        // Keep bots in sync (start/stop timers, refresh player list)
+        if (Derby.Bots) Derby.Bots.syncState(msg.payload);
         break;
 
       case 'scored': {
@@ -73,6 +75,7 @@ window.Derby = window.Derby || {};
 
   Derby.Admin.init();
   Derby.Test.init();
+  Derby.Bots.init();
 
   // ── Player name (localStorage persistence) ────────────────────────────────
 

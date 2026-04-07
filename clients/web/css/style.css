@@ -192,13 +192,8 @@ h1 {
 }
 
 /* ─── Score Buttons ─────────────────────────────────────────────────────────── */
-.btn-score {
-  background: var(--success);
-  color: #fff;
-  font-size: 1.1rem;
-  min-width: 100px;
-  min-height: 52px;
-}
+.btn-score   { background: var(--success); color: #fff; font-size: 1.1rem; min-width: 100px; min-height: 52px; }
+.btn-score-2 { background: var(--warning); color: #1a1d27; }
 .btn-score-3 { background: var(--accent); }
 .btn-score:not(:disabled):hover { filter: brightness(1.1); }
 
@@ -423,6 +418,67 @@ input:disabled, select:disabled {
 .log-score  { color: #68d391; background: rgba(56,161,105,0.07); }
 .log-winner { color: #f6e05e; background: rgba(214,158,46,0.1); font-weight: 700; }
 .log-error  { color: #fc8181; background: rgba(229,62,62,0.07); }
+
+/* ─── Bots ──────────────────────────────────────────────────────────────────── */
+.bot-add-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.bot-add-row .form-group {
+  flex: 1;
+  min-width: 160px;
+  margin-bottom: 0;
+}
+
+.bot-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.bot-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface-hi);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 12px;
+}
+
+.bot-player-name {
+  flex: 1;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.bot-status-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.bot-active { background: rgba(56,161,105,0.2); color: #68d391; }
+.bot-idle   { background: rgba(113,128,150,0.2); color: #a0aec0; }
+
+.btn-bot-remove {
+  min-height: 30px;
+  min-width: 30px;
+  padding: 2px 8px;
+  font-size: 0.8rem;
+  background: rgba(229,62,62,0.15);
+  color: #fc8181;
+  border: 1px solid rgba(229,62,62,0.3);
+  border-radius: var(--radius);
+}
+.btn-bot-remove:not(:disabled):hover { background: rgba(229,62,62,0.35); }
 
 /* ─── Utility ───────────────────────────────────────────────────────────────── */
 .hidden { display: none !important; }

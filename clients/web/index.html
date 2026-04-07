@@ -100,7 +100,26 @@
       </div>
       <div class="btn-row score-btn-row">
         <button id="btn-score-1" class="btn btn-score" disabled>+1 Point</button>
+        <button id="btn-score-2" class="btn btn-score btn-score-2" disabled>+2 Points</button>
         <button id="btn-score-3" class="btn btn-score btn-score-3" disabled>+3 Points</button>
+      </div>
+    </section>
+
+    <!-- Bots -->
+    <section class="card card-wide" id="card-bots">
+      <h2>Bots</h2>
+      <p class="hint">Add virtual sensors that simulate rolls at random intervals while the game is running. Each bot independently throws with a 2–8 s human-like delay between rolls.</p>
+      <div class="bot-add-row">
+        <div class="form-group">
+          <label for="bot-player-select">Player</label>
+          <select id="bot-player-select">
+            <option value="">— select player —</option>
+          </select>
+        </div>
+        <button id="btn-add-bot" class="btn btn-primary">+ Add Bot</button>
+      </div>
+      <div id="bot-list" class="bot-list">
+        <p class="empty-msg">No bots added yet.</p>
       </div>
     </section>
 
@@ -116,6 +135,7 @@
   <script src="js/state.js"></script>
   <script src="js/admin.js"></script>
   <script src="js/test.js"></script>
+  <script src="js/bots.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>
