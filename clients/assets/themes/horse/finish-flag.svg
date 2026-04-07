@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 84">
+  <!--
+    Classic Chequered Racing Flag
+    Pole: warm wood brown. Flag: 4×4 chequered grid black/white.
+    Slight wave on flag (curved path top edge) for sense of motion.
+  -->
+
+  <!-- Pole -->
+  <rect x="23" y="0" width="5" height="84" rx="2.5" fill="#6D4C41"/>
+  <rect x="24" y="0" width="2" height="84" rx="1" fill="#8D6E63" opacity="0.6"/>
+  <!-- Pole base cap -->
+  <ellipse cx="25" cy="83" rx="5" ry="2" fill="#4E342E"/>
+
+  <!-- Flag shape (waving) -->
+  <!-- White base -->
+  <path d="M27,4 Q38,2 47,5 Q50,12 48,20 Q46,26 42,28 Q35,30 27,28 Z"
+        fill="white"/>
+
+  <!--
+    Chequered grid — 4 cols × 4 rows
+    Each cell ≈ 5w × 6h. Black squares at alternating positions (checkerboard).
+    Clipped inside the flag path via clipPath.
+  -->
+  <defs>
+    <clipPath id="flagClip">
+      <path d="M27,4 Q38,2 47,5 Q50,12 48,20 Q46,26 42,28 Q35,30 27,28 Z"/>
+    </clipPath>
+  </defs>
+
+  <!-- Row 0 -->
+  <rect x="27" y="4"  width="5" height="6" fill="#1A1A1A" clip-path="url(#flagClip)"/>
+  <rect x="37" y="4"  width="5" height="6" fill="#1A1A1A" clip-path="url(#flagClip)"/>
+  <!-- Row 1 -->
+  <rect x="32" y="10" width="5" height="6" fill="#1A1A1A" clip-path="url(#flagClip)"/>
+  <rect x="42" y="10" width="5" height="6" fill="#1A1A1A" clip-path="url(#flagClip)"/>
+  <!-- Row 2 -->
+  <rect x="27" y="16" width="5" height="6" fill="#1A1A1A" clip-path="url(#flagClip)"/>
+  <rect x="37" y="16" width="5" height="6" fill="#1A1A1A" clip-path="url(#flagClip)"/>
+  <!-- Row 3 -->
+  <rect x="32" y="22" width="5" height="6" fill="#1A1A1A" clip-path="url(#flagClip)"/>
+  <rect x="42" y="22" width="5" height="6" fill="#1A1A1A" clip-path="url(#flagClip)"/>
+
+  <!-- Flag outline -->
+  <path d="M27,4 Q38,2 47,5 Q50,12 48,20 Q46,26 42,28 Q35,30 27,28 Z"
+        fill="none" stroke="#9E9E9E" stroke-width="0.5"/>
+</svg>

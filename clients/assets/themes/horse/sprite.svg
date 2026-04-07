@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 72" fill="white">
+  <!--
+    Horse + Jockey — Flying Gallop Profile (facing right)
+    All shapes filled white so Pixi.js tint = player colour via RGB multiply.
+    Anatomical order: body → hindquarters → chest → neck → head → tail → mane → legs → hooves → jockey
+  -->
+
+  <!-- ── Main torso ──────────────────────────────────────────────── -->
+  <path d="
+    M 26,27
+    C 40,20 58,20 66,22
+    C 69,23 70,25 70,28
+    C 68,34 66,42 62,48
+    C 52,52 38,52 28,50
+    C 22,48 18,44 18,40
+    C 17,34 18,28 22,27
+    C 23,26 25,26 26,27
+    Z"/>
+
+  <!-- Rounded hindquarters (gives the horse its power silhouette) -->
+  <ellipse cx="24" cy="36" rx="10" ry="12"/>
+
+  <!-- Chest / shoulder mass -->
+  <ellipse cx="67" cy="37" rx="8" ry="11"/>
+
+  <!-- ── Neck ────────────────────────────────────────────────────── -->
+  <path d="
+    M 66,26
+    C 70,20 76,13 80,10
+    L 84,12
+    C 80,16 74,24 70,30
+    Z"/>
+
+  <!-- ── Head ────────────────────────────────────────────────────── -->
+  <!-- Cranium / poll -->
+  <ellipse cx="84" cy="13" rx="10" ry="7" transform="rotate(-22 84 13)"/>
+  <!-- Long equine muzzle -->
+  <ellipse cx="93" cy="22" rx="7" ry="4" transform="rotate(-8 93 22)"/>
+  <!-- Nostril suggestion -->
+  <ellipse cx="97" cy="24" rx="2" ry="1.2"/>
+  <!-- Ear (pricked forward) -->
+  <polygon points="80,8 83,2 87,8"/>
+
+  <!-- ── Mane (crescent along crest of neck) ───────────────────── -->
+  <path d="M 66,26 C 64,20 65,13 68,10 C 70,13 71,19 68,28 Z"/>
+
+  <!-- ── Tail (streaming back, slight upward arc) ──────────────── -->
+  <path d="
+    M 18,38
+    C 12,32 7,24 5,17
+    C 4,12 7,11 9,15
+    C 11,19 15,28 18,38
+    Z"/>
+
+  <!-- ── Four legs — flying gallop: diagonal pair extended one way, other pair the other ── -->
+  <!-- Right foreleg — stretched forward and up -->
+  <path d="M 70,46 L 74,48 L 81,64 L 77,66 Z"/>
+  <ellipse cx="79" cy="66" rx="4" ry="2"/>
+
+  <!-- Left foreleg — forward, lower extension -->
+  <path d="M 64,48 L 68,50 L 73,66 L 69,68 Z"/>
+  <ellipse cx="71" cy="68" rx="4" ry="2"/>
+
+  <!-- Right hindleg — kicked back and slightly up -->
+  <path d="M 30,48 L 26,50 L 20,64 L 24,66 Z"/>
+  <ellipse cx="22" cy="66" rx="4" ry="2"/>
+
+  <!-- Left hindleg — swept back, highest arc -->
+  <path d="M 23,50 L 19,52 L 12,64 L 16,66 Z"/>
+  <ellipse cx="14" cy="65" rx="4" ry="2"/>
+
+  <!-- ── Jockey ─────────────────────────────────────────────────── -->
+  <!-- Body — low crouch (racing position) -->
+  <ellipse cx="61" cy="22" rx="10" ry="6" transform="rotate(-28 61 22)"/>
+  <!-- Head + skull cap -->
+  <circle cx="68" cy="13" r="5"/>
+  <!-- Cap peak -->
+  <path d="M 65,12 L 74,12 L 73,15 L 64,15 Z" opacity="0.85"/>
+  <!-- Prominent nose and chin -->
+  <ellipse cx="73" cy="16" rx="3" ry="2" transform="rotate(-15 73 16)"/>
+  <!-- Arm extending with riding crop -->
+  <path d="M 72,16 C 77,14 82,14 85,15" stroke="white" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <!-- Crop (short diagonal line) -->
+  <line x1="84" y1="15" x2="88" y2="20" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+</svg>

@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 100" preserveAspectRatio="xMidYMid slice">
+  <!--
+    English Countryside — Horse Race Track Lane Background
+    Layers (top→bottom): sky · clouds · distant hills · hedgerow · fence · turf track
+    Designed to tile/stretch horizontally for any lane width.
+    viewBox 800×100 — approx 10:1 aspect.
+  -->
+  <defs>
+    <linearGradient id="hSky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#5FA8D3"/>
+      <stop offset="100%" stop-color="#B8E4F7"/>
+    </linearGradient>
+    <linearGradient id="hHill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#6DBF67"/>
+      <stop offset="100%" stop-color="#3D8B3D"/>
+    </linearGradient>
+    <linearGradient id="hHedge" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#2E7D32"/>
+      <stop offset="100%" stop-color="#1B5E20"/>
+    </linearGradient>
+    <linearGradient id="hTurf" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#7CB342"/>
+      <stop offset="40%"  stop-color="#558B2F"/>
+      <stop offset="100%" stop-color="#33691E"/>
+    </linearGradient>
+    <!-- Fence post repeat pattern -->
+    <pattern id="fence" x="0" y="50" width="40" height="18" patternUnits="userSpaceOnUse">
+      <rect x="0" y="0" width="4" height="18" rx="2" fill="#F5F5F5"/>
+    </pattern>
+  </defs>
+
+  <!-- Sky -->
+  <rect width="800" height="100" fill="url(#hSky)"/>
+
+  <!-- ── Clouds ──────────────────────────────────────────────────── -->
+  <g fill="white" opacity="0.78">
+    <!-- Cloud 1 -->
+    <ellipse cx="90"  cy="11" rx="30" ry="10"/>
+    <ellipse cx="114" cy="9"  rx="24" ry="9"/>
+    <ellipse cx="68"  cy="14" rx="18" ry="7"/>
+    <!-- Cloud 2 -->
+    <ellipse cx="360" cy="8"  rx="36" ry="11"/>
+    <ellipse cx="390" cy="5"  rx="28" ry="9"/>
+    <ellipse cx="334" cy="11" rx="20" ry="7"/>
+    <!-- Cloud 3 -->
+    <ellipse cx="640" cy="13" rx="26" ry="9"/>
+    <ellipse cx="664" cy="11" rx="20" ry="8"/>
+    <ellipse cx="618" cy="15" rx="16" ry="6"/>
+  </g>
+
+  <!-- ── Distant rolling hills ──────────────────────────────────── -->
+  <path d="M0,42 Q80,28 200,36 Q300,22 420,34 Q520,18 650,30 Q730,24 800,32 L800,100 L0,100 Z"
+        fill="url(#hHill)" opacity="0.55"/>
+
+  <!-- ── Mid-ground hedge / tree line ──────────────────────────── -->
+  <path d="M0,52 Q60,42 160,48 Q280,38 400,46 Q520,36 660,44 Q740,38 800,44 L800,100 L0,100 Z"
+        fill="url(#hHedge)"/>
+
+  <!-- ── Fence posts (pattern) ─────────────────────────────────── -->
+  <rect y="50" width="800" height="18" fill="url(#fence)"/>
+  <!-- Rails (two horizontal bars) -->
+  <rect y="53" width="800" height="3" rx="1.5" fill="white" opacity="0.9"/>
+  <rect y="61" width="800" height="3" rx="1.5" fill="white" opacity="0.9"/>
+
+  <!-- ── Turf / grass track surface ────────────────────────────── -->
+  <rect y="65" width="800" height="35" fill="url(#hTurf)"/>
+  <!-- Subtle track markings — lighter grass stripes (like mown stripes) -->
+  <g fill="none" stroke="#6A9E3A" stroke-width="4" opacity="0.35">
+    <line x1="0" y1="72" x2="800" y2="72"/>
+    <line x1="0" y1="84" x2="800" y2="84"/>
+    <line x1="0" y1="96" x2="800" y2="96"/>
+  </g>
+  <!-- Ground-level shadow under fence -->
+  <rect y="64" width="800" height="3" fill="#2E7D32" opacity="0.4"/>
+
+  <!-- ── Wildflower dots (distant, above fence) ────────────────── -->
+  <g opacity="0.5">
+    <circle cx="30"  cy="49" r="2" fill="#FFEE58"/>
+    <circle cx="150" cy="47" r="2" fill="#FF8A80"/>
+    <circle cx="280" cy="50" r="2" fill="#FFFFFF"/>
+    <circle cx="430" cy="48" r="2" fill="#FFEE58"/>
+    <circle cx="570" cy="49" r="2" fill="#FF8A80"/>
+    <circle cx="710" cy="47" r="2" fill="#FFFFFF"/>
+  </g>
+</svg>
