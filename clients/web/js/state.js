@@ -15,6 +15,8 @@ window.Derby = window.Derby || {};
  *   Derby.State.showWinner(name)          — show winner banner independently
  */
 Derby.State = (function () {
+  var MAX_NAME_LEN = 20;
+
   // ── Internal state ──────────────────────────────────────────────────────────
   var _current = {
     status: 'idle',
@@ -126,7 +128,7 @@ Derby.State = (function () {
         '<div class="player-row" data-id="' + _esc(p.id) + '">' +
           '<div class="player-header">' +
             '<span class="player-color-dot" style="background:' + color + '"></span>' +
-            '<span class="player-name" data-id="' + _esc(p.id) + '">' + displayName + '</span>' +
+            '<span class="player-name" data-id="' + _esc(p.id) + '" data-name="' + _esc(p.name) + '">' + displayName + '</span>' +
             '<button class="btn-edit-name" data-id="' + _esc(p.id) + '" title="Rename player">✏️</button>' +
             '<span class="player-type-badge">' + _esc(p.type) + '</span>' +
             '<span class="player-status">' + dot + '</span>' +
@@ -156,12 +158,18 @@ Derby.State = (function () {
     var nameSpan = container.querySelector('.player-name[data-id="' + playerId + '"]');
     if (!nameSpan) return;
 
-    // Get plain-text version of name (strip HTML)
-    var current = nameSpan.innerText.replace(/\s*\(you\)\s*$/i, '').trim();
+    // Read the stored plain-text name from the data attribute (avoids fragile innerText parsing)
+    var current = nameSpan.dataset.name || '';
 
-    nameSpan.innerHTML = '<input class="name-edit-input" maxlength="20" value="' + _esc(current) + '">';
-    var input = nameSpan.querySelector('input');
-    if (!input) return;
+    // Build the input element programmatically to avoid innerHTML injection
+    var input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'name-edit-input';
+    input.maxLength = MAX_NAME_LEN;
+    input.value = current;
+
+    nameSpan.innerHTML = '';
+    nameSpan.appendChild(input);
     input.focus();
     input.select();
 
@@ -171,7 +179,7 @@ Derby.State = (function () {
       committed = true;
       // input.value is plain text from a text input — no HTML stripping needed here;
       // the server sanitizes and rejects anything unsafe.
-      var newName = input.value.trim().slice(0, 20);
+      var newName = input.value.trim().slice(0, MAX_NAME_LEN);
       if (newName && newName !== current) {
         Derby.Admin.renamePlayer(playerId, newName);
       } else {

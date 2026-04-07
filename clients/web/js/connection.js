@@ -13,9 +13,10 @@ window.Derby = window.Derby || {};
  *   Derby.Connection.disconnect()         — close and cancel any pending reconnect
  */
 Derby.Connection = (function () {
+  var INITIAL_DELAY = 1000;
   var ws = null;
   var reconnectTimer = null;
-  var reconnectDelay = 1000;
+  var reconnectDelay = INITIAL_DELAY;
   var MAX_DELAY = 30000;
   var _currentPlayerName = '';
   var _handlers = [];
@@ -75,7 +76,7 @@ Derby.Connection = (function () {
     }
 
     ws.addEventListener('open', function () {
-      reconnectDelay = 1000; // reset backoff on successful connect
+      reconnectDelay = INITIAL_DELAY; // reset backoff on successful connect
       _setStatus('connected');
 
       // Register as web client
@@ -129,7 +130,7 @@ Derby.Connection = (function () {
       ws.close();
       ws = null;
     }
-    reconnectDelay = 1000;
+    reconnectDelay = INITIAL_DELAY;
     _setStatus('disconnected');
   }
 
