@@ -1,0 +1,141 @@
+'use strict';
+
+/* global Derby */
+window.Derby = window.Derby || {};
+
+/**
+ * Derby.Connection — WebSocket client with exponential-backoff auto-reconnect.
+ *
+ * Public API:
+ *   Derby.Connection.connect(playerName)  — open (or reopen) the WebSocket
+ *   Derby.Connection.send(msg)            — send a JSON message; returns true on success
+ *   Derby.Connection.onMessage(fn)        — register a message handler
+ *   Derby.Connection.disconnect()         — close and cancel any pending reconnect
+ */
+Derby.Connection = (function () {
+  var INITIAL_DELAY = 1000;
+  var ws = null;
+  var reconnectTimer = null;
+  var reconnectDelay = INITIAL_DELAY;
+  var MAX_DELAY = 30000;
+  var _currentPlayerName = '';
+  var _handlers = [];
+  var _shouldReconnect = false; // gates auto-reconnect; false during intentional close
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
+
+  function _wsUrl() {
+    var proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    return proto + '//' + location.host;
+  }
+
+  function _setStatus(state) {
+    var el = document.getElementById('ws-status');
+    if (!el) return;
+    if (state === 'connected') {
+      el.textContent = '⬤ Connected';
+      el.className = 'ws-status ws-connected';
+    } else if (state === 'connecting') {
+      el.textContent = '⬤ Connecting…';
+      el.className = 'ws-status ws-connecting';
+    } else {
+      el.textContent = '⬤ Disconnected';
+      el.className = 'ws-status ws-disconnected';
+    }
+  }
+
+  function _dispatch(msg) {
+    for (var i = 0; i < _handlers.length; i++) {
+      try { _handlers[i](msg); } catch (e) { console.error('[Derby.Connection] handler error', e); }
+    }
+  }
+
+  // ── Connection lifecycle ────────────────────────────────────────────────────
+
+  function connect(playerName) {
+    _currentPlayerName = (typeof playerName === 'string') ? playerName.trim() : '';
+
+    // Close any existing socket before re-opening; suppress its close-listener
+    // so the stale socket doesn't trigger another reconnect cycle.
+    if (ws && ws.readyState !== WebSocket.CLOSED) {
+      _shouldReconnect = false;
+      ws.close();
+    }
+    if (reconnectTimer) {
+      clearTimeout(reconnectTimer);
+      reconnectTimer = null;
+    }
+
+    _shouldReconnect = true;
+    _setStatus('connecting');
+
+    try {
+      ws = new WebSocket(_wsUrl());
+    } catch (e) {
+      console.error('[Derby.Connection] WebSocket init error', e);
+      _setStatus('disconnected');
+      _scheduleReconnect();
+      return;
+    }
+
+    ws.addEventListener('open', function () {
+      reconnectDelay = INITIAL_DELAY; // reset backoff on successful connect
+      _setStatus('connected');
+
+      // Register as web client
+      var payload = { type: 'web' };
+      if (_currentPlayerName) payload.playerName = _currentPlayerName;
+      ws.send(JSON.stringify({ type: 'register', payload: payload }));
+    });
+
+    ws.addEventListener('message', function (event) {
+      var msg;
+      try { msg = JSON.parse(event.data); } catch (e) { return; }
+      _dispatch(msg);
+    });
+
+    ws.addEventListener('close', function () {
+      _setStatus('disconnected');
+      if (_shouldReconnect) _scheduleReconnect();
+    });
+
+    ws.addEventListener('error', function () {
+      _setStatus('disconnected');
+      // 'close' event fires after 'error', so reconnect is triggered there
+    });
+  }
+
+  function _scheduleReconnect() {
+    if (reconnectTimer) clearTimeout(reconnectTimer);
+    reconnectTimer = setTimeout(function () {
+      reconnectTimer = null;
+      connect(_currentPlayerName);
+    }, reconnectDelay);
+    reconnectDelay = Math.min(reconnectDelay * 2, MAX_DELAY);
+  }
+
+  function send(msg) {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify(msg));
+      return true;
+    }
+    return false;
+  }
+
+  function onMessage(handler) {
+    _handlers.push(handler);
+  }
+
+  function disconnect() {
+    _shouldReconnect = false;
+    if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+    if (ws) {
+      ws.close();
+      ws = null;
+    }
+    reconnectDelay = INITIAL_DELAY;
+    _setStatus('disconnected');
+  }
+
+  return { connect: connect, send: send, onMessage: onMessage, disconnect: disconnect };
+}());

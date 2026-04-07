@@ -61,6 +61,66 @@
   - docs/task_plan.md (Phase 6 marked complete)
   - docs/progress.md (this entry)
 
+---
+
+## Session: 2026-04-07 (cont.) — Server Implementation
+
+### Phase: Server Build
+- **Status:** complete
+- Actions taken:
+  - Cloud agent (Software Engineer Agent) implemented full server from `plan/feature-server-web-1.md`
+  - All 49 tests pass: `gameState.test.js` (27), `connectionManager.test.js` (13), `integration.test.js` (9)
+  - Fixed: test glob `tests/*.test.js` required on Node 22+; `makeMockWs()` extended EventEmitter; WS listener race in integration tests
+  - Bug discovered and fixed: `/assets/` static path had extra `../`
+- Files created:
+  - `server/src/index.js` — Express + WS, mounts `/assets/` and `/admin/`
+  - `server/src/game/GameState.js` — state machine, scoring, 300ms rate-limit, name assignment from names.txt
+  - `server/src/ws/ConnectionManager.js` — WS hub, broadcast helpers
+  - `server/src/routes/{game,players,health}.js` — REST endpoints
+  - `server/data/names.txt` — 60 horse/racing-themed fun names
+  - `server/tests/` — 3 test files (49 tests total)
+  - `server/package.json`, `.env.example`, `.gitignore`
+
+---
+
+## Session: 2026-04-07 (cont.) — Game Assets
+
+### Phase: Asset Generation
+- **Status:** complete
+- Actions taken:
+  - Designed and created SVG asset suite for horse and camel themes
+  - All sprites white-fill tintable (Pixi.js `sprite.tint = 0xRRGGBB`)
+  - Shared player-colors.json (16 colours, hex + pixi `0x` format) + preview.html
+- Files created:
+  - `clients/assets/themes/horse/` — sprite.svg, track-bg.svg, finish-flag.svg, theme.json
+  - `clients/assets/themes/camel/` — sprite.svg, track-bg.svg, finish-flag.svg, theme.json
+  - `clients/assets/themes/shared/player-colors.json`, `preview.html`
+
+---
+
+## Session: 2026-04-07 (cont.) — Web Admin SPA (PR #1)
+
+### Phase: Client Web Build
+- **Status:** complete (PR #1 open on branch `copilot/implement-server-frontend`)
+- Actions taken:
+  - Cloud agent implemented `plan/feature-client-web-1.md`
+  - PR #1: "feat: server frontend — vanilla JS admin + test SPA at /admin"
+  - Also fixed `/assets/` static path bug in `server/src/index.js`
+- Files created:
+  - `clients/web/index.html` — SPA shell, 7 sections
+  - `clients/web/css/style.css` — dark theme, CSS custom properties, responsive grid
+  - `clients/web/js/connection.js` — WS client, exponential-backoff reconnect
+  - `clients/web/js/state.js` — game state tracker + DOM renderer (276 lines)
+  - `clients/web/js/admin.js` — REST calls for game control + player rename
+  - `clients/web/js/test.js` — score simulation panel
+  - `clients/web/js/main.js` — entry point, message router, localStorage name persistence
+- Key decisions:
+  - Vanilla JS IIFE modules under `window.Derby` namespace (no bundler)
+  - `_esc()` + DOM element creation (no `innerHTML` for user content), XSS-safe
+
 ## Test Results
 | Test | Input | Expected | Actual | Status |
 |------|-------|----------|--------|--------|
+| gameState.test.js (27 tests)     | — | pass | pass | ✅ |
+| connectionManager.test.js (13 tests) | — | pass | pass | ✅ |
+| integration.test.js (9 tests)    | — | pass | pass | ✅ |

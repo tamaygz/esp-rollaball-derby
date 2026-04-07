@@ -27,9 +27,12 @@ app.use(express.json());
 // Static files (display SPA, web test client)
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
+// Admin + test client SPA served at /admin/
+app.use('/admin', express.static(path.join(__dirname, '..', '..', 'clients', 'web')));
+
 // Shared game assets (sprites, track backgrounds, themes) served at /assets/
 // Source of truth lives in clients/assets/ — no copy needed.
-app.use('/assets', express.static(path.join(__dirname, '..', '..', '..', 'clients', 'assets')));
+app.use('/assets', express.static(path.join(__dirname, '..', '..', 'clients', 'assets')));
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
 
