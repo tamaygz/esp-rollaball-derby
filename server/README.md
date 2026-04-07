@@ -32,6 +32,9 @@ Server starts on **http://localhost:3000** (override with `PORT` env var). Copy 
 | PUT | `/api/game/config` | Update config (idle only) |
 | GET | `/api/players` | List all players |
 | PUT | `/api/players/:id` | Rename a player |
+| DELETE | `/api/players/:id` | Remove a player |
+| GET | `/api/clients` | List connected clients |
+| DELETE | `/api/clients/:id` | Disconnect a client |
 
 Static mounts:
 - `/admin` → `../clients/web/` — admin SPA
