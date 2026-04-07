@@ -5,13 +5,87 @@ const { randomUUID } = require('crypto');
 const VALID_TYPES = new Set(['sensor', 'web', 'motor', 'display']);
 const HTML_TAG_PATTERN = /<[^>]*>/g;
 
+const AUTO_RESET_DELAY_MS = 15_000;
+const COUNTDOWN_TICK_MS   = 1_000;
+const COUNTDOWN_GO_HOLD_MS = 600;
+
 class ConnectionManager {
   constructor(gameState) {
-    this.gameState = gameState;
-    this.clients = new Map(); // id → { ws, type, playerId, id }
+    this.gameState       = gameState;
+    this.clients         = new Map(); // id → { ws, type, playerId, id }
+    this._botManager     = null;
+    this._autoResetTimer = null;
+    this._countingDown   = false;
+    this._countdownGen   = 0;
   }
 
   // ─── Public ───────────────────────────────────────────────────────────────
+
+  setBotManager(botManager) {
+    this._botManager = botManager;
+  }
+
+  cancelAutoReset() {
+    if (this._autoResetTimer !== null) {
+      clearTimeout(this._autoResetTimer);
+      this._autoResetTimer = null;
+    }
+  }
+
+  cancelCountdown() {
+    if (this._countingDown) {
+      this._countdownGen++;
+      this._countingDown = false;
+    }
+  }
+
+  /**
+   * Validate the game can start, then either start immediately (countdown=0)
+   * or broadcast countdown ticks asynchronously before transitioning to running.
+   * Throws synchronously if the game cannot be started.
+   */
+  startWithCountdown(botManager) {
+    if (this._countingDown) {
+      throw new Error('Countdown already in progress');
+    }
+    this.gameState.canStart(); // throws if invalid
+
+    const countdown = this.gameState.config.countdown;
+    if (countdown === 0) {
+      this.gameState.start();
+      if (botManager) botManager.onGameStart();
+      this.broadcastState();
+      return;
+    }
+
+    this._countingDown = true;
+    const gen = ++this._countdownGen;
+    this._runCountdown(countdown, botManager, gen);
+  }
+
+  async _runCountdown(countdown, botManager, gen) {
+    const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+    try {
+      for (let i = countdown; i >= 1; i--) {
+        if (this._countdownGen !== gen) return;
+        this.broadcastAll({ type: 'countdown', payload: { count: i } });
+        await wait(COUNTDOWN_TICK_MS);
+      }
+      if (this._countdownGen !== gen) return;
+      this.broadcastAll({ type: 'countdown', payload: { count: 0 } });
+      await wait(COUNTDOWN_GO_HOLD_MS);
+      if (this._countdownGen !== gen) return;
+
+      this.gameState.start();
+      if (botManager) botManager.onGameStart();
+      this.broadcastState();
+    } catch (err) {
+      console.error('[Derby] Countdown aborted:', err.message);
+      try { this.broadcastState(); } catch (_) { /* ignore */ }
+    } finally {
+      if (this._countdownGen === gen) this._countingDown = false;
+    }
+  }
 
   handleConnection(ws) {
     const clientId = randomUUID();
@@ -120,6 +194,16 @@ class ConnectionManager {
       type: 'winner',
       payload: { playerId: player.id, name: player.name },
     });
+
+    // Auto-reset after 15 s so the screen clears without manual intervention.
+    this.cancelAutoReset();
+    this._autoResetTimer = setTimeout(() => {
+      this._autoResetTimer = null;
+      if (this._botManager) this._botManager.onGameReset();
+      this.gameState.reset();
+      this.broadcastState();
+      this.broadcastPositions();
+    }, AUTO_RESET_DELAY_MS);
   }
 
   // ─── Private ──────────────────────────────────────────────────────────────

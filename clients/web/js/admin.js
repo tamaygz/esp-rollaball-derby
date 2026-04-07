@@ -76,12 +76,14 @@ Derby.Admin = (function () {
 
   function _onSaveConfig(e) {
     e.preventDefault();
-    var trackLength = parseInt((_el('cfg-track') || {}).value, 10);
-    var maxPlayers  = parseInt((_el('cfg-max')   || {}).value, 10);
-    var themeEl     = _el('cfg-theme');
-    var theme       = themeEl ? themeEl.value : 'horse';
+    var trackLength  = parseInt((_el('cfg-track')      || {}).value, 10);
+    var maxPlayers   = parseInt((_el('cfg-max')        || {}).value, 10);
+    var themeEl      = _el('cfg-theme');
+    var theme        = themeEl ? themeEl.value : 'horse';
+    var countdownEl  = _el('cfg-countdown');
+    var countdown    = countdownEl ? parseInt(countdownEl.value, 10) : 0;
 
-    _put('/api/game/config', { trackLength: trackLength, maxPlayers: maxPlayers, theme: theme })
+    _put('/api/game/config', { trackLength: trackLength, maxPlayers: maxPlayers, theme: theme, countdown: countdown })
       .then(function (data) {
         if (data.error) _showError('config-error', data.error);
       })

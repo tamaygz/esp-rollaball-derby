@@ -12,7 +12,7 @@
  *   winner  → WinnerOverlay.show()
  */
 
-/* global PIXI, DisplayConnection, ThemeManager, RaceTrack, WinnerOverlay */
+/* global PIXI, DisplayConnection, ThemeManager, RaceTrack, WinnerOverlay, CountdownEffect */
 
 (async function () {
 
@@ -28,8 +28,9 @@
   document.body.appendChild(app.canvas);
 
   // ── Scene objects ────────────────────────────────────────────────────────────
-  var raceTrack     = null;
-  var winnerOverlay = null;
+  var raceTrack       = null;
+  var winnerOverlay   = null;
+  var countdownEffect = null;
 
   // Initialise scene once we receive the first state message
   async function _initScene(theme) {
@@ -40,12 +41,16 @@
 
     winnerOverlay = new WinnerOverlay(app.screen.width, app.screen.height);
     app.stage.addChild(winnerOverlay);
+
+    countdownEffect = new CountdownEffect(app.screen.width, app.screen.height);
+    app.stage.addChild(countdownEffect);
   }
 
   // ── Resize handler ────────────────────────────────────────────────────────────
   app.renderer.on('resize', function () {
-    if (raceTrack)     raceTrack.resize(app.screen.width, app.screen.height);
-    if (winnerOverlay) winnerOverlay.resize(app.screen.width, app.screen.height);
+    if (raceTrack)       raceTrack.resize(app.screen.width, app.screen.height);
+    if (winnerOverlay)   winnerOverlay.resize(app.screen.width, app.screen.height);
+    if (countdownEffect) countdownEffect.resize(app.screen.width, app.screen.height);
   });
 
   // ── Message handlers ──────────────────────────────────────────────────────────
@@ -53,6 +58,12 @@
   async function _handleState(state) {
     if (!raceTrack) {
       await _initScene(state.config && state.config.theme);
+    }
+    if (winnerOverlay && winnerOverlay.visible && state.status !== 'finished') {
+      winnerOverlay.hide();
+    }
+    if (countdownEffect && countdownEffect.visible) {
+      countdownEffect.hide();
     }
     await raceTrack.setState(state);
   }
@@ -74,13 +85,18 @@
     if (raceTrack)     raceTrack.triggerScoringEffect(payload.playerId);
   }
 
+  function _handleCountdown(payload) {
+    if (countdownEffect) countdownEffect.show(payload.count);
+  }
+
   // ── WebSocket routing ─────────────────────────────────────────────────────────
 
   DisplayConnection.onMessage(function (msg) {
     switch (msg.type) {
-      case 'state':      _handleState(msg.payload);  break;
-      case 'scored':     _handleScored(msg.payload); break;
-      case 'winner':     _handleWinner(msg.payload); break;
+      case 'state':      _handleState(msg.payload);    break;
+      case 'scored':     _handleScored(msg.payload);   break;
+      case 'winner':     _handleWinner(msg.payload);   break;
+      case 'countdown':  _handleCountdown(msg.payload); break;
       case 'registered':
         console.log('[Display] registered', msg.payload.id);
         break;
