@@ -31,12 +31,22 @@ function createSensorsRouter() {
       return res.status(400).json({ error: 'serverPort must be a number between 1 and 65535' });
     }
 
-    const payload = JSON.stringify({
-      server_ip:   serverIp.trim(),
-      server_port: String(serverPort || '3000'),
-      player_name: typeof playerName === 'string' ? playerName.trim() : '',
-    });
+    const config = {
+      server_ip: serverIp.trim(),
+    };
 
+    if (serverPort !== undefined && serverPort !== '') {
+      config.server_port = String(portNum);
+    }
+
+    if (typeof playerName === 'string') {
+      const trimmedPlayerName = playerName.trim();
+      if (trimmedPlayerName) {
+        config.player_name = trimmedPlayerName;
+      }
+    }
+
+    const payload = JSON.stringify(config);
     const options = {
       hostname: sensorIp.trim(),
       port:     80,
