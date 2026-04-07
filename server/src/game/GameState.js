@@ -16,6 +16,7 @@ class GameState {
       trackLength: 15,
       maxPlayers: 16,
       theme: 'horse',
+      countdown: 0,
     };
     this.players = new Map();
     this.startedAt = null;
@@ -72,7 +73,7 @@ class GameState {
 
   // ─── Lifecycle transitions ────────────────────────────────────────────────
 
-  start() {
+  canStart() {
     if (this.status !== 'idle') {
       throw new Error(`Cannot start: game is '${this.status}', must be 'idle'`);
     }
@@ -80,6 +81,10 @@ class GameState {
     if (connected.length === 0) {
       throw new Error('Cannot start: no players connected');
     }
+  }
+
+  start() {
+    this.canStart();
 
     // Resolve 'auto' theme to a random concrete theme at game start
     if (this.config.theme === 'auto') {
@@ -151,6 +156,14 @@ class GameState {
         throw new Error('theme must be a string');
       }
       merged.theme = v;
+    }
+
+    if ('countdown' in updates) {
+      const v = updates.countdown;
+      if (v !== 0 && v !== 3 && v !== 5) {
+        throw new Error('countdown must be 0, 3, or 5');
+      }
+      merged.countdown = v;
     }
 
     this.config = merged;

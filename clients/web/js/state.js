@@ -84,16 +84,19 @@ Derby.State = (function () {
   }
 
   function _renderConfig(config, status) {
-    var cfgTrack  = _el('cfg-track');
-    var cfgMax    = _el('cfg-max');
-    var cfgTheme  = _el('cfg-theme');
-    var btnSave   = _el('btn-save-config');
-    var isIdle    = (status === 'idle');
+    var cfgTrack     = _el('cfg-track');
+    var cfgMax       = _el('cfg-max');
+    var cfgTheme     = _el('cfg-theme');
+    var cfgCountdown = _el('cfg-countdown');
+    var btnSave      = _el('btn-save-config');
+    var isIdle       = (status === 'idle');
 
-    if (cfgTrack)  { cfgTrack.value  = config.trackLength; cfgTrack.disabled  = !isIdle; }
-    if (cfgMax)    { cfgMax.value    = config.maxPlayers;  cfgMax.disabled    = !isIdle; }
-    if (cfgTheme)  { cfgTheme.value  = config.theme;       cfgTheme.disabled  = !isIdle; }
-    if (btnSave)   { btnSave.disabled = !isIdle; }
+    if (cfgTrack)     { cfgTrack.value     = config.trackLength;          cfgTrack.disabled     = !isIdle; }
+    if (cfgMax)       { cfgMax.value       = config.maxPlayers;           cfgMax.disabled       = !isIdle; }
+    if (cfgTheme)     { cfgTheme.value     = config.theme;                cfgTheme.disabled     = !isIdle; }
+    if (cfgCountdown) { cfgCountdown.value = config.countdown != null ? String(config.countdown) : '0';
+                        cfgCountdown.disabled = !isIdle; }
+    if (btnSave)      { btnSave.disabled = !isIdle; }
   }
 
   function _renderWinnerBanner(status) {

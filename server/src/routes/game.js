@@ -18,9 +18,7 @@ function createGameRouter(gameState, connectionManager, botManager) {
   // POST /start
   router.post('/start', (req, res) => {
     try {
-      gameState.start();
-      if (botManager) botManager.onGameStart();
-      connectionManager.broadcastState();
+      connectionManager.startWithCountdown(botManager);
       res.json({ ok: true });
     } catch (err) {
       res.status(400).json({ error: err.message });
@@ -44,6 +42,7 @@ function createGameRouter(gameState, connectionManager, botManager) {
 
   // POST /reset
   router.post('/reset', (req, res) => {
+    connectionManager.cancelCountdown();
     connectionManager.cancelAutoReset();
     if (botManager) botManager.onGameReset();
     gameState.reset();
