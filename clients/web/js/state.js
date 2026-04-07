@@ -227,12 +227,20 @@ Derby.State = (function () {
   // ── Public API ──────────────────────────────────────────────────────────────
 
   function render(state) {
-    _current = state;
-    var status  = state.status  || 'idle';
-    var config  = state.config  || _current.config;
-    var players = state.players || [];
-    var counts  = state.connectedClients || { total: 0, sensor: 0, web: 0, motor: 0, display: 0 };
+    var previous = _current;
+    state = state || {};
 
+    var status = state.status || previous.status || 'idle';
+    var config = state.config || previous.config || { trackLength: 15, maxPlayers: 16, theme: 'horse' };
+    var players = state.players || previous.players || [];
+    var counts = state.connectedClients || previous.connectedClients || { total: 0, sensor: 0, web: 0, motor: 0, display: 0 };
+
+    _current = {
+      status: status,
+      config: config,
+      players: players,
+      connectedClients: counts,
+    };
     _renderStatusBadge(status);
     _renderClientsSummary(counts);
     _renderButtons(status);
