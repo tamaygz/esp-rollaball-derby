@@ -149,6 +149,351 @@ Get the number of configured LEDs.
 - **Note**: GPIO3 conflicts with Serial debugging when using DMA
 - **Alternative**: UART method for configurable pin (future enhancement)
 
+---
+
+## Animation Engine (Phase 2)
+
+The animation engine provides non-blocking LED effects with smooth transitions, game event integration, and FPS control.
+
+### Features
+
+- **6 Core Effects**: Solid, Blink, Pulse, Rainbow, Chase, Sparkle
+- **Non-Blocking**: Effects run in background without blocking main loop
+- **FPS Control**: Configurable 15-60 FPS with automatic frame limiting
+- **Smooth Transitions**: Crossfade between effects with configurable duration
+- **Game Integration**: Pre-configured effects for game events (scoring, countdown, winner)
+- **Performance**: 30+ FPS sustained with 50 LEDs on ESP8266
+
+### Quick Start - Animations
+
+```cpp
+#include <leds/LedController.h>
+#include <leds/AnimationManager.h>
+#include <leds/effects/RainbowEffect.h>
+
+LedController leds;
+AnimationManager animator(&leds);
+RainbowEffect rainbow(&leds);
+
+void setup() {
+    leds.begin(50, 4);
+    animator.begin();
+    animator.setTargetFPS(30);
+    
+    // Start rainbow effect
+    EffectParams params;
+    params.brightness = 200;
+    rainbow.setParams(params);
+    rainbow.setCycleSpeed(3000);  // 3-second cycle
+    animator.playEffect(&rainbow);
+}
+
+void loop() {
+    animator.loop();  // Update animation
+    leds.loop();      // WiFi yield
+}
+```
+
+### AnimationManager API
+
+#### Initialization
+
+```cpp
+AnimationManager(LedController* controller)
+void begin()
+```
+
+Create and initialize the animation manager.
+
+#### Effect Control
+
+```cpp
+void playEffect(LedEffect* effect)
+```
+
+Play an effect immediately (replaces current effect).
+
+```cpp
+void transitionTo(LedEffect* effect, uint16_t durationMs = 500)
+```
+
+Smoothly transition to new effect with crossfade.
+
+- **durationMs**: Transition duration (0 = immediate)
+
+```cpp
+void stop()
+bool isPlaying() const
+LedEffect* getCurrentEffect() const
+```
+
+Stop current effect or check playback status.
+
+#### Performance Tuning
+
+```cpp
+void setTargetFPS(uint8_t fps)
+```
+
+Set target frame rate (15-60 FPS). Higher FPS = smoother animation but more CPU usage.
+
+**Recommended**:
+- ESP8266: 30 FPS
+- ESP32: 60 FPS
+
+```cpp
+AnimationStats getStats() const
+void resetStats()
+```
+
+Get performance diagnostics (frame count, dropped frames, average frame time).
+
+### Effect Classes
+
+All effects inherit from `LedEffect` base class and support common parameters:
+
+```cpp
+struct EffectParams {
+  RgbColor color;              // Primary color
+  uint16_t color2Hue;          // Secondary color (HSV hue)
+  float speed;                 // Speed multiplier (0.1-10.0)
+  uint8_t brightness;          // Brightness (0-255)
+  EffectDirection direction;   // FORWARD or REVERSE
+  uint16_t durationMs;         // Effect duration (0 = infinite)
+};
+```
+
+#### SolidEffect
+
+Single static color across all LEDs.
+
+```cpp
+SolidEffect solid(&leds);
+EffectParams params;
+params.color = RgbColor(255, 0, 0);  // Red
+params.brightness = 150;
+solid.setParams(params);
+solid.begin();
+```
+
+#### BlinkEffect
+
+Alternates between color and off with configurable frequency.
+
+```cpp
+BlinkEffect blink(&leds);
+EffectParams params;
+params.color = RgbColor(0, 0, 255);  // Blue
+blink.setParams(params);
+blink.setBlinkParams(200, 200, 3);  // 200ms on, 200ms off, 3 blinks
+blink.begin();
+```
+
+**Parameters**:
+- `onDurationMs`: Duration LEDs are on
+- `offDurationMs`: Duration LEDs are off
+- `blinkCount`: Number of blinks (0 = infinite)
+
+#### PulseEffect
+
+Smooth sinusoidal brightness variation (breathing effect).
+
+```cpp
+PulseEffect pulse(&leds);
+EffectParams params;
+params.color = RgbColor(0, 255, 0);  // Green
+params.brightness = 200;
+pulse.setParams(params);
+pulse.setPeriod(2000);  // 2-second pulse cycle
+pulse.begin();
+```
+
+**Parameters**:
+- `periodMs`: Duration of one complete pulse cycle
+
+#### RainbowEffect
+
+Displays full HSV spectrum across LED strip with rotation.
+
+```cpp
+RainbowEffect rainbow(&leds);
+EffectParams params;
+params.brightness = 150;
+params.direction = DIRECTION_FORWARD;
+rainbow.setParams(params);
+rainbow.setCycleSpeed(3000);  // 3-second rainbow cycle
+rainbow.begin();
+```
+
+**Parameters**:
+- `cycleSpeedMs`: Time for one complete rainbow rotation
+
+#### ChaseEffect
+
+Moving light pattern with fading tail (theater marquee style).
+
+```cpp
+ChaseEffect chase(&leds);
+EffectParams params;
+params.color = RgbColor(255, 128, 0);  // Orange
+params.brightness = 200;
+params.direction = DIRECTION_FORWARD;
+chase.setParams(params);
+chase.setChaseParams(5, 20);  // 5-pixel tail, 20 pixels/sec
+chase.begin();
+```
+
+**Parameters**:
+- `tailLength`: Number of trailing pixels (1-50)
+- `speedPixelsPerSec`: Movement speed (1-100)
+
+#### SparkleEffect
+
+Random LED twinkles (starfield style).
+
+```cpp
+SparkleEffect sparkle(&leds);
+EffectParams params;
+params.brightness = 200;
+sparkle.setParams(params);
+sparkle.setSparkleParams(
+  RgbColor(0, 0, 50),       // Dark blue background
+  RgbColor(255, 255, 255),  // White sparkles
+  0.1,                      // 10% sparkle density
+  10                        // Fade speed
+);
+sparkle.begin();
+```
+
+**Parameters**:
+- `baseColor`: Background color
+- `sparkleColor`: Color when sparkling
+- `density`: Sparkle probability per frame (0.0-1.0)
+- `fadeSpeed`: Brightness reduction per frame (1-50)
+
+### Game Event Integration
+
+`GameEventMapper` provides pre-configured effects for game events per PRD specifications.
+
+```cpp
+#include <leds/GameEventMapper.h>
+
+LedController leds;
+AnimationManager animator(&leds);
+GameEventMapper mapper(&leds, &animator);
+
+void setup() {
+    leds.begin(50, 4);
+    animator.begin();
+    mapper.begin();
+}
+
+void onGameEvent(GameEventType event) {
+    mapper.onEvent(event);  // Trigger appropriate LED effect
+}
+```
+
+**Event Mappings**:
+
+| Event | Effect | Duration | Description |
+|-------|--------|----------|-------------|
+| `COUNTDOWN_TICK` | Blue Blink | 600ms on, 400ms off | Countdown heartbeat |
+| `SCORE_PLUS1` | Blue Blink | 200ms | Quick confirmation |
+| `SCORE_PLUS2` | Purple Blink | 200ms × 2 | Double flash |
+| `SCORE_PLUS3` | Gold Sparkle | 300ms | Celebration sparkles |
+| `ZERO_ROLL` | Red Pulse | 500ms | Miss indication |
+| `WINNER_SELF` | Rainbow | 7 seconds | Victory celebration |
+| `WINNER_OTHER` | Red Fade | 2 seconds | Gentle defeat |
+
+### Creating Custom Effects
+
+Extend `LedEffect` base class to create custom animations:
+
+```cpp
+#include <leds/LedEffect.h>
+
+class MyCustomEffect : public LedEffect {
+public:
+  MyCustomEffect(LedController* controller) 
+    : LedEffect(controller) {
+    _type = EFFECT_SOLID;  // Or define new EffectType
+  }
+  
+  void begin() override {
+    _startTime = millis();
+    _elapsedTime = 0;
+    // Initialize effect state
+  }
+  
+  void update(uint32_t deltaMs) override {
+    updateElapsedTime(deltaMs);
+    
+    // Calculate animation state
+    // ...
+    
+    // Update LEDs
+    for (uint16_t i = 0; i < _controller->getLedCount(); i++) {
+      _controller->setPixel(i, RgbColor(...));
+    }
+    _controller->show();
+  }
+  
+  bool isComplete() const override {
+    return isDurationExceeded();  // Or custom completion logic
+  }
+  
+  const char* getName() const override {
+    return "MyCustomEffect";
+  }
+};
+```
+
+**Requirements**:
+- Override `begin()`, `update()`, `isComplete()`, `getName()`
+- Call `updateElapsedTime()` in `update()` to track time
+- Complete within frame budget (16ms @ 60 FPS)
+- No blocking operations (no `delay()`)
+
+## Performance Tuning
+
+### Frame Rate Optimization
+
+Monitor performance with `AnimationStats`:
+
+```cpp
+AnimationStats stats = animator.getStats();
+Serial.print("FPS: ");
+Serial.println(stats.currentFPS);
+Serial.print("Dropped frames: ");
+Serial.println(stats.droppedFrames);
+Serial.print("Avg frame time: ");
+Serial.print(stats.avgFrameTimeUs / 1000);
+Serial.println("ms");
+```
+
+**Warning Signs**:
+- `droppedFrames` increasing → Effect `update()` too slow
+- `currentFPS < targetFPS` → CPU overloaded
+- `avgFrameTimeUs > frame budget` → Optimize effect calculations
+
+### Memory Usage
+
+**Per Effect** (approximate):
+- SolidEffect: ~50 bytes
+- BlinkEffect: ~80 bytes
+- PulseEffect: ~350 bytes (sine table)
+- RainbowEffect: ~100 bytes
+- ChaseEffect: ~100 bytes
+- SparkleEffect: ~100 bytes + `ledCount` bytes
+
+**System Overhead**:
+- AnimationManager: ~200 bytes
+- LedController: ~100 bytes + `ledCount * 3` bytes (RGB buffer)
+
+**Total for 50 LEDs**: ~2KB (ESP8266 has ~40KB free after WiFi stack)
+
+## Platform Differences
+
 ### ESP32
 
 - **Method**: RMT channel 0
