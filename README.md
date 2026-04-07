@@ -20,7 +20,7 @@ All communication over WebSocket (`ws://`). The server is the single source of t
 | `server/` | ✅ Complete | 49 tests passing |
 | `clients/assets/` | ✅ Complete | Horse + camel SVG themes |
 | `clients/web/` | ✅ Complete | PR #1 open (admin SPA at `/admin`) |
-| `clients/display/` | 🔲 Not started | Pixi.js race visualization — next |
+| `clients/display/` | ✅ Complete | Pixi.js race visualization at `/display` |
 | `clients/esp8266-sensor/` | 🔲 Not started | IR sensor firmware |
 | `clients/esp8266-motor/` | ⏳ Deferred | Phase 3 |
 
@@ -41,7 +41,7 @@ esp-rollaball-derby/
 │   ├── assets/               — Shared SVG sprites + theme manifests
 │   │   └── themes/{horse,camel}/
 │   ├── web/                  — Vanilla JS admin + test SPA
-│   └── display/              — Pixi.js display client (TODO)
+│   └── display/              — Pixi.js display client (beamer/TV)
 │
 ├── docs/                     — PRD, findings, progress log
 └── plan/                     — Implementation plan files
@@ -71,7 +71,7 @@ npm start
 |------|--------|
 | [feature-server-web-1.md](plan/feature-server-web-1.md) | ✅ Completed |
 | [feature-client-web-1.md](plan/feature-client-web-1.md) | ✅ Completed |
-| [feature-client-display-1.md](plan/feature-client-display-1.md) | 🔲 Planned |
+| [feature-client-display-1.md](plan/feature-client-display-1.md) | ✅ Completed |
 | [feature-client-esp8266-sensor-1.md](plan/feature-client-esp8266-sensor-1.md) | 🔲 Planned |
 | [feature-client-esp8266-motor-1.md](plan/feature-client-esp8266-motor-1.md) | ⏳ Deferred |
 

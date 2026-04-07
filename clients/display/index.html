@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Roll-a-Ball Derby — Display</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Connection status indicator (REQ-006) -->
+  <div id="status-dot" title="WebSocket status"></div>
+
+  <!--
+    Pixi.js v8 IIFE bundle — exposes window.PIXI
+    gsap v3 — exposes window.gsap
+  -->
+  <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/gsap.min.js"></script>
+
+  <!-- Display client modules (load order matters) -->
+  <script src="js/connection.js"></script>
+  <script src="js/ThemeManager.js"></script>
+  <script src="js/effects/ScoringEffect.js"></script>
+  <script src="js/effects/WinnerOverlay.js"></script>
+  <script src="js/scene/Lane.js"></script>
+  <script src="js/scene/RaceTrack.js"></script>
+  <script src="js/main.js"></script>
+
+</body>
+</html>

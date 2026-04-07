@@ -4,13 +4,13 @@ version: 1.0
 date_created: 2026-04-07
 last_updated: 2026-04-07
 owner: "@tamaygz"
-status: "Planned"
+status: "Completed"
 tags: [feature, frontend, display, pixi]
 ---
 
 # Client Display — Implementation Plan
 
-![Status: Planned](https://img.shields.io/badge/status-Planned-blue)
+![Status: Completed](https://img.shields.io/badge/status-Completed-brightgreen)
 
 The display client is a fullscreen SPA rendered on a beamer/TV connected to the game server. It shows horizontal stacked lanes (one per player), animated player figures that move from start to finish as scores come in, and themed visuals (horse race, camel race). It receives all state updates via WebSocket and has no user input — purely a spectator view.
 
