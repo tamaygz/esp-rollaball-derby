@@ -1,0 +1,21 @@
+{
+  "description": "16 distinct player colours shared across all Derby themes. Values in hex and Pixi.js 0x notation.",
+  "colors": [
+    { "index": 0,  "hex": "#E53E3E", "pixi": "0xE53E3E", "name": "Scarlet"      },
+    { "index": 1,  "hex": "#3182CE", "pixi": "0x3182CE", "name": "Royal Blue"   },
+    { "index": 2,  "hex": "#38A169", "pixi": "0x38A169", "name": "Emerald"      },
+    { "index": 3,  "hex": "#D69E2E", "pixi": "0xD69E2E", "name": "Gold"         },
+    { "index": 4,  "hex": "#805AD5", "pixi": "0x805AD5", "name": "Amethyst"     },
+    { "index": 5,  "hex": "#D53F8C", "pixi": "0xD53F8C", "name": "Rose"         },
+    { "index": 6,  "hex": "#00B5D8", "pixi": "0x00B5D8", "name": "Cyan"         },
+    { "index": 7,  "hex": "#68D391", "pixi": "0x68D391", "name": "Mint"         },
+    { "index": 8,  "hex": "#FF6B35", "pixi": "0xFF6B35", "name": "Tangerine"    },
+    { "index": 9,  "hex": "#B7791F", "pixi": "0xB7791F", "name": "Amber"        },
+    { "index": 10, "hex": "#9B2C2C", "pixi": "0x9B2C2C", "name": "Crimson"      },
+    { "index": 11, "hex": "#2C7A7B", "pixi": "0x2C7A7B", "name": "Teal"         },
+    { "index": 12, "hex": "#744210", "pixi": "0x744210", "name": "Sienna"       },
+    { "index": 13, "hex": "#553C9A", "pixi": "0x553C9A", "name": "Indigo"       },
+    { "index": 14, "hex": "#C05621", "pixi": "0xC05621", "name": "Burnt Sienna" },
+    { "index": 15, "hex": "#276749", "pixi": "0x276749", "name": "Forest"       }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "id": "camel",
+  "name": "Camel Derby",
+  "description": "Arabian desert camel race at dramatic sunset",
+  "environment": "Desert",
+  "assets": {
+    "sprite":      "sprite.svg",
+    "trackBg":     "track-bg.svg",
+    "finishFlag":  "finish-flag.svg"
+  },
+  "spriteViewBox": "0 0 112 84",
+  "palette": {
+    "sky":           "#BF360C",
+    "horizon":       "#FF8F00",
+    "sand":          "#FFD54F",
+    "dunes":         "#E65100",
+    "finishLine":    "#FFD700"
+  },
+  "finishLine": {
+    "pattern":    "pennant",
+    "color":      "#FFD700"
+  },
+  "playerColors": [
+    { "index": 0,  "hex": "#E53E3E", "name": "Scarlet",     "pixi": "0xE53E3E" },
+    { "index": 1,  "hex": "#3182CE", "name": "Royal Blue",  "pixi": "0x3182CE" },
+    { "index": 2,  "hex": "#38A169", "name": "Emerald",     "pixi": "0x38A169" },
+    { "index": 3,  "hex": "#D69E2E", "name": "Gold",        "pixi": "0xD69E2E" },
+    { "index": 4,  "hex": "#805AD5", "name": "Amethyst",    "pixi": "0x805AD5" },
+    { "index": 5,  "hex": "#D53F8C", "name": "Rose",        "pixi": "0xD53F8C" },
+    { "index": 6,  "hex": "#00B5D8", "name": "Cyan",        "pixi": "0x00B5D8" },
+    { "index": 7,  "hex": "#68D391", "name": "Mint",        "pixi": "0x68D391" },
+    { "index": 8,  "hex": "#FF6B35", "name": "Tangerine",   "pixi": "0xFF6B35" },
+    { "index": 9,  "hex": "#B7791F", "name": "Amber",       "pixi": "0xB7791F" },
+    { "index": 10, "hex": "#9B2C2C", "name": "Crimson",     "pixi": "0x9B2C2C" },
+    { "index": 11, "hex": "#2C7A7B", "name": "Teal",        "pixi": "0x2C7A7B" },
+    { "index": 12, "hex": "#744210", "name": "Sienna",      "pixi": "0x744210" },
+    { "index": 13, "hex": "#553C9A", "name": "Indigo",      "pixi": "0x553C9A" },
+    { "index": 14, "hex": "#C05621", "name": "Burnt Sienna","pixi": "0xC05621" },
+    { "index": 15, "hex": "#276749", "name": "Forest",      "pixi": "0x276749" }
+  ]
+}

@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Roll-a-Ball Derby · Asset Catalog</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+
+  <style>
+    /* ── Reset & Base ──────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --gold:      #D4AF37;
+      --gold-dim:  #8B7120;
+      --coal:      #0E0E10;
+      --panel:     #16161A;
+      --border:    #2A2A2E;
+      --text:      #E8E4DC;
+      --muted:     #7A7670;
+
+      --horse-green: #4CAF50;
+      --camel-amber: #FF8F00;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--coal);
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* ── Header ────────────────────────────────────────────────── */
+    header {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 56px 24px 40px;
+      border-bottom: 1px solid var(--border);
+      position: relative;
+      overflow: hidden;
+    }
+    header::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 60% 40% at 50% 0%, rgba(212,175,55,0.08), transparent);
+      pointer-events: none;
+    }
+    .eyebrow {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--gold-dim);
+      margin-bottom: 12px;
+    }
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(32px, 5vw, 64px);
+      font-weight: 900;
+      line-height: 1.1;
+      text-align: center;
+      background: linear-gradient(135deg, #F5E6B0 0%, var(--gold) 50%, #A0782A 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .subtitle {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: 0.1em;
+      text-align: center;
+    }
+    .rule {
+      width: 80px;
+      height: 1px;
+      background: var(--gold-dim);
+      margin: 28px auto 0;
+    }
+    nav {
+      display: flex;
+      gap: 32px;
+      margin-top: 28px;
+    }
+    nav a {
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    nav a:hover { color: var(--gold); }
+
+    /* ── Layout ──────────────────────────────────────────────── */
+    main {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    /* ── Section headers ─────────────────────────────────────── */
+    .section-header {
+      display: flex;
+      align-items: baseline;
+      gap: 16px;
+      padding: 56px 0 24px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 32px;
+    }
+    .section-header h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 28px;
+      font-weight: 700;
+      font-style: italic;
+    }
+    .theme-badge {
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      padding: 3px 10px;
+      border-radius: 2px;
+      font-style: normal;
+    }
+    .badge-horse  { background: rgba(76,175,80,0.15);  color: #81C784; border: 1px solid rgba(76,175,80,0.3); }
+    .badge-camel  { background: rgba(255,143,0,0.15);  color: #FFB300; border: 1px solid rgba(255,143,0,0.3); }
+    .badge-shared { background: rgba(212,175,55,0.12); color: var(--gold); border: 1px solid var(--gold-dim); }
+
+    /* ── Race Track Demo ──────────────────────────────────────── */
+    .track-demo {
+      border-radius: 4px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      margin-bottom: 32px;
+      position: relative;
+    }
+    .track-label {
+      position: absolute;
+      top: 8px;
+      left: 12px;
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.5);
+      z-index: 10;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .track-strip {
+      width: 100%;
+      height: 100px;
+      position: relative;
+      overflow: hidden;
+    }
+    .track-strip img.bg {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+      display: block;
+    }
+    .track-strip .runner {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-60%);
+      height: 66px;
+      width: auto;
+      animation: runAcross 4.5s linear infinite;
+    }
+    .track-strip .finish {
+      position: absolute;
+      right: 40px;
+      bottom: 0;
+      height: 84px;
+      width: auto;
+    }
+    @keyframes runAcross {
+      from { left: -120px; }
+      to   { left: 110%;  }
+    }
+    /* Stagger multiple runners */
+    .runner:nth-child(2) { animation-delay: -1.5s; }
+    .runner:nth-child(3) { animation-delay: -3s;   }
+
+    /* ── Assets Grid ─────────────────────────────────────────── */
+    .assets-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 200px;
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+    .asset-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .asset-card-header {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .asset-card-header code {
+      margin-left: auto;
+      color: var(--gold-dim);
+      font-size: 9px;
+    }
+    .asset-preview {
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 120px;
+    }
+    .asset-preview img {
+      max-width: 100%;
+      max-height: 80px;
+      width: auto;
+    }
+    /* Sprite preview slots — show sprite on colored bg *)*/
+    .sprite-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0;
+    }
+    .sprite-swatch {
+      aspect-ratio: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px;
+      position: relative;
+      overflow: hidden;
+    }
+    .sprite-swatch .label {
+      position: absolute;
+      bottom: 3px;
+      left: 0;
+      right: 0;
+      text-align: center;
+      font-size: 7px;
+      color: rgba(255,255,255,0.5);
+    }
+    .sprite-swatch img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    /* ── Player Colors ────────────────────────────────────────── */
+    .colors-grid {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 8px;
+      margin-bottom: 32px;
+    }
+    .color-chip {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .color-swatch {
+      width: 100%;
+      aspect-ratio: 1;
+      border-radius: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 500;
+      color: rgba(0,0,0,0.6);
+    }
+    .color-meta {
+      font-size: 9px;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.4;
+    }
+
+    /* ── Usage notes ─────────────────────────────────────────── */
+    .note-block {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--gold-dim);
+      border-radius: 0 4px 4px 0;
+      padding: 16px 20px;
+      margin-bottom: 16px;
+    }
+    .note-block h4 {
+      font-family: 'Playfair Display', serif;
+      font-size: 14px;
+      margin-bottom: 8px;
+      color: var(--gold);
+    }
+    .note-block p, .note-block li {
+      color: var(--muted);
+      margin-bottom: 4px;
+      line-height: 1.7;
+    }
+    .note-block code {
+      background: rgba(255,255,255,0.07);
+      padding: 1px 6px;
+      border-radius: 2px;
+      color: #B5C4FF;
+      font-size: 11px;
+    }
+    ul.note-list { list-style: none; padding: 0; }
+    ul.note-list li::before { content: '→ '; color: var(--gold-dim); }
+
+    /* ── Footer ──────────────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 32px 24px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 11px;
+      letter-spacing: 0.1em;
+    }
+
+    /* ── Loading skeleton ─────────────────────────────────────── */
+    .loading-msg {
+      text-align: center;
+      padding: 40px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    @media (max-width: 768px) {
+      .assets-row  { grid-template-columns: 1fr; }
+      .colors-grid { grid-template-columns: repeat(4, 1fr); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── HEADER ───────────────────────────────────────────────── -->
+  <header>
+    <p class="eyebrow">Visual Asset Catalog · v1.0</p>
+    <h1>Roll-a-Ball Derby</h1>
+    <p class="subtitle">2 themes · 8 sprites each · 16 player colours · Pixi.js tint-ready</p>
+    <div class="rule"></div>
+    <nav>
+      <a href="#horse">Horse / Greenlands</a>
+      <a href="#camel">Camel / Desert</a>
+      <a href="#shared">Shared Assets</a>
+      <a href="#usage">Usage Notes</a>
+    </nav>
+  </header>
+
+  <main>
+
+    <!-- ══════════════════════════════════════════════════════════
+         HORSE THEME
+    ══════════════════════════════════════════════════════════════ -->
+    <section id="horse">
+      <div class="section-header">
+        <h2>Horse Derby</h2>
+        <span class="theme-badge badge-horse">Greenlands</span>
+      </div>
+
+      <!-- Live track demo (animated) -->
+      <div class="track-demo">
+        <span class="track-label">Live track preview — animated</span>
+        <div class="track-strip" id="horseTrack">
+          <img class="bg" src="../horse/track-bg.svg" alt="Horse track background"/>
+          <!-- Runners injected by JS -->
+          <img class="finish" src="../horse/finish-flag.svg" alt="Finish flag"/>
+        </div>
+      </div>
+
+      <!-- Individual asset cards -->
+      <div class="assets-row">
+        <!-- Sprite showcase (all 16 player colours) -->
+        <div class="asset-card">
+          <div class="asset-card-header">
+            Sprite · white/tintable
+            <code>horse/sprite.svg</code>
+          </div>
+          <div class="sprite-grid" id="horseSwatches">
+            <div class="loading-msg">Loading…</div>
+          </div>
+        </div>
+
+        <!-- Track background -->
+        <div class="asset-card">
+          <div class="asset-card-header">
+            Track background
+            <code>horse/track-bg.svg</code>
+          </div>
+          <div class="asset-preview" style="padding:0; min-height:130px;">
+            <img src="../horse/track-bg.svg" alt="Horse track bg" style="width:100%;height:130px;object-fit:cover;display:block;"/>
+          </div>
+        </div>
+
+        <!-- Finish flag -->
+        <div class="asset-card">
+          <div class="asset-card-header">
+            Finish flag
+            <code>horse/finish-flag.svg</code>
+          </div>
+          <div class="asset-preview" style="background:#111;">
+            <img src="../horse/finish-flag.svg" alt="Horse finish flag" style="height:80px;width:auto;"/>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ══════════════════════════════════════════════════════════
+         CAMEL THEME
+    ══════════════════════════════════════════════════════════════ -->
+    <section id="camel">
+      <div class="section-header">
+        <h2>Camel Derby</h2>
+        <span class="theme-badge badge-camel">Desert</span>
+      </div>
+
+      <div class="track-demo">
+        <span class="track-label">Live track preview — animated</span>
+        <div class="track-strip" id="camelTrack">
+          <img class="bg" src="../camel/track-bg.svg" alt="Camel track background"/>
+          <img class="finish" src="../camel/finish-flag.svg" alt="Finish flag"/>
+        </div>
+      </div>
+
+      <div class="assets-row">
+        <div class="asset-card">
+          <div class="asset-card-header">
+            Sprite · white/tintable
+            <code>camel/sprite.svg</code>
+          </div>
+          <div class="sprite-grid" id="camelSwatches">
+            <div class="loading-msg">Loading…</div>
+          </div>
+        </div>
+
+        <div class="asset-card">
+          <div class="asset-card-header">
+            Track background
+            <code>camel/track-bg.svg</code>
+          </div>
+          <div class="asset-preview" style="padding:0; min-height:130px;">
+            <img src="../camel/track-bg.svg" alt="Camel track bg" style="width:100%;height:130px;object-fit:cover;display:block;"/>
+          </div>
+        </div>
+
+        <div class="asset-card">
+          <div class="asset-card-header">
+            Finish flag
+            <code>camel/finish-flag.svg</code>
+          </div>
+          <div class="asset-preview" style="background:#1A0E06;">
+            <img src="../camel/finish-flag.svg" alt="Camel finish flag" style="height:80px;width:auto;"/>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ══════════════════════════════════════════════════════════
+         SHARED ASSETS
+    ══════════════════════════════════════════════════════════════ -->
+    <section id="shared">
+      <div class="section-header">
+        <h2>Shared Assets</h2>
+        <span class="theme-badge badge-shared">All Themes</span>
+      </div>
+
+      <p style="color:var(--muted); margin-bottom:24px; font-size:12px;">
+        16 distinct player colours — shared across both themes. Index maps to connected player slot.
+        Pixi.js consumes these as <code>sprite.tint = 0xRRGGBB</code>.
+      </p>
+
+      <div class="colors-grid" id="colorsGrid">
+        <!-- Injected by JS -->
+      </div>
+    </section>
+
+
+    <!-- ══════════════════════════════════════════════════════════
+         USAGE NOTES
+    ══════════════════════════════════════════════════════════════ -->
+    <section id="usage">
+      <div class="section-header">
+        <h2>Usage Notes</h2>
+        <span class="theme-badge badge-shared">Developer</span>
+      </div>
+
+      <div class="note-block">
+        <h4>HTTP Path</h4>
+        <p>The Express server mounts <code>clients/assets/</code> at <code>/assets/</code>.</p>
+        <ul class="note-list" style="margin-top:8px;">
+          <li>Horse sprite:     <code>/assets/themes/horse/sprite.svg</code></li>
+          <li>Camel sprite:     <code>/assets/themes/camel/sprite.svg</code></li>
+          <li>Track background: <code>/assets/themes/{theme}/track-bg.svg</code></li>
+          <li>Finish flag:      <code>/assets/themes/{theme}/finish-flag.svg</code></li>
+          <li>Theme metadata:   <code>/assets/themes/{theme}/theme.json</code></li>
+          <li>Player colours:   <code>/assets/themes/shared/player-colors.json</code></li>
+        </ul>
+      </div>
+
+      <div class="note-block">
+        <h4>Pixi.js Tinting</h4>
+        <p>All sprites use pure white fill (<code>fill="white"</code>). Load as a Pixi Texture, create a Sprite, then:</p>
+        <p style="margin-top:8px;"><code>sprite.tint = 0xE53E3E; // player colour index 0 = Scarlet</code></p>
+        <p style="margin-top:4px; font-size:11px;">
+          Pixi multiplies each pixel channel by tint/255. White × tint = exact tint colour.
+          Grey shades (jockey helmet ~85% white) render at 85% of tint brightness — natural shading preserved.
+        </p>
+      </div>
+
+      <div class="note-block">
+        <h4>Theme Loading</h4>
+        <p>Load <code>theme.json</code> to get player colour array, palette, and asset paths. Example:</p>
+        <p style="margin-top:8px;">
+          <code>const theme = await fetch('/assets/themes/horse/theme.json').then(r => r.json());</code><br/>
+          <code>const tint = parseInt(theme.playerColors[playerIndex].pixi, 16);</code>
+        </p>
+      </div>
+
+      <div class="note-block">
+        <h4>Animation</h4>
+        <p>Sprites are static (single frame). Simulate animation via:</p>
+        <ul class="note-list" style="margin-top:8px;">
+          <li>Horizontal position: smooth tween via <code>gsap.to(sprite, { x: targetX, duration: 0.4, ease: 'power2.out' })</code></li>
+          <li>Score bounce: <code>gsap.timeline().to(sprite, { y: '-=8', duration: 0.12 }).to(sprite, { y: '+=8', duration: 0.18, ease: 'bounce.out' })</code></li>
+          <li>Idle bob: <code>gsap.to(sprite, { y: '+=3', duration: 0.8, yoyo: true, repeat: -1, ease: 'sine.inOut' })</code></li>
+        </ul>
+      </div>
+    </section>
+
+  </main>
+
+  <footer>
+    Roll-a-Ball Derby · Asset Catalog · Generated 2026-04-07
+    &nbsp;·&nbsp; All sprites white/tintable for Pixi.js &nbsp;·&nbsp; viewBox: horse 100×72 | camel 112×84
+  </footer>
+
+
+  <!-- ══════════════════════════════════════════════════════════
+       JAVASCRIPT — Sprite swatches + colour grid + runners
+  ══════════════════════════════════════════════════════════════ -->
+  <script>
+    const COLORS = [
+      { hex: '#E53E3E', name: 'Scarlet'      },
+      { hex: '#3182CE', name: 'Royal Blue'   },
+      { hex: '#38A169', name: 'Emerald'      },
+      { hex: '#D69E2E', name: 'Gold'         },
+      { hex: '#805AD5', name: 'Amethyst'     },
+      { hex: '#D53F8C', name: 'Rose'         },
+      { hex: '#00B5D8', name: 'Cyan'         },
+      { hex: '#68D391', name: 'Mint'         },
+      { hex: '#FF6B35', name: 'Tangerine'    },
+      { hex: '#B7791F', name: 'Amber'        },
+      { hex: '#9B2C2C', name: 'Crimson'      },
+      { hex: '#2C7A7B', name: 'Teal'         },
+      { hex: '#744210', name: 'Sienna'       },
+      { hex: '#553C9A', name: 'Indigo'       },
+      { hex: '#C05621', name: 'Burnt Sienna' },
+      { hex: '#276749', name: 'Forest'       },
+    ];
+
+    /**
+     * Fetch an SVG, replace all fill="white" with a given colour,
+     * and return a data: URL useable in <img src>.
+     */
+    async function tintedSvgUrl(svgPath, color) {
+      const r = await fetch(svgPath);
+      const text = await r.text();
+      // Replace white fills with player colour
+      const tinted = text
+        .replace(/fill="white"/g,   `fill="${color}"`)
+        .replace(/fill='white'/g,   `fill='${color}'`)
+        .replace(/stop-color="#FFFFFF"/g, `stop-color="${color}"`)
+        // Keep strokes white (they're detail lines, tinting them looks fine too)
+        ;
+      return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(tinted);
+    }
+
+    /**
+     * Build the 16-swatch sprite preview grid for one theme.
+     */
+    async function buildSpriteSwatches(containerId, svgPath) {
+      const container = document.getElementById(containerId);
+      container.innerHTML = '';
+
+      await Promise.all(COLORS.map(async (c, i) => {
+        const url = await tintedSvgUrl(svgPath, c.hex);
+        const slot = document.createElement('div');
+        slot.className = 'sprite-swatch';
+        slot.style.background = '#111';
+        slot.title = `#${i + 1} — ${c.name} (${c.hex})`;
+        slot.innerHTML = `
+          <img src="${url}" alt="${c.name} ${i}" loading="lazy"/>
+          <span class="label">${c.name.split(' ')[0]}</span>
+        `;
+        container.appendChild(slot);
+      }));
+    }
+
+    /**
+     * Inject animated runners into a track strip.
+     * Each runner is a tinted sprite at a different speed/delay.
+     */
+    async function buildTrackRunners(trackId, svgPath, numRunners, delays) {
+      const track = document.getElementById(trackId);
+      const runnerColors = [COLORS[0], COLORS[1], COLORS[3]]; // Scarlet, Blue, Gold
+
+      for (let i = 0; i < numRunners; i++) {
+        const url = await tintedSvgUrl(svgPath, runnerColors[i % runnerColors.length].hex);
+        const img = document.createElement('img');
+        img.className = 'runner';
+        img.src = url;
+        img.alt = 'Racing sprite';
+        img.style.animationDelay = delays[i];
+        img.style.animationDuration = (4 + i * 0.6) + 's';
+        img.style.top = (30 + i * 10) + 'px'; // slightly different vertical positions
+        // Insert before the finish flag
+        const flag = track.querySelector('.finish');
+        track.insertBefore(img, flag);
+      }
+    }
+
+    /**
+     * Build the player colour grid.
+     */
+    function buildColorGrid() {
+      const grid = document.getElementById('colorsGrid');
+      COLORS.forEach((c, i) => {
+        const chip = document.createElement('div');
+        chip.className = 'color-chip';
+        chip.innerHTML = `
+          <div class="color-swatch" style="background:${c.hex};" title="${c.hex}">
+            <span>${i}</span>
+          </div>
+          <div class="color-meta">
+            <div style="color:var(--text);font-size:9px;">${c.name}</div>
+            <div>${c.hex}</div>
+          </div>
+        `;
+        grid.appendChild(chip);
+      });
+    }
+
+    // ── Init ──────────────────────────────────────────────────────
+    (async () => {
+      buildColorGrid();
+
+      // Run in parallel — sprite swatches take a moment
+      await Promise.all([
+        buildSpriteSwatches('horseSwatches', '../horse/sprite.svg'),
+        buildSpriteSwatches('camelSwatches', '../camel/sprite.svg'),
+        buildTrackRunners('horseTrack', '../horse/sprite.svg', 3, ['0s', '-1.8s', '-3.2s']),
+        buildTrackRunners('camelTrack', '../camel/sprite.svg', 3, ['0s', '-2s',   '-3.6s']),
+      ]);
+    })();
+  </script>
+</body>
+</html>

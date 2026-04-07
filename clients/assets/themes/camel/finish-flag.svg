@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56 90">
+  <!--
+    Arabian Pennant Flag — Camel Race Finish
+    Pole: ornate brass-gold. Flag: Emirati-style tri-band with white crescent & star.
+    Colors: green (top) / white / red (bottom), referencing Arabic racing tradition.
+  -->
+  <defs>
+    <linearGradient id="pole" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"   stop-color="#8D6E00"/>
+      <stop offset="40%"  stop-color="#FFD700"/>
+      <stop offset="100%" stop-color="#B8860B"/>
+    </linearGradient>
+  </defs>
+
+  <!-- ── Pole ───────────────────────────────────────────────────── -->
+  <rect x="24" y="0" width="5" height="90" rx="2.5" fill="url(#pole)"/>
+  <!-- Highlight stripe -->
+  <rect x="25.5" y="0" width="1.5" height="90" rx="0.75" fill="#FFE57F" opacity="0.5"/>
+
+  <!-- ── Ornate pole finial (top) ──────────────────────────────── -->
+  <circle cx="26" cy="3"  r="5" fill="#FFD700"/>
+  <circle cx="26" cy="3"  r="3" fill="#FFF8E1"/>
+  <polygon points="22,0 30,0 26,-7" fill="#FFD700"/>
+  <!-- Decorative rings -->
+  <rect x="23" y="18" width="7" height="3" rx="1.5" fill="#B8860B"/>
+  <rect x="23" y="32" width="7" height="3" rx="1.5" fill="#B8860B"/>
+
+  <!-- ── Flag shape (pointed pennant flying right) ─────────────── -->
+  <!-- Clip to flag boundary -->
+  <defs>
+    <clipPath id="pennantClip">
+      <!-- Pennant: attached at pole (x=29), flowing right to a point at x=53 -->
+      <path d="M29,6 L29,38 L53,28 L53,22 L53,16 Z"/>
+    </clipPath>
+  </defs>
+
+  <!-- Red base (full flag) -->
+  <path d="M29,6 L29,38 L53,28 L29,6 Z" fill="#C62828"/>
+  <!-- White middle third -->
+  <path d="M29,16 L29,28 L53,22 Z" fill="white"/>
+  <!-- Green top third -->
+  <path d="M29,6 L29,16 L53,22 L53,16 Z" fill="#2E7D32"/>
+
+  <!-- White crescent and star (on red section) -->
+  <g transform="translate(37, 28)">
+    <!-- Crescent -->
+    <path d="M0,-6 C4,-6 7,-3 7,0 C7,3 4,6 0,6 C-1,4 -1,-2 0,-6
+             C-2,-5 -3,-2 -3,0 C-3,3 -2,5 0,6 C-4,6 -7,3 -7,0 C-7,-3 -4,-6 0,-6 Z"
+          fill="white" transform="scale(0.75)"/>
+    <!-- Star (4-pointed) -->
+    <path d="M6,-2 L7,0 L6,2 L8,0 Z
+             M4,2  L6,3  L4,4  L5,2 Z"
+          fill="white" transform="translate(2,-4) scale(0.6)"/>
+  </g>
+
+  <!-- Flag outline / edge -->
+  <path d="M29,6 L29,38 L53,28 L53,22 L53,16 Z"
+        fill="none" stroke="#8D6E00" stroke-width="0.6"/>
+</svg>

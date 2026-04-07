@@ -27,6 +27,10 @@ app.use(express.json());
 // Static files (display SPA, web test client)
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
+// Shared game assets (sprites, track backgrounds, themes) served at /assets/
+// Source of truth lives in clients/assets/ — no copy needed.
+app.use('/assets', express.static(path.join(__dirname, '..', '..', '..', 'clients', 'assets')));
+
 // ─── Routes ───────────────────────────────────────────────────────────────────
 
 // Placeholder — connectionManager created after HTTP server; routes mounted later.
