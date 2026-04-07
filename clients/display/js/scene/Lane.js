@@ -3,19 +3,20 @@
 /**
  * Lane — a single player's racing lane (REQ-004 / TASK-008).
  *
- * A PIXI.Container containing:
- *   • Alternating background band (dark/slightly-lighter per even/odd lane)
- *   • Track strip (turf/sand strip in the middle band)
- *   • Start marker (thin vertical line at left edge of track)
- *   • Finish line (checkered or pennant pattern at right edge)
- *   • Player figure (colored rounded-rectangle silhouette, tinted with player color)
- *   • Player name label (left-aligned, vertically centered)
- *   • Disconnected overlay (semi-transparent black veil when player is offline)
+ * A PIXI.Container containing (bottom → top):
+ *   0. Track background — full-lane themed SVG (sky, landscape, turf)
+ *   1. Name panel — semi-transparent dark overlay + player color swatch
+ *   2. Start marker line
+ *   3. Finish flag — SVG sprite at right edge
+ *   4. Player figure — tinted white SVG sprite, tweened along track
+ *   5. Name text label
+ *   6. Lane separator
+ *   7. Disconnected veil
  *
  * Usage:
- *   var lane = new Lane(player, colorIndex, laneIndex, laneWidth, laneHeight, theme);
+ *   var lane = new Lane(player, colorIndex, laneIndex, laneWidth, laneHeight);
  *   raceTrack.addChild(lane);
- *   lane.updatePosition(5, 15);   // position=5 out of trackLength=15
+ *   lane.updatePosition(5, 15);
  *   lane.setConnected(false);
  *   lane.resize(newW, newH);
  */
@@ -30,168 +31,122 @@ class Lane extends PIXI.Container {
     this._laneIndex  = laneIndex;
     this._w          = laneWidth;
     this._h          = laneHeight;
-    this._figureContainer = null; // the tweened figure wrapper
+    this._figureContainer = null;
     this._build();
+  }
+
+  // ── Layout metrics (shared by _build, updatePosition, resize) ───────────────
+
+  _metrics() {
+    var w          = this._w;
+    var h          = this._h;
+    var nameAreaW  = Math.max(110, w * 0.13);
+    // Finish flag natural aspect from loaded texture (fallback to 52/84 ≈ 0.619)
+    var flagTex    = ThemeManager.getTexture('finishFlag');
+    var flagAspect = (flagTex && flagTex.width && flagTex.height)
+      ? flagTex.width / flagTex.height
+      : 0.619;
+    var flagH      = h * 0.92;
+    var flagW      = Math.max(24, flagH * flagAspect);
+    var trackStartX = nameAreaW + 6;
+    var trackEndX   = w - flagW - 8;
+    var groundY    = h * 0.90;   // where figure bottom anchors (on the turf surface)
+    return { nameAreaW, flagW, flagH, trackStartX, trackEndX, groundY };
   }
 
   // ── Build / rebuild ─────────────────────────────────────────────────────────
 
   _build() {
-    var w = this._w;
-    var h = this._h;
-
-    // ── Layout metrics ──────────────────────────────────────────────────────
-    var namePad     = 8;
-    var nameAreaW   = Math.max(90, w * 0.14);
-    var trackStartX = nameAreaW + 10;
-    var trackEndX   = w - 24;
-    var trackH      = h * 0.42;
-    var trackY      = (h - trackH) / 2;
+    var w           = this._w;
+    var h           = this._h;
+    var m           = this._metrics();
     var playerColor = ThemeManager.getPlayerColor(this._colorIndex);
 
-    // ── Background band ─────────────────────────────────────────────────────
-    var bgColor = this._laneIndex % 2 === 0 ? 0x111118 : 0x18181f;
-    this._bg = new PIXI.Graphics();
-    this._bg.rect(0, 0, w, h).fill(bgColor);
-    this.addChild(this._bg);
+    // ── 0. Full-lane track background SVG ────────────────────────────────────
+    var trackBgTex     = ThemeManager.getTexture('trackBg');
+    this._bgSprite     = new PIXI.Sprite(trackBgTex);
+    this._bgSprite.width  = w;
+    this._bgSprite.height = h;
+    this.addChild(this._bgSprite);
 
-    // Thin separator line at top of lane
-    var sep = new PIXI.Graphics();
-    sep.rect(0, 0, w, 1).fill({ color: 0x333340, alpha: 0.9 });
-    this.addChild(sep);
+    // ── 1. Name panel — dark semi-transparent overlay + color swatch ─────────
+    var namePanel = new PIXI.Graphics();
+    namePanel.rect(0, 0, m.nameAreaW, h).fill({ color: 0x000000, alpha: 0.62 });
+    this.addChild(namePanel);
 
-    // ── Track strip ─────────────────────────────────────────────────────────
-    // Use theme palette if available, else defaults
-    var palette  = ThemeManager.palette || {};
-    var trackCol = palette.track
-      ? parseInt(palette.track.replace('#', ''), 16)
-      : 0x2a5010;
+    // Subtle player-color wash behind name panel
+    var colorWash = new PIXI.Graphics();
+    colorWash.rect(0, 0, m.nameAreaW, h).fill({ color: playerColor, alpha: 0.18 });
+    this.addChild(colorWash);
 
-    var track = new PIXI.Graphics();
-    track.roundRect(trackStartX, trackY, trackEndX - trackStartX, trackH, 4).fill(trackCol);
-    this.addChild(track);
+    // Color swatch bar — right edge of name panel (clear player identity at a glance)
+    var swatch = new PIXI.Graphics();
+    swatch.rect(m.nameAreaW - 7, 0, 7, h).fill({ color: playerColor, alpha: 1.0 });
+    this.addChild(swatch);
 
-    // ── Start marker ────────────────────────────────────────────────────────
+    // ── 2. Start marker ───────────────────────────────────────────────────────
     var startMark = new PIXI.Graphics();
-    startMark.rect(trackStartX, trackY, 3, trackH).fill({ color: 0xffffff, alpha: 0.35 });
+    startMark.rect(m.trackStartX, 0, 2, h).fill({ color: 0xffffff, alpha: 0.22 });
     this.addChild(startMark);
 
-    // ── Finish line (checkered) ─────────────────────────────────────────────
-    var finCol  = palette.finishLine
-      ? parseInt(palette.finishLine.replace('#', ''), 16)
-      : 0xffffff;
-    var flX  = trackEndX - 14;
-    var rows = 8;
-    var rh   = trackH / rows;
-    var fl   = new PIXI.Graphics();
-    for (var i = 0; i < rows; i++) {
-      var colA = i % 2 === 0 ? finCol       : 0x000000;
-      var colB = i % 2 === 0 ? 0x000000     : finCol;
-      fl.rect(flX,     trackY + i * rh, 7, rh).fill(colA);
-      fl.rect(flX + 7, trackY + i * rh, 7, rh).fill(colB);
-    }
-    this.addChild(fl);
+    // ── 3. Finish flag SVG sprite ─────────────────────────────────────────────
+    var flagTex    = ThemeManager.getTexture('finishFlag');
+    var flagSprite = new PIXI.Sprite(flagTex);
+    flagSprite.width  = m.flagW;
+    flagSprite.height = m.flagH;
+    flagSprite.x = w - m.flagW - 4;
+    flagSprite.y = h - m.flagH;   // pole base sits at lane bottom
+    this.addChild(flagSprite);
 
-    // ── Player figure ────────────────────────────────────────────────────────
-    // Figure is a container so we can gsap.to(container) for x-tweening and
-    // scale-bounce without interfering with Pixi's internal transform.
+    // ── 4. Player figure — tinted white SVG sprite ────────────────────────────
+    var spriteTex  = ThemeManager.getTexture('sprite');
+    var aspect     = ThemeManager.getSpriteAspect();
+    // Figure is tall — 65% of lane height.  Bottom anchored on the turf ground line.
+    var figureH    = Math.max(40, h * 0.65);
+    var figureW    = figureH * aspect;
+
+    var figureSprite  = new PIXI.Sprite(spriteTex);
+    figureSprite.width  = figureW;
+    figureSprite.height = figureH;
+    figureSprite.tint   = playerColor;
+    figureSprite.anchor.set(0.5, 1.0);   // pivot at bottom-center
+
     this._figureContainer = new PIXI.Container();
-    this._figureContainer.y = h / 2;
-
-    var figureH   = Math.max(20, trackH * 0.88);
-    var aspect    = ThemeManager.getSpriteAspect();
-    var figureW   = figureH * aspect;
-    var figure    = this._drawFigure(figureW, figureH, playerColor);
-    figure.pivot.set(figureW / 2, figureH / 2);
-    this._figureContainer.addChild(figure);
-    this._figureContainer.x = trackStartX; // start position
+    this._figureContainer.addChild(figureSprite);
+    this._figureContainer.x = m.trackStartX;
+    this._figureContainer.y = m.groundY;
     this.addChild(this._figureContainer);
 
-    // ── Player name label ───────────────────────────────────────────────────
-    var fontSize = Math.max(11, Math.min(h * 0.32, 28));
+    // ── 5. Player name label ──────────────────────────────────────────────────
+    var fontSize = Math.max(12, Math.min(h * 0.24, 30));
     this._label = new PIXI.Text({
       text: this._player.name,
       style: new PIXI.TextStyle({
-        fontFamily: 'Arial, sans-serif',
-        fontWeight: 'bold',
+        fontFamily: '"Arial Black", Arial, sans-serif',
+        fontWeight: '900',
         fontSize: fontSize,
         fill: '#ffffff',
-        stroke: { color: '#000000', width: Math.max(2, fontSize * 0.12) },
+        stroke: { color: '#000000', width: Math.max(2, fontSize * 0.1) },
         wordWrap: false,
       }),
     });
-    this._label.x = namePad;
+    this._label.x = 8;
     this._label.y = (h - this._label.height) / 2;
-    // Clip label to name area width
-    if (this._label.width > nameAreaW - namePad * 2) {
-      this._label.scale.x = (nameAreaW - namePad * 2) / this._label.width;
+    if (this._label.width > m.nameAreaW - 20) {
+      this._label.scale.x = (m.nameAreaW - 20) / this._label.width;
     }
     this.addChild(this._label);
 
-    // ── Disconnected veil ───────────────────────────────────────────────────
+    // ── 6. Lane separator line ────────────────────────────────────────────────
+    var sep = new PIXI.Graphics();
+    sep.rect(0, 0, w, 2).fill({ color: 0x000000, alpha: 0.55 });
+    this.addChild(sep);
+
+    // ── 7. Disconnected veil ──────────────────────────────────────────────────
     this._veil = new PIXI.Graphics();
     this._veil.rect(0, 0, w, h).fill({ color: 0x000000, alpha: 0.55 });
     this._veil.visible = !this._player.connected;
     this.addChild(this._veil);
-  }
-
-  // ── Figure drawing ───────────────────────────────────────────────────────────
-
-  _drawFigure(fw, fh, color) {
-    var g   = new PIXI.Graphics();
-    var themeId = ThemeManager.id;
-
-    if (themeId === 'camel') {
-      this._drawCamelFigure(g, fw, fh, color);
-    } else {
-      this._drawHorseFigure(g, fw, fh, color);
-    }
-
-    return g;
-  }
-
-  _drawHorseFigure(g, fw, fh, color) {
-    // Body
-    g.ellipse(fw * 0.42, fh * 0.55, fw * 0.35, fh * 0.22).fill(color);
-    // Neck
-    g.ellipse(fw * 0.68, fh * 0.42, fw * 0.1, fh * 0.18).fill(color);
-    // Head
-    g.ellipse(fw * 0.82, fh * 0.32, fw * 0.13, fh * 0.14).fill(color);
-    // Tail
-    g.ellipse(fw * 0.1, fh * 0.5, fw * 0.08, fh * 0.16).fill(color);
-    // Legs — front pair
-    g.roundRect(fw * 0.6, fh * 0.68, fw * 0.07, fh * 0.32, 3).fill(color);
-    g.roundRect(fw * 0.72, fh * 0.68, fw * 0.07, fh * 0.32, 3).fill(color);
-    // Legs — rear pair
-    g.roundRect(fw * 0.2, fh * 0.68, fw * 0.07, fh * 0.32, 3).fill(color);
-    g.roundRect(fw * 0.32, fh * 0.68, fw * 0.07, fh * 0.32, 3).fill(color);
-    // Jockey body
-    g.ellipse(fw * 0.72, fh * 0.3, fw * 0.12, fh * 0.14).fill({ color: color, alpha: 0.85 });
-    // Jockey head
-    g.circle(fw * 0.82, fh * 0.16, fh * 0.1).fill(color);
-  }
-
-  _drawCamelFigure(g, fw, fh, color) {
-    // Body
-    g.ellipse(fw * 0.44, fh * 0.58, fw * 0.38, fh * 0.22).fill(color);
-    // Hump 1
-    g.ellipse(fw * 0.32, fh * 0.36, fw * 0.14, fh * 0.2).fill(color);
-    // Hump 2
-    g.ellipse(fw * 0.55, fh * 0.33, fw * 0.12, fh * 0.18).fill(color);
-    // Neck
-    g.ellipse(fw * 0.74, fh * 0.45, fw * 0.09, fh * 0.2).fill(color);
-    // Head
-    g.ellipse(fw * 0.84, fh * 0.32, fw * 0.12, fh * 0.13).fill(color);
-    // Tail
-    g.ellipse(fw * 0.1, fh * 0.55, fw * 0.07, fh * 0.14).fill(color);
-    // Four legs
-    g.roundRect(fw * 0.2, fh * 0.7, fw * 0.07, fh * 0.3, 3).fill(color);
-    g.roundRect(fw * 0.33, fh * 0.7, fw * 0.07, fh * 0.3, 3).fill(color);
-    g.roundRect(fw * 0.57, fh * 0.7, fw * 0.07, fh * 0.3, 3).fill(color);
-    g.roundRect(fw * 0.7, fh * 0.7, fw * 0.07, fh * 0.3, 3).fill(color);
-    // Rider
-    g.circle(fw * 0.44, fh * 0.14, fh * 0.09).fill(color);
-    g.ellipse(fw * 0.44, fh * 0.25, fw * 0.1, fh * 0.12).fill({ color: color, alpha: 0.85 });
   }
 
   // ── Public API ───────────────────────────────────────────────────────────────
@@ -203,12 +158,10 @@ class Lane extends PIXI.Container {
    */
   updatePosition(position, trackLength) {
     if (!this._figureContainer) return;
-    var nameAreaW  = Math.max(90, this._w * 0.14);
-    var trackStartX = nameAreaW + 10;
-    var trackEndX   = this._w - 24;
-    var usable      = trackEndX - trackStartX;
-    var ratio       = trackLength > 0 ? Math.min(position / trackLength, 1) : 0;
-    var targetX     = trackStartX + ratio * usable;
+    var m      = this._metrics();
+    var usable = m.trackEndX - m.trackStartX;
+    var ratio  = trackLength > 0 ? Math.min(position / trackLength, 1) : 0;
+    var targetX = m.trackStartX + ratio * usable;
 
     gsap.to(this._figureContainer, {
       x: targetX,
@@ -228,15 +181,12 @@ class Lane extends PIXI.Container {
     if (this._figureContainer) this._figureContainer.alpha = connected ? 1 : 0.45;
   }
 
-  /** Rebuild after screen resize. Preserves current tween position. */
+  /** Rebuild after screen resize. Preserves current proportional position. */
   resize(laneWidth, laneHeight) {
-    // Capture current x ratio before rebuild
-    var nameAreaW   = Math.max(90, this._w * 0.14);
-    var trackStartX = nameAreaW + 10;
-    var trackEndX   = this._w - 24;
-    var usable      = trackEndX - trackStartX;
-    var curRatio    = this._figureContainer
-      ? (this._figureContainer.x - trackStartX) / (usable || 1)
+    var m      = this._metrics();
+    var usable = m.trackEndX - m.trackStartX;
+    var curRatio = (this._figureContainer && usable > 0)
+      ? (this._figureContainer.x - m.trackStartX) / usable
       : 0;
 
     this._w = laneWidth;
@@ -245,12 +195,10 @@ class Lane extends PIXI.Container {
     this._figureContainer = null;
     this._build();
 
-    // Restore position without tween
     if (this._figureContainer) {
-      var naw   = Math.max(90, laneWidth * 0.14);
-      var nStart = naw + 10;
-      var nEnd   = laneWidth - 24;
-      this._figureContainer.x = nStart + curRatio * (nEnd - nStart);
+      var nm      = this._metrics();
+      var nUsable = nm.trackEndX - nm.trackStartX;
+      this._figureContainer.x = nm.trackStartX + curRatio * nUsable;
     }
   }
 
