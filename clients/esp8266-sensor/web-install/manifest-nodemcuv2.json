@@ -1,12 +1,12 @@
 {
-  "name": "Derby Sensor (Wemos D1 Mini)",
+  "name": "Derby Sensor (NodeMCU v2/v3)",
   "new_install_prompt_erase": true,
   "builds": [
     {
       "chipFamily": "ESP8266",
       "parts": [
         {
-          "path": "https://github.com/tamaygz/esp-rollaball-derby/releases/latest/download/firmware-d1_mini.bin",
+          "path": "https://github.com/tamaygz/esp-rollaball-derby/releases/latest/download/firmware-nodemcuv2.bin",
           "offset": 0
         }
       ]

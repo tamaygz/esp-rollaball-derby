@@ -154,6 +154,51 @@ void setup() {
     }
     loadConfig();
 
+    // ─── Serial Pre-Configure Window ──────────────────────────────────────────
+    // The web flasher sends DERBY_CFG:{json}\n within 3 s of boot to pre-populate
+    // server IP/port/name without requiring the WiFiManager captive portal.
+    // The settings are saved to LittleFS exactly like the WiFiManager would; on
+    // the next step WiFiManager picks them up as pre-filled defaults.
+    Serial.println(F("[CFG] Serial pre-config window 3 s — send: DERBY_CFG:{...}"));
+    {
+        const unsigned long kWindowMs = 3000UL;
+        unsigned long deadline = millis() + kWindowMs;
+        String buf;
+        buf.reserve(128);
+        bool done = false;
+        while (!done && millis() < deadline) {
+            while (!done && Serial.available()) {
+                char c = static_cast<char>(Serial.read());
+                if (c == '\r') continue;
+                if (c == '\n') {
+                    if (buf.startsWith(F("DERBY_CFG:"))) {
+                        String json = buf.substring(10);
+                        JsonDocument doc;
+                        DeserializationError err = deserializeJson(doc, json);
+                        if (!err) {
+                            if (doc["server_ip"  ].is<const char*>())
+                                strlcpy(g_serverIp,   doc["server_ip"],   sizeof(g_serverIp));
+                            if (doc["server_port"].is<const char*>())
+                                strlcpy(g_serverPort, doc["server_port"], sizeof(g_serverPort));
+                            if (doc["player_name"].is<const char*>())
+                                strlcpy(g_playerName, doc["player_name"], sizeof(g_playerName));
+                            saveConfig();
+                            Serial.println(F("[CFG] DERBY_CFG_ACK:OK"));
+                            done = true;
+                        } else {
+                            Serial.printf("[CFG] DERBY_CFG_ACK:ERR_JSON %s\n", err.c_str());
+                        }
+                    }
+                    buf = "";
+                } else if (buf.length() < 256) {
+                    buf += c;
+                }
+            }
+            if (!done) delay(1);   // yield to ESP8266 background tasks
+        }
+        if (!done) Serial.println(F("[CFG] Serial config window expired"));
+    }
+
     // Build unique AP name: "Derby-Sensor-XXXX" using last 4 hex digits of chip ID.
     char apName[32];
     snprintf(apName, sizeof(apName), "%s%04X",

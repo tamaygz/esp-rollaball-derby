@@ -3,146 +3,475 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Derby Sensor — Flash Firmware</title>
+  <title>Derby Sensor — Firmware Flasher</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Space+Mono:wght@400;700&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+    :root {
+      --bg:         #050c17;
+      --card:       #091522;
+      --surface:    #0e1e30;
+      --surface2:   #122540;
+      --border:     #182f4a;
+      --border-hi:  #234d7a;
+      --text:       #b8cfe4;
+      --text-dim:   #4e6d8a;
+      --text-hi:    #e4f0fc;
+      --amber:      #f0a500;
+      --amber-bg:   rgba(240,165,0,.10);
+      --amber-bdim: #7a5000;
+      --green:      #22c55e;
+      --red:        #ef4444;
+      --r:          8px;
+      --r-sm:       5px;
+    }
+
     body {
-      font-family: system-ui, -apple-system, sans-serif;
-      background: #0f172a;
-      color: #e2e8f0;
+      font-family: 'DM Sans', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
       min-height: 100vh;
       display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 2.5rem 1rem 4rem;
+    }
+
+    /* ── Outer wrapper ─────────────────────────────────────────────────────── */
+    .wrap { width: 100%; max-width: 500px; }
+
+    /* ── Header ───────────────────────────────────────────────────────────── */
+    .hdr {
+      position: relative;
+      padding: 2rem 2rem 1.6rem;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      overflow: hidden;
+      margin-bottom: 1rem;
+    }
+    .hdr::before {
+      content: '';
+      position: absolute;
+      inset: 0 0 auto 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--amber) 0%, transparent 70%);
+    }
+    .badge {
+      display: inline-flex;
       align-items: center;
-      justify-content: center;
-      padding: 2rem;
+      gap: .35rem;
+      font-family: 'Space Mono', monospace;
+      font-size: .65rem;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--amber);
+      background: var(--amber-bg);
+      border: 1px solid var(--amber-bdim);
+      border-radius: 999px;
+      padding: .22rem .6rem;
+      margin-bottom: .9rem;
     }
-
-    .card {
-      background: #1e293b;
-      border: 1px solid #334155;
-      border-radius: 1rem;
-      padding: 2.5rem 2rem;
-      max-width: 480px;
-      width: 100%;
-      text-align: center;
-    }
-
-    .icon { font-size: 3rem; margin-bottom: 1rem; }
-
     h1 {
-      font-size: 1.6rem;
-      font-weight: 700;
-      color: #f8fafc;
-      margin-bottom: 0.4rem;
+      font-family: 'Syne', sans-serif;
+      font-size: 2.1rem;
+      font-weight: 800;
+      color: var(--text-hi);
+      line-height: 1.1;
+      margin-bottom: .45rem;
+    }
+    h1 em { font-style: normal; color: var(--amber); }
+    .sub {
+      font-size: .87rem;
+      color: var(--text-dim);
+      line-height: 1.55;
     }
 
-    .subtitle {
-      font-size: 0.95rem;
-      color: #94a3b8;
-      margin-bottom: 2rem;
-    }
-
-    .steps {
-      text-align: left;
-      background: #0f172a;
-      border-radius: 0.6rem;
-      padding: 1rem 1.25rem;
-      margin-bottom: 2rem;
-      font-size: 0.9rem;
-      color: #cbd5e1;
-      line-height: 1.8;
-    }
-    .steps ol { padding-left: 1.25rem; }
-    .steps li { margin-bottom: 0.25rem; }
-
-    .flash-btn-wrap {
-      display: flex;
-      justify-content: center;
-      margin-bottom: 1.5rem;
-    }
-
-    /* Style the esp-web-install-button's shadow-DOM slot override */
-    esp-web-install-button::part(button) {
-      background: #6366f1;
-      color: #fff;
-      border: none;
-      border-radius: 0.5rem;
-      padding: 0.75rem 2rem;
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.15s;
-    }
-    esp-web-install-button::part(button):hover {
-      background: #4f46e5;
-    }
-
-    .note {
-      font-size: 0.82rem;
-      color: #64748b;
-      line-height: 1.6;
-    }
-    .note a { color: #818cf8; text-decoration: none; }
-    .note a:hover { text-decoration: underline; }
-
-    .browser-warn {
+    /* ── Browser Warning ──────────────────────────────────────────────────── */
+    .bwarn {
       display: none;
-      background: #451a03;
-      border: 1px solid #92400e;
-      border-radius: 0.5rem;
-      padding: 0.85rem 1rem;
-      font-size: 0.88rem;
-      color: #fcd34d;
-      margin-bottom: 1.5rem;
-      text-align: left;
+      background: #1c0a02;
+      border: 1px solid #6b2d02;
+      border-radius: var(--r-sm);
+      padding: .8rem 1rem;
+      font-size: .83rem;
+      color: #fbbf24;
+      line-height: 1.6;
+      margin-bottom: 1rem;
     }
-  </style>
-</head>
+    .bwarn a { color: #fbbf24; }
+    .bwarn code {
+      background: rgba(255,255,255,.07);
+      border-radius: 3px;
+      padding: .1em .35em;
+      font-family: 'Space Mono', monospace;
+      font-size: .85em;
+    }
+
+    /* ── Main card ────────────────────────────────────────────────────────── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      overflow: hidden;
+    }
+
+    /* ── Steps ────────────────────────────────────────────────────────────── */
+    .step {
+      padding: 1.15rem 1.4rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .step:last-child { border-bottom: none; }
+
+    .step-row {
+      display: flex;
+      align-items: baseline;
+      gap: .65rem;
+      margin-bottom: .85rem;
+    }
+    .step-n {
+      font-family: 'Space Mono', monospace;
+      font-size: .62rem;
+      color: var(--amber);
+      opacity: .6;
+      letter-spacing: .06em;
+      flex-shrink: 0;
+    }
+    .step-label {
+      font-size: .85rem;
+      font-weight: 600;
+      color: var(--text-hi);
+    }
+    .optional { font-weight: 400; color: var(--text-dim); font-size: .8rem; }
+
+    /* ── Seg buttons ──────────────────────────────────────────────────────── */
+    .seg-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: .45rem;
+    }
+    .seg {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: .08rem;
+      padding: .6rem .8rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm);
+      cursor: pointer;
+      color: var(--text-dim);
+      text-align: left;
+      transition: border-color .12s, color .12s, background .12s;
+    }
+    .seg:hover { border-color: var(--border-hi); color: var(--text); }
+    .seg.on {
+      background: var(--amber-bg);
+      border-color: var(--amber);
+      color: var(--text-hi);
+    }
+    .seg strong { font-size: .84rem; font-weight: 600; display: block; }
+    .seg small {
+      font-family: 'Space Mono', monospace;
+      font-size: .64rem;
+      opacity: .65;
+    }
+
+    /* ── Manual upload ────────────────────────────────────────────────────── */
+    #manual-panel { margin-top: .8rem; }
+    .drop-zone {
+      display: block;
+      border: 1.5px dashed var(--border-hi);
+      border-radius: var(--r-sm);
+      padding: 1.1rem;
+      text-align: center;
+      color: var(--text-dim);
+      font-size: .85rem;
+      cursor: pointer;
+      transition: border-color .15s, background .15s, color .15s;
+    }
+    .drop-zone:hover, .drop-zone.drag { border-color: var(--amber); background: var(--amber-bg); color: var(--text); }
+    .drop-zone code { font-family: 'Space Mono', monospace; font-size: .85em; }
+    #bin-name {
+      font-family: 'Space Mono', monospace;
+      font-size: .72rem;
+      color: var(--green);
+      text-align: center;
+      margin-top: .45rem;
+    }
+
+    /* ── Accordion ────────────────────────────────────────────────────────── */
+    .acc-btn {
+      all: unset;
+      display: flex;
+      align-items: center;
+      width: 100%;
+      cursor: pointer;
+    }
+    .acc-btn .step-row { flex: 1; margin-bottom: 0; }
+    .chevron {
+      margin-left: auto;
+      color: var(--text-dim);
+      font-size: .7rem;
+      transition: transform .2s;
+    }
+    .acc-btn[aria-expanded="true"] .chevron { transform: rotate(180deg); }
+
+    .cfg-panel { margin-top: .9rem; }
+    .cfg-hint {
+      font-size: .8rem;
+      color: var(--text-dim);
+      line-height: 1.6;
+      background: var(--surface);
+      border-radius: var(--r-sm);
+      padding: .65rem .8rem;
+      margin-bottom: .75rem;
+    }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }
+    .field { display: flex; flex-direction: column; gap: .28rem; }
+    .field.full { grid-column: 1 / -1; }
+    .field > span { font-size: .75rem; font-weight: 600; color: var(--text-dim); }
+    .field > span em { font-style: normal; font-weight: 400; }
+    .field input {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm);
+      padding: .5rem .65rem;
+      color: var(--text-hi);
+      font-family: 'Space Mono', monospace;
+      font-size: .8rem;
+      outline: none;
+      transition: border-color .12s;
+    }
+    .field input:focus { border-color: var(--amber); }
+    .field input::placeholder { color: var(--text-dim); opacity: .45; }
+
+    /* ── Flash area ───────────────────────────────────────────────────────── */
+    .flash-area {
+      padding: 1.4rem;
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: .85rem;
+    }
+
+    esp-web-install-button::part(button) {
+      background: var(--amber);
+      color: #0a0500;
+      border: none;
+      border-radius: var(--r-sm);
+      padding: .75rem 2.2rem;
+      font-family: 'DM Sans', sans-serif;
+      font-size: .95rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background .12s, transform .1s;
+    }
+    esp-web-install-button::part(button):hover { background: #fbbf24; }
+    esp-web-install-button::part(button):active { transform: scale(.98); }
+
+    #status {
+      font-family: 'Space Mono', monospace;
+      font-size: .74rem;
+      color: var(--text-dim);
+      min-height: 1em;
+      text-align: center;
+      transition: color .15s;
+    }
+    #status.ok  { color: var(--green); }
+    #status.err { color: var(--red); }
+    #status.warn { color: var(--amber); }
+
+    /* ── Post-flash config ────────────────────────────────────────────────── */
+    #cfg-send-wrap {
+      margin: 0 1rem 1rem;
+      background: var(--surface);
+      border: 1px solid var(--border-hi);
+      border-radius: var(--r-sm);
+      padding: 1rem 1.1rem;
+      animation: fadeUp .2s ease;
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(4px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    #cfg-send-title {
+      font-size: .86rem;
+      font-weight: 600;
+      color: var(--text-hi);
+      margin-bottom: .35rem;
+    }
+    #cfg-progress {
+      font-family: 'Space Mono', monospace;
+      font-size: .72rem;
+      color: var(--text-dim);
+      line-height: 1.65;
+    }
+    #cfg-progress .ok  { color: var(--green); }
+    #cfg-progress .err { color: var(--red); }
+    #cfg-retry-btn {
+      margin-top: .7rem;
+      background: var(--surface2);
+      border: 1px solid var(--border-hi);
+      border-radius: var(--r-sm);
+      padding: .45rem .9rem;
+      font-family: 'DM Sans', sans-serif;
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--text);
+      cursor: pointer;
+      transition: border-color .12s, color .12s;
+    }
+    #cfg-retry-btn:hover { border-color: var(--amber); color: var(--amber); }
+
+    /* ── Footer ───────────────────────────────────────────────────────────── */
+    .foot {
+      margin-top: 1rem;
+      text-align: center;
+      font-size: .76rem;
+      color: var(--text-dim);
+      line-height: 1.7;
+    }
+    .foot a { color: var(--text-dim); text-decoration: none; }
+    .foot a:hover { color: var(--amber); }
+  </head>
 <body>
 
-<div class="card">
-  <div class="icon">🎯</div>
-  <h1>Derby Sensor Flasher</h1>
-  <p class="subtitle">Flash the IR sensor firmware to a Wemos D1 Mini — no toolchain required.</p>
+<div class="wrap">
 
-  <div class="browser-warn" id="browser-warn">
-    ⚠️ <strong id="warn-heading">Web Serial unavailable.</strong>
+  <!-- Header -->
+  <header class="hdr">
+    <div class="badge">⚡ ESP8266 Flasher</div>
+    <h1>Derby <em>Sensor</em></h1>
+    <p class="sub">Flash IR sensor firmware directly from your browser — no toolchain required.</p>
+  </header>
+
+  <!-- Browser compat warning -->
+  <div class="bwarn" id="browser-warn">
+    <strong id="warn-heading">Web Serial unavailable.</strong>
     <span id="warn-unsupported">
-      Web Serial requires
-      <a href="https://www.google.com/chrome/" target="_blank" rel="noopener">Chrome</a> or
+      Requires <a href="https://www.google.com/chrome/" target="_blank" rel="noopener">Chrome</a> or
       <a href="https://www.microsoft.com/edge" target="_blank" rel="noopener">Edge</a> 89+ on desktop.
       Safari and Firefox are not supported.
     </span>
     <span id="warn-insecure" style="display:none">
-      Web Serial only works in a <strong>secure context</strong>.
-      Open this page from <code>http://localhost:3000/flash-sensor</code> (same machine as the server),
-      or serve the game server over HTTPS.
+      Web Serial requires a <strong>secure context</strong>.
+      Open from <code>http://localhost:3000/flash-sensor</code> (same machine) or serve over HTTPS.
     </span>
   </div>
 
-  <div class="steps">
-    <ol>
-      <li>Plug the <strong>Wemos D1 Mini</strong> into a USB port.</li>
-      <li>Click <strong>Install</strong> and select the serial port.</li>
-      <li>Wait ~30 s for flashing to complete.</li>
-      <li>On first boot, connect to the <strong>Derby-Sensor-XXXX</strong> WiFi AP and enter your server IP &amp; port.</li>
-    </ol>
+  <!-- Main card -->
+  <div class="card">
+
+    <!-- Step 1: Board -->
+    <div class="step">
+      <div class="step-row">
+        <span class="step-n">01</span>
+        <span class="step-label">Select Board</span>
+      </div>
+      <div class="seg-group" id="board-group">
+        <button class="seg on" data-board="d1_mini">
+          <strong>Wemos D1 Mini</strong>
+          <small>CP2104 · 4 MB flash</small>
+        </button>
+        <button class="seg" data-board="nodemcuv2">
+          <strong>NodeMCU v2 / v3</strong>
+          <small>CH340 · 4 MB flash</small>
+        </button>
+      </div>
+    </div>
+
+    <!-- Step 2: Firmware source -->
+    <div class="step">
+      <div class="step-row">
+        <span class="step-n">02</span>
+        <span class="step-label">Firmware Source</span>
+      </div>
+      <div class="seg-group" id="src-group">
+        <button class="seg on" data-src="auto">
+          <strong>Auto-download</strong>
+          <small>Latest from GitHub Releases</small>
+        </button>
+        <button class="seg" data-src="manual">
+          <strong>Upload .bin</strong>
+          <small>Use a local binary file</small>
+        </button>
+      </div>
+      <div id="manual-panel" style="display:none">
+        <label class="drop-zone" id="drop-zone" for="bin-file">
+          📂 Drop <code>.bin</code> file here or click to browse
+          <input type="file" id="bin-file" accept=".bin" hidden>
+        </label>
+        <div id="bin-name"></div>
+      </div>
+    </div>
+
+    <!-- Step 3: Pre-configure (optional accordion) -->
+    <div class="step">
+      <button class="acc-btn" id="cfg-toggle" aria-expanded="false">
+        <div class="step-row">
+          <span class="step-n">03</span>
+          <span class="step-label">Pre-configure <span class="optional">(optional)</span></span>
+        </div>
+        <span class="chevron" aria-hidden="true">▾</span>
+      </button>
+      <div id="cfg-panel" hidden>
+        <div class="cfg-panel">
+          <p class="cfg-hint">
+            After flashing, the flasher sends these settings to the device over USB serial —
+            no manual entry in the WiFiManager portal for the server config.
+            (WiFi credentials still need to be entered once on first boot.)
+          </p>
+          <div class="form-grid">
+            <label class="field">
+              <span>Server IP</span>
+              <input type="text" id="f-ip" placeholder="192.168.1.100"
+                     autocomplete="off" spellcheck="false" inputmode="url">
+            </label>
+            <label class="field">
+              <span>Server Port</span>
+              <input type="text" id="f-port" placeholder="3000" value="3000"
+                     autocomplete="off" inputmode="numeric">
+            </label>
+            <label class="field full">
+              <span>Player Name <em>(optional)</em></span>
+              <input type="text" id="f-name" placeholder="e.g. Lane 1"
+                     maxlength="20" autocomplete="off">
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 4: Flash -->
+    <div class="flash-area">
+      <esp-web-install-button id="ewib" manifest="./manifest.json">
+        <span slot="activate">Flash to Device</span>
+        <span slot="unsupported">Browser not supported — use Chrome or Edge</span>
+      </esp-web-install-button>
+      <div id="status"></div>
+    </div>
+
+  </div><!-- /card -->
+
+  <!-- Post-flash config panel (shown after flash if pre-config has values) -->
+  <div id="cfg-send-wrap" hidden>
+    <div id="cfg-send-title">📡 Apply Configuration</div>
+    <div id="cfg-progress"></div>
+    <button id="cfg-retry-btn" hidden>Send Configuration to Device</button>
   </div>
 
-  <div class="flash-btn-wrap">
-    <esp-web-install-button manifest="./manifest.json">
-      <span slot="activate">Install Derby Sensor Firmware</span>
-    </esp-web-install-button>
-  </div>
-
-  <p class="note">
-    Downloads the latest pre-built firmware from
-    <a href="https://github.com/tamaygz/esp-rollaball-derby/releases/latest" target="_blank" rel="noopener">GitHub Releases</a>.
-    To build from source, see the
-    <a href="https://github.com/tamaygz/esp-rollaball-derby/tree/main/clients/esp8266-sensor" target="_blank" rel="noopener">sensor README</a>.
+  <p class="foot">
+    Pre-built firmware at
+    <a href="https://github.com/tamaygz/esp-rollaball-derby/releases/latest" target="_blank" rel="noopener">GitHub Releases ↗</a>
+    &nbsp;·&nbsp; Chrome or Edge 89+ required (Web Serial API)
   </p>
-</div>
+
+</div><!-- /wrap -->
 
 <!-- ESP Web Tools — pinned to v10.2.1 with integrity hash to prevent supply-chain tampering -->
 <script
@@ -153,18 +482,237 @@
 ></script>
 
 <script>
-  // Show a warning if Web Serial is unavailable (Firefox/Safari) or
-  // if the page is not in a secure context (non-localhost plain HTTP).
-  const hasSerial  = ('serial' in navigator);
-  const isSecure   = window.isSecureContext;
+'use strict';
+
+// ── Manifest URLs ─────────────────────────────────────────────────────────────
+const MANIFESTS = {
+  d1_mini:   './manifest.json',
+  nodemcuv2: './manifest-nodemcuv2.json',
+};
+
+// ── DOM refs ──────────────────────────────────────────────────────────────────
+const ewib          = document.getElementById('ewib');
+const boardGroup    = document.getElementById('board-group');
+const srcGroup      = document.getElementById('src-group');
+const manualPanel   = document.getElementById('manual-panel');
+const dropZone      = document.getElementById('drop-zone');
+const binFileInput  = document.getElementById('bin-file');
+const binNameEl     = document.getElementById('bin-name');
+const cfgToggle     = document.getElementById('cfg-toggle');
+const cfgPanel      = document.getElementById('cfg-panel');
+const statusEl      = document.getElementById('status');
+const cfgSendWrap   = document.getElementById('cfg-send-wrap');
+const cfgSendTitle  = document.getElementById('cfg-send-title');
+const cfgProgress   = document.getElementById('cfg-progress');
+const cfgRetryBtn   = document.getElementById('cfg-retry-btn');
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let currentBoard = 'd1_mini';
+let currentSrc   = 'auto';
+let manualUrl    = null;   // Object URL for blob manifest when source=manual
+
+// ── Browser compat ────────────────────────────────────────────────────────────
+{
+  const hasSerial = ('serial' in navigator);
+  const isSecure  = window.isSecureContext;
   if (!hasSerial || !isSecure) {
     document.getElementById('browser-warn').style.display = 'block';
     if (hasSerial && !isSecure) {
-      // Browser supports Web Serial but secure context is missing.
       document.getElementById('warn-unsupported').style.display = 'none';
       document.getElementById('warn-insecure').style.display    = 'inline';
     }
   }
+}
+
+// ── Board selection ───────────────────────────────────────────────────────────
+boardGroup.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-board]');
+  if (!btn) return;
+  currentBoard = btn.dataset.board;
+  boardGroup.querySelectorAll('.seg').forEach(b => b.classList.toggle('on', b === btn));
+  if (currentSrc === 'auto') ewib.manifest = MANIFESTS[currentBoard];
+});
+
+// ── Firmware source ───────────────────────────────────────────────────────────
+srcGroup.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-src]');
+  if (!btn) return;
+  currentSrc = btn.dataset.src;
+  srcGroup.querySelectorAll('.seg').forEach(b => b.classList.toggle('on', b === btn));
+  manualPanel.style.display = (currentSrc === 'manual') ? 'block' : 'none';
+  if (currentSrc === 'auto') {
+    ewib.manifest = MANIFESTS[currentBoard];
+    setStatus('');
+  } else if (manualUrl) {
+    ewib.manifest = manualUrl;
+  } else {
+    setStatus('Select a .bin file above', 'warn');
+  }
+});
+
+// ── Manual .bin upload ────────────────────────────────────────────────────────
+dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drag'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag'));
+dropZone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  dropZone.classList.remove('drag');
+  const f = e.dataTransfer?.files?.[0];
+  if (f) handleBinFile(f);
+});
+binFileInput.addEventListener('change', () => {
+  if (binFileInput.files[0]) handleBinFile(binFileInput.files[0]);
+});
+
+function handleBinFile(file) {
+  if (!file.name.toLowerCase().endsWith('.bin')) {
+    setStatus('Only .bin files are supported', 'err');
+    return;
+  }
+  if (manualUrl) URL.revokeObjectURL(manualUrl);
+
+  const binUrl = URL.createObjectURL(file);
+  const manifest = {
+    name: 'Derby Sensor (custom)',
+    new_install_prompt_erase: true,
+    builds: [{ chipFamily: 'ESP8266', parts: [{ path: binUrl, offset: 0 }] }],
+  };
+  const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+  manualUrl = URL.createObjectURL(manifestBlob);
+  ewib.manifest = manualUrl;
+  binNameEl.textContent = `✓  ${file.name}`;
+  setStatus('');
+}
+
+// ── Pre-configure accordion ───────────────────────────────────────────────────
+cfgToggle.addEventListener('click', () => {
+  const open = cfgToggle.getAttribute('aria-expanded') === 'true';
+  cfgToggle.setAttribute('aria-expanded', String(!open));
+  cfgPanel.hidden = open;
+});
+
+// ── Flash state ───────────────────────────────────────────────────────────────
+const STATE_LABEL = {
+  initializing:     'Initializing…',
+  connecting:       'Connecting to device…',
+  preparing:        'Preparing…',
+  'awaiting-erase': 'Confirm erase in the dialog…',
+  erasing:          'Erasing flash…',
+  writing:          'Writing firmware…',
+  finished:         'Flash complete ✓',
+  error:            'Flash failed',
+};
+
+ewib.addEventListener('state-changed', (e) => {
+  const { state, message } = e.detail || {};
+  if (!state) return;
+  const label = (state === 'writing' && message) ? message
+              : (STATE_LABEL[state] || state);
+  if (state === 'finished') {
+    setStatus(label, 'ok');
+    onFlashDone();
+  } else if (state === 'error') {
+    setStatus(message || label, 'err');
+  } else {
+    setStatus(label);
+  }
+});
+
+function setStatus(msg, cls = '') {
+  statusEl.textContent = msg;
+  statusEl.className   = cls;
+}
+
+// ── Post-flash configuration ──────────────────────────────────────────────────
+function hasPreConfig() {
+  return cfgToggle.getAttribute('aria-expanded') === 'true'
+      && document.getElementById('f-ip').value.trim().length > 0
+      && document.getElementById('f-port').value.trim().length > 0;
+}
+
+function onFlashDone() {
+  if (!hasPreConfig()) return;
+  cfgSendWrap.hidden  = false;
+  cfgRetryBtn.hidden  = false;
+  cfgRetryBtn.textContent = 'Send Configuration to Device';
+  cfgProgress.textContent = 'Flash complete. Click the button to send your settings.';
+}
+
+cfgRetryBtn.addEventListener('click', async () => {
+  cfgRetryBtn.disabled = true;
+  cfgRetryBtn.hidden   = true;
+  await sendConfigViaSerial();
+});
+
+async function sendConfigViaSerial() {
+  const ip   = document.getElementById('f-ip').value.trim();
+  const port = document.getElementById('f-port').value.trim();
+  const name = document.getElementById('f-name').value.trim();
+  const payload = JSON.stringify({ server_ip: ip, server_port: port, player_name: name });
+
+  const setP = (msg, cls = '') => {
+    cfgProgress.innerHTML = cls ? `<span class="${cls}">${msg}</span>` : msg;
+  };
+
+  let serialPort = null;
+  try {
+    setP('Waiting 3 s for device to reboot…');
+    await sleep(3000);
+
+    setP('Connecting to device serial port…');
+    const ports = await navigator.serial.getPorts();
+    serialPort = ports.length > 0 ? ports[0] : await navigator.serial.requestPort();
+
+    // Close port if it was left open by esp-web-tools
+    if (serialPort.readable || serialPort.writable) {
+      try { await serialPort.close(); } catch (_) { /* already closing */ }
+    }
+    await serialPort.open({ baudRate: 115200 });
+
+    setP(`Sending: <code>DERBY_CFG:${payload}</code>`);
+    const writer = serialPort.writable.getWriter();
+    await writer.write(new TextEncoder().encode(`DERBY_CFG:${payload}\n`));
+    writer.releaseLock();
+
+    setP('Waiting for acknowledgment (5 s)…');
+    const reader  = serialPort.readable.getReader();
+    let buf = '';
+    let ack = false;
+    const t = setTimeout(() => reader.cancel('timeout'), 5000);
+    try {
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done || !value) break;
+        buf += new TextDecoder().decode(value, { stream: true });
+        if (buf.includes('DERBY_CFG_ACK:OK'))  { ack = true;  break; }
+        if (buf.includes('DERBY_CFG_ACK:ERR')) { break; }
+        if (buf.length > 2000)                 { break; }
+      }
+    } catch (_) { /* timeout */ }
+    clearTimeout(t);
+    reader.releaseLock();
+    await serialPort.close();
+
+    if (ack) {
+      cfgSendTitle.textContent = '✓ Configuration Applied';
+      setP('Settings saved to device. WiFi credentials still need to be entered on first boot.', 'ok');
+    } else {
+      setP('⚠ No acknowledgment received — the config may not have been saved.', 'err');
+      showRetry();
+    }
+  } catch (err) {
+    if (serialPort) { try { await serialPort.close(); } catch (_) { /* ignore */ } }
+    setP(`Error: ${err.message}`, 'err');
+    showRetry();
+  }
+}
+
+function showRetry() {
+  cfgRetryBtn.textContent = 'Retry';
+  cfgRetryBtn.disabled    = false;
+  cfgRetryBtn.hidden      = false;
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 </script>
 
 </body>
