@@ -34,6 +34,21 @@ class ConnectionManager {
     return counts;
   }
 
+  getClientsList() {
+    const list = [];
+    for (const { id, type, playerId } of this.clients.values()) {
+      list.push({ id, type: type || null, playerId: playerId || null });
+    }
+    return list;
+  }
+
+  kickClient(clientId) {
+    const client = this.clients.get(clientId);
+    if (!client) return false;
+    try { client.ws.close(); } catch (_) { /* ignore */ }
+    return true;
+  }
+
   broadcastAll(msg) {
     const json = JSON.stringify(msg);
     for (const { ws } of this.clients.values()) {
