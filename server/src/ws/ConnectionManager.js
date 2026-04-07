@@ -34,6 +34,21 @@ class ConnectionManager {
     return counts;
   }
 
+  getClientsList() {
+    const list = [];
+    for (const { id, type, playerId } of this.clients.values()) {
+      list.push({ id, type: type || null, playerId: playerId || null });
+    }
+    return list;
+  }
+
+  kickClient(clientId) {
+    const client = this.clients.get(clientId);
+    if (!client) return false;
+    try { client.ws.close(); } catch (_) { /* ignore */ }
+    return true;
+  }
+
   broadcastAll(msg) {
     const json = JSON.stringify(msg);
     for (const { ws } of this.clients.values()) {
@@ -125,7 +140,7 @@ class ConnectionManager {
   }
 
   _handleRegister(clientId, ws, payload) {
-    const { type, playerName } = payload;
+    const { type, playerName, playerId: reconnectId } = payload;
 
     if (!VALID_TYPES.has(type)) {
       this._send(ws, {
@@ -135,22 +150,42 @@ class ConnectionManager {
       return;
     }
 
+    const client = this.clients.get(clientId);
+    client.type = type;
+
     // Sanitize name
     let sanitized = '';
     if (typeof playerName === 'string') {
       sanitized = playerName.replace(HTML_TAG_PATTERN, '').trim().slice(0, 20);
     }
 
-    const name = sanitized.length > 0 ? sanitized : this.gameState.assignName();
-
-    // Display clients observe only — no player entry in game state
-    if (type !== 'display') {
-      this.gameState.addPlayer(clientId, name, type);
+    // Handle reconnect: if the client supplies a previously issued player ID and
+    // the server still has that player, reuse the existing entry (mark connected)
+    // instead of creating a duplicate.
+    if (reconnectId && type !== 'display') {
+      const existing = this.gameState.reconnectPlayer(reconnectId);
+      if (existing) {
+        // Accept a name update if the client provided one
+        if (sanitized.length > 0) existing.name = sanitized;
+        client.playerId = reconnectId;
+        this._send(ws, {
+          type: 'registered',
+          payload: { id: reconnectId, name: existing.name, playerType: type },
+        });
+        this.broadcastState();
+        return;
+      }
     }
 
-    const client = this.clients.get(clientId);
-    client.type = type;
-    client.playerId = type !== 'display' ? clientId : null;
+    // Normal (first-time) registration
+    const name = sanitized.length > 0 ? sanitized : this.gameState.assignName();
+
+    if (type !== 'display') {
+      this.gameState.addPlayer(clientId, name, type);
+      client.playerId = clientId;
+    } else {
+      client.playerId = null;
+    }
 
     this._send(ws, {
       type: 'registered',
@@ -163,10 +198,10 @@ class ConnectionManager {
   _handleScore(clientId, ws, payload) {
     const { playerId, points } = payload;
 
-    if (!playerId || (points !== 1 && points !== 3)) {
+    if (!playerId || (points !== 1 && points !== 2 && points !== 3)) {
       this._send(ws, {
         type: 'error',
-        payload: { message: 'Invalid score payload: playerId required, points must be 1 or 3' },
+        payload: { message: 'Invalid score payload: playerId required, points must be 1, 2, or 3' },
       });
       return;
     }
@@ -188,8 +223,12 @@ class ConnectionManager {
   }
 
   _handleDisconnect(clientId) {
+    // Use the player's stable ID (which may differ from the WS clientId when the
+    // client reconnected and the server reused an existing player entry).
+    const client = this.clients.get(clientId);
+    const playerId = client ? client.playerId : null;
     this.clients.delete(clientId);
-    this.gameState.disconnectPlayer(clientId);
+    if (playerId) this.gameState.disconnectPlayer(playerId);
     this.broadcastState();
   }
 }

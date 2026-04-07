@@ -27,6 +27,8 @@ window.Derby = window.Derby || {};
         var name = msg.payload.name;
         var ptype = msg.payload.playerType;
         Derby.State.setMyId(id);
+        // Persist so the next reconnect can supply this ID and reuse the entry.
+        localStorage.setItem('derby-player-id', id);
         var infoEl = _el('my-id-info');
         if (infoEl) {
           infoEl.textContent = 'You: ' + name + ' (' + ptype + ') — ID: ' + id.slice(0, 8) + '…';

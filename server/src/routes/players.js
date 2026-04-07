@@ -35,6 +35,17 @@ function createPlayersRouter(gameState, connectionManager) {
     }
   });
 
+  // DELETE /:id — remove (or disconnect) a player
+  router.delete('/:id', (req, res) => {
+    const { id } = req.params;
+    if (!gameState.players.has(id)) {
+      return res.status(404).json({ error: 'Player not found' });
+    }
+    gameState.removePlayer(id);
+    connectionManager.broadcastState();
+    res.json({ removed: true });
+  });
+
   return router;
 }
 

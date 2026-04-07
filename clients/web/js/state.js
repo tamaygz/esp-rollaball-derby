@@ -130,6 +130,7 @@ Derby.State = (function () {
             '<span class="player-color-dot" style="background:' + color + '"></span>' +
             '<span class="player-name" data-id="' + _esc(p.id) + '" data-name="' + _esc(p.name) + '">' + displayName + '</span>' +
             '<button class="btn-edit-name" data-id="' + _esc(p.id) + '" title="Rename player" aria-label="Rename player">✏️</button>' +
+            '<button class="btn-remove-player" data-id="' + _esc(p.id) + '" data-name="' + _esc(p.name) + '" title="Remove player" aria-label="Remove player ' + _esc(p.name) + '">🗑️</button>' +
             '<span class="player-type-badge">' + _esc(p.type) + '</span>' +
             '<span class="player-status">' + dot + '</span>' +
           '</div>' +
@@ -148,6 +149,16 @@ Derby.State = (function () {
     editBtns.forEach(function (btn) {
       btn.addEventListener('click', function () {
         _startNameEdit(btn.dataset.id);
+      });
+    });
+
+    // Attach remove listeners
+    var removeBtns = container.querySelectorAll('.btn-remove-player');
+    removeBtns.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var name = btn.dataset.name || 'this player';
+        if (!window.confirm('Remove "' + name + '" from the game?')) return;
+        Derby.Admin.removePlayer(btn.dataset.id);
       });
     });
   }
