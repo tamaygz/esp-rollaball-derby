@@ -17,12 +17,21 @@ All communication over WebSocket (`ws://`). The server is the single source of t
 
 | Component | Status | Notes |
 |-----------|--------|-------|
-| `server/` | ✅ Complete | 49 tests passing |
+| `server/` | ✅ Complete | 101 tests passing (GameState, ConnectionManager, BotManager, integration) |
 | `clients/assets/` | ✅ Complete | Horse + camel SVG themes |
-| `clients/web/` | ✅ Complete | PR #1 open (admin SPA at `/admin`) |
-| `clients/display/` | ✅ Complete | Pixi.js race visualization at `/display` |
+| `clients/web/` | ✅ Complete | Admin SPA at `/admin` — game controls, config, bots, score testing |
+| `clients/display/` | ✅ Complete | Pixi.js race visualization at `/display` with action effects |
 | `clients/esp8266-sensor/` | 🔲 Not started | IR sensor firmware |
 | `clients/esp8266-motor/` | ⏳ Deferred | Phase 3 |
+
+## Key Features
+
+- **Scoring**: 0 / +1 / +2 / +3 point rolls with streak tracking and rank-change events
+- **Server-side bots**: Autonomous bot players via REST API — roll at 2–8 s human-like intervals
+- **Action effects**: 8 visual event types (zero_roll, score_1/2/3, streak_zero_3x, streak_three_2x, took_lead, became_last)
+- **Theming**: Horse 🐎 and camel 🐪 themes with auto-random selection
+- **Reconnect**: Both admin and display clients auto-reconnect with exponential backoff
+- **Rate limiting**: 300 ms per player to prevent spam
 
 ## Directory Structure
 
@@ -31,10 +40,12 @@ esp-rollaball-derby/
 ├── server/                   — Node.js game server
 │   ├── src/
 │   │   ├── index.js          — Express + WS, static mounts
-│   │   ├── game/GameState.js — Game logic + state machine
-│   │   ├── ws/ConnectionManager.js
-│   │   └── routes/           — REST: game, players, health
-│   ├── tests/                — 49 tests (Node test runner)
+│   │   ├── game/
+│   │   │   ├── GameState.js  — Game logic + state machine
+│   │   │   └── BotManager.js — Server-side autonomous bot players
+│   │   ├── ws/ConnectionManager.js — WebSocket hub + broadcasts
+│   │   └── routes/           — REST: game, players, bots, clients, health
+│   ├── tests/                — 101 tests (Node test runner)
 │   └── data/names.txt        — Fun player name pool
 │
 ├── clients/
@@ -42,6 +53,7 @@ esp-rollaball-derby/
 │   │   └── themes/{horse,camel}/
 │   ├── web/                  — Vanilla JS admin + test SPA
 │   └── display/              — Pixi.js display client (beamer/TV)
+│       └── js/effects/       — ActionEffect, ScoringEffect, WinnerOverlay
 │
 ├── docs/                     — PRD, findings, progress log
 └── plan/                     — Implementation plan files
@@ -56,6 +68,7 @@ npm start
 ```
 
 - Admin panel: `http://localhost:3000/admin`
+- Display (TV): `http://localhost:3000/display/` (add `?fullscreen=1` for auto-fullscreen)
 - Health check: `http://localhost:3000/api/health`
 - Asset preview: open `clients/assets/themes/shared/preview.html` in a browser
 

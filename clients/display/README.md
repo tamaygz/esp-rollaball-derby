@@ -6,7 +6,15 @@ Fullscreen Pixi.js SPA served at `/display` — designed for a beamer or TV show
 
 - Renders one horizontal lane per connected player
 - Player figures animate smoothly left → right as scores arrive
-- Scoring flash (scale-bounce + tint) highlights the scoring player
+- **Action effects pipeline** — 8 event types with distinct visual treatments:
+  - `zero_roll` → shrink-bounce + red flash + 😢 popup
+  - `score_1` → scale-bounce + white tint flash
+  - `score_2` → bigger bounce + blue lane flash
+  - `score_3` → large bounce + gold flash + ⭐ "+3!" popup
+  - `streak_zero_3x` → dark pulse + 😭 "3× ZERO" popup
+  - `streak_three_2x` → orange glow + 🔥 "HOT!" popup
+  - `took_lead` → gold aura + 👑 "LEAD!" popup
+  - `became_last` → dark-red flash + 👎 "LAST!" popup
 - Winner overlay with confetti plays when a winner is declared
 - Status overlays for **WAITING FOR PLAYERS** (idle) and **⏸ PAUSED** states
 - Connection status dot (top-right corner): green = connected, yellow = connecting, red = disconnected
@@ -31,21 +39,23 @@ http://<server-ip>:3000/display/?fullscreen=1
 
 ```
 clients/display/
-├── index.html                  Entry point; loads Pixi.js + gsap from CDN
+├── index.html                  Entry point; loads Pixi.js + gsap
 ├── css/style.css               Fullscreen reset, status-dot styles
+├── vendor/                     Pixi.js + gsap bundled for offline/LAN use
 └── js/
     ├── main.js                 Pixi app init, WS message routing
     ├── connection.js           WebSocket client (registers as 'display')
     ├── ThemeManager.js         Loads theme.json; provides colors & URLs
     ├── scene/
     │   ├── RaceTrack.js        All-lanes container, layout, resize
-    │   └── Lane.js             Single-player lane (bg, track, sprite, name)
+    │   └── Lane.js             Single-player lane (bg, track, sprite, name, flash overlay, popup container)
     └── effects/
-        ├── ScoringEffect.js    Scale-bounce + tint-flash on score
+        ├── ActionEffect.js     Event-driven effect dispatcher (8 event types)
+        ├── ScoringEffect.js    Scale-bounce + tint-flash helper
         └── WinnerOverlay.js    Full-screen celebration + confetti
 ```
 
-## Dependencies (CDN, no build step)
+## Dependencies (bundled in vendor/, no build step)
 
 | Library | Version | Purpose |
 |---------|---------|---------|
@@ -57,5 +67,5 @@ clients/display/
 | Type | Payload | Action |
 |------|---------|--------|
 | `state` | Full game state | Rebuild lanes, update positions, show/hide overlays |
-| `scored` | `{ playerId, points, newPosition }` | Tween figure + scoring flash |
+| `scored` | `{ playerId, playerName, points, newPosition, events }` | Tween figure + trigger action effects for each event |
 | `winner` | `{ playerId, name }` | Winner overlay + confetti |
