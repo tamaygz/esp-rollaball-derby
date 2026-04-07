@@ -14,10 +14,24 @@ Connect the collector/output of each IR break-beam receiver to the pin, and GND 
 
 ## Requirements
 
-- [PlatformIO](https://platformio.org/) CLI or the VSCode extension
 - Wemos D1 Mini (ESP8266, 4 MB flash)
+- USB cable
 
-## Build & Flash
+## ⚡ Flash from Your Browser (No Toolchain Needed)
+
+The easiest way to flash the firmware — works on macOS, Windows, and Linux without installing PlatformIO or any C++ tools. Requires **Chrome or Edge 89+** (Web Serial API).
+
+1. Start the game server (`npm start` in `server/`).
+2. Open **`http://<server-ip>:3000/flash-sensor`** in Chrome or Edge.
+3. Plug the Wemos D1 Mini into a USB port.
+4. Click **Install Derby Sensor Firmware** and select the serial port.
+5. Wait ~30 s — the latest pre-built binary is downloaded from [GitHub Releases](https://github.com/tamaygz/esp-rollaball-derby/releases/latest) and flashed automatically.
+
+> **Safari / Firefox are not supported** — Web Serial is only available in Chromium-based browsers.
+
+## Build & Flash with PlatformIO (Advanced)
+
+For development or building from source, [PlatformIO](https://platformio.org/) CLI or VSCode extension is required.
 
 ```bash
 cd clients/esp8266-sensor

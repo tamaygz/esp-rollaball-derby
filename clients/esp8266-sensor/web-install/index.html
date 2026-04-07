@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Derby Sensor — Flash Firmware</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+
+    .card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 1rem;
+      padding: 2.5rem 2rem;
+      max-width: 480px;
+      width: 100%;
+      text-align: center;
+    }
+
+    .icon { font-size: 3rem; margin-bottom: 1rem; }
+
+    h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #f8fafc;
+      margin-bottom: 0.4rem;
+    }
+
+    .subtitle {
+      font-size: 0.95rem;
+      color: #94a3b8;
+      margin-bottom: 2rem;
+    }
+
+    .steps {
+      text-align: left;
+      background: #0f172a;
+      border-radius: 0.6rem;
+      padding: 1rem 1.25rem;
+      margin-bottom: 2rem;
+      font-size: 0.9rem;
+      color: #cbd5e1;
+      line-height: 1.8;
+    }
+    .steps ol { padding-left: 1.25rem; }
+    .steps li { margin-bottom: 0.25rem; }
+
+    .flash-btn-wrap {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 1.5rem;
+    }
+
+    /* Style the esp-web-install-button's shadow-DOM slot override */
+    esp-web-install-button::part(button) {
+      background: #6366f1;
+      color: #fff;
+      border: none;
+      border-radius: 0.5rem;
+      padding: 0.75rem 2rem;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    esp-web-install-button::part(button):hover {
+      background: #4f46e5;
+    }
+
+    .note {
+      font-size: 0.82rem;
+      color: #64748b;
+      line-height: 1.6;
+    }
+    .note a { color: #818cf8; text-decoration: none; }
+    .note a:hover { text-decoration: underline; }
+
+    .browser-warn {
+      display: none;
+      background: #451a03;
+      border: 1px solid #92400e;
+      border-radius: 0.5rem;
+      padding: 0.85rem 1rem;
+      font-size: 0.88rem;
+      color: #fcd34d;
+      margin-bottom: 1.5rem;
+      text-align: left;
+    }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <div class="icon">🎯</div>
+  <h1>Derby Sensor Flasher</h1>
+  <p class="subtitle">Flash the IR sensor firmware to a Wemos D1 Mini — no toolchain required.</p>
+
+  <div class="browser-warn" id="browser-warn">
+    ⚠️ <strong>Unsupported browser.</strong> Web Serial requires
+    <a href="https://www.google.com/chrome/" target="_blank" rel="noopener">Chrome</a> or
+    <a href="https://www.microsoft.com/edge" target="_blank" rel="noopener">Edge</a> 89+ on desktop.
+    Safari and Firefox are not supported.
+  </div>
+
+  <div class="steps">
+    <ol>
+      <li>Plug the <strong>Wemos D1 Mini</strong> into a USB port.</li>
+      <li>Click <strong>Install</strong> and select the serial port.</li>
+      <li>Wait ~30 s for flashing to complete.</li>
+      <li>On first boot, connect to the <strong>Derby-Sensor-XXXX</strong> WiFi AP and enter your server IP &amp; port.</li>
+    </ol>
+  </div>
+
+  <div class="flash-btn-wrap">
+    <esp-web-install-button manifest="./manifest.json">
+      <span slot="activate">Install Derby Sensor Firmware</span>
+    </esp-web-install-button>
+  </div>
+
+  <p class="note">
+    Downloads the latest pre-built firmware from
+    <a href="https://github.com/tamaygz/esp-rollaball-derby/releases/latest" target="_blank" rel="noopener">GitHub Releases</a>.
+    To build from source, see the
+    <a href="https://github.com/tamaygz/esp-rollaball-derby/tree/main/clients/esp8266-sensor" target="_blank" rel="noopener">sensor README</a>.
+  </p>
+</div>
+
+<!-- ESP Web Tools — browser-based WebSerial flasher by ESPHome -->
+<script
+  type="module"
+  src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"
+></script>
+
+<script>
+  // Show a warning if Web Serial is not available (Firefox, Safari).
+  if (!('serial' in navigator)) {
+    document.getElementById('browser-warn').style.display = 'block';
+  }
+</script>
+
+</body>
+</html>

@@ -40,6 +40,10 @@ app.use('/display', express.static(path.join(__dirname, '..', '..', 'clients', '
 // Source of truth lives in clients/assets/ — no copy needed.
 app.use('/assets', express.static(path.join(__dirname, '..', '..', 'clients', 'assets')));
 
+// ESP8266 sensor browser flasher (ESP Web Tools) served at /flash-sensor/
+// No toolchain needed — works from Chrome/Edge via Web Serial.
+app.use('/flash-sensor', express.static(path.join(__dirname, '..', '..', 'clients', 'esp8266-sensor', 'web-install')));
+
 // ─── Routes ───────────────────────────────────────────────────────────────────
 
 // Placeholder — connectionManager created after HTTP server; routes mounted later.
