@@ -1,6 +1,11 @@
 # Build the ESP8266 sensor firmware and publish a GitHub Release.
 # Triggered manually from the Actions tab — no automatic push/tag triggers.
 # Choose the source branch and the release tag (default: "latest").
+# Two board targets are built:
+#   firmware-wemos-d1-mini.zip  — Wemos D1 Mini
+#   firmware-nodemcu-v3.zip     — NodeMCU v3 (nodemcuv2 board ID in PlatformIO)
+# A raw firmware.bin (Wemos D1 Mini) is also attached so the ESP Web Tools
+# manifest URL continues to work without change.
 
 name: Build Sensor Firmware
 
@@ -39,16 +44,30 @@ jobs:
       - name: Install PlatformIO
         run: pip install platformio
 
-      - name: Build firmware
+      - name: Build firmware (all board targets)
         run: |
           cd clients/esp8266-sensor
           pio run
 
-      - name: Upload firmware artifact
+      - name: Package firmware artifacts
+        run: |
+          mkdir -p dist
+
+          # --- Wemos D1 Mini ---
+          # Keep a raw firmware.bin at the repo root so the ESP Web Tools manifest URL works.
+          cp clients/esp8266-sensor/.pio/build/d1_mini/firmware.bin dist/firmware.bin
+          (cd clients/esp8266-sensor/.pio/build/d1_mini && \
+            zip -j "$GITHUB_WORKSPACE/dist/firmware-wemos-d1-mini.zip" firmware.bin)
+
+          # --- NodeMCU v3 ---
+          (cd clients/esp8266-sensor/.pio/build/nodemcuv2 && \
+            zip -j "$GITHUB_WORKSPACE/dist/firmware-nodemcu-v3.zip" firmware.bin)
+
+      - name: Upload firmware artifacts
         uses: actions/upload-artifact@v4
         with:
           name: sensor-firmware
-          path: clients/esp8266-sensor/.pio/build/d1_mini/firmware.bin
+          path: dist/
           if-no-files-found: error
 
   release:
@@ -64,7 +83,7 @@ jobs:
         with:
           ref: ${{ inputs.branch }}
 
-      - name: Download firmware artifact
+      - name: Download firmware artifacts
         uses: actions/download-artifact@v4
         with:
           name: sensor-firmware
@@ -76,12 +95,13 @@ jobs:
           # Use exit code to detect whether the release already exists.
           # If gh release view exits 0 the release exists → upload/clobber.
           # Any non-zero exit means it doesn't exist yet → create it.
+          ASSETS="dist/firmware.bin dist/firmware-wemos-d1-mini.zip dist/firmware-nodemcu-v3.zip"
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" dist/firmware.bin --clobber
+            gh release upload "$TAG" $ASSETS --clobber
           else
-            gh release create "$TAG" dist/firmware.bin \
+            gh release create "$TAG" $ASSETS \
               --title "Sensor Firmware $TAG" \
-              --notes $'Pre-compiled ESP8266 sensor firmware for the Roll-a-Ball Derby sensor node.\n\n**Flash without any toolchain**: open `http://localhost:3000/flash-sensor` in Chrome or Edge (on the same machine as the server), plug in the Wemos D1 Mini via USB, and click *Install*.'
+              --notes $'Pre-compiled ESP8266 sensor firmware for the Roll-a-Ball Derby sensor node.\n\n| File | Board |\n|------|-------|\n| `firmware-wemos-d1-mini.zip` | Wemos D1 Mini |\n| `firmware-nodemcu-v3.zip` | NodeMCU v3 |\n| `firmware.bin` | Wemos D1 Mini (raw binary for ESP Web Tools flasher) |\n\n**Flash without any toolchain**: open `http://localhost:3000/flash-sensor` in Chrome or Edge (on the same machine as the server), plug in the device via USB, and click *Install*.'
           fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
