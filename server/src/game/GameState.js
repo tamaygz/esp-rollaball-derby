@@ -3,7 +3,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const VALID_THEMES = ['horse', 'camel'];
+const CONCRETE_THEMES = ['horse', 'camel'];
+const VALID_THEMES = [...CONCRETE_THEMES, 'auto'];
 const RATE_LIMIT_MS = 300;
 
 class GameState {
@@ -77,6 +78,12 @@ class GameState {
     if (connected.length === 0) {
       throw new Error('Cannot start: no players connected');
     }
+
+    // Resolve 'auto' theme to a random concrete theme at game start
+    if (this.config.theme === 'auto') {
+      this.config.theme = CONCRETE_THEMES[Math.floor(Math.random() * CONCRETE_THEMES.length)];
+    }
+
     this.status = 'running';
     this.startedAt = Date.now();
   }
@@ -180,6 +187,21 @@ class GameState {
     }
   }
 
+  /**
+   * Mark an existing player as connected again (used when a client reconnects
+   * and supplies its previously issued player ID).
+   *
+   * @param {string} id - The player ID issued on the original registration.
+   * @returns {object|null} The player object, or null if no such player exists.
+   */
+  reconnectPlayer(id) {
+    const player = this.players.get(id);
+    if (!player) return null;
+    player.connected = true;
+    player.connectedAt = Date.now();
+    return player;
+  }
+
   renamePlayer(id, name) {
     const player = this.players.get(id);
     if (!player) {
@@ -196,8 +218,8 @@ class GameState {
       throw new Error(`Cannot score: game is '${this.status}', must be 'running'`);
     }
 
-    if (points !== 1 && points !== 3) {
-      throw new Error('Points must be 1 or 3');
+    if (points !== 1 && points !== 2 && points !== 3) {
+      throw new Error('Points must be 1, 2, or 3');
     }
 
     const player = this.players.get(playerId);

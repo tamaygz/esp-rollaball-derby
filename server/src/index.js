@@ -11,6 +11,7 @@ const ConnectionManager = require('./ws/ConnectionManager');
 const healthRouter = require('./routes/health');
 const createGameRouter = require('./routes/game');
 const createPlayersRouter = require('./routes/players');
+const createClientsRouter = require('./routes/clients');
 
 const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
@@ -27,9 +28,12 @@ app.use(express.json());
 // Static files (display SPA, web test client)
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
+// Admin + test client SPA served at /admin/
+app.use('/admin', express.static(path.join(__dirname, '..', '..', 'clients', 'web')));
+
 // Shared game assets (sprites, track backgrounds, themes) served at /assets/
 // Source of truth lives in clients/assets/ — no copy needed.
-app.use('/assets', express.static(path.join(__dirname, '..', '..', '..', 'clients', 'assets')));
+app.use('/assets', express.static(path.join(__dirname, '..', '..', 'clients', 'assets')));
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
 
@@ -41,6 +45,7 @@ app.use('/api/health', healthRouter);
 
 app.use('/api/game', (req, res, next) => createGameRouter(gameState, connectionManager)(req, res, next));
 app.use('/api/players', (req, res, next) => createPlayersRouter(gameState, connectionManager)(req, res, next));
+app.use('/api/clients', (req, res, next) => createClientsRouter(gameState, connectionManager)(req, res, next));
 
 // ─── Global error handler ─────────────────────────────────────────────────────
 

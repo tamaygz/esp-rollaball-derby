@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Roll-a-Ball Derby — Admin</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <header class="app-header">
+    <div class="header-title">
+      <span class="header-icon">🏇</span>
+      <h1>Roll-a-Ball Derby</h1>
+    </div>
+    <span id="ws-status" class="ws-status ws-disconnected">⬤ Disconnected</span>
+  </header>
+
+  <nav class="page-nav">
+    <span class="nav-active">⚙️ Admin</span>
+    <a href="devices.html">📡 Devices</a>
+  </nav>
+
+  <main class="grid-main">
+
+    <!-- Game Status -->
+    <section class="card" id="card-status">
+      <h2>Game Status</h2>
+      <div class="status-row">
+        <span class="label">State</span>
+        <span id="game-status-badge" class="badge badge-idle">Idle</span>
+      </div>
+      <div class="status-row">
+        <span class="label">Clients</span>
+        <span id="clients-summary" class="muted">—</span>
+      </div>
+      <div id="winner-banner" class="winner-banner hidden">
+        🏆 <strong id="winner-name">—</strong> wins!
+      </div>
+    </section>
+
+    <!-- Game Controls -->
+    <section class="card" id="card-controls">
+      <h2>Game Controls</h2>
+      <div class="btn-row">
+        <button id="btn-start" class="btn btn-success">▶ Start</button>
+        <button id="btn-pause" class="btn btn-warning" disabled>⏸ Pause</button>
+        <button id="btn-reset" class="btn btn-danger" disabled>↺ Reset</button>
+      </div>
+      <div id="ctrl-error" class="error-msg hidden"></div>
+    </section>
+
+    <!-- Configuration -->
+    <section class="card" id="card-config">
+      <h2>Configuration</h2>
+      <form id="form-config">
+        <div class="form-group">
+          <label for="cfg-track">Track Length</label>
+          <input type="number" id="cfg-track" min="5" max="50" value="15">
+        </div>
+        <div class="form-group">
+          <label for="cfg-max">Max Players</label>
+          <input type="number" id="cfg-max" min="1" max="16" value="16">
+        </div>
+        <div class="form-group">
+          <label for="cfg-theme">Theme</label>
+          <select id="cfg-theme">
+            <option value="auto">🎲 Auto (Random)</option>
+            <option value="horse">🐎 Horse Derby</option>
+            <option value="camel">🐪 Camel Race</option>
+          </select>
+        </div>
+        <button type="submit" class="btn btn-primary" id="btn-save-config">Save Config</button>
+      </form>
+      <div id="config-error" class="error-msg hidden"></div>
+    </section>
+
+    <!-- Connection -->
+    <section class="card" id="card-connection">
+      <h2>Connection</h2>
+      <div class="form-group">
+        <label for="my-name">Your Name</label>
+        <input type="text" id="my-name" maxlength="20" placeholder="Leave blank for random">
+      </div>
+      <button id="btn-reconnect" class="btn btn-secondary">↻ Reconnect</button>
+      <div id="my-id-info" class="info-text hidden"></div>
+    </section>
+
+    <!-- Players -->
+    <section class="card card-wide" id="card-players">
+      <h2>Players</h2>
+      <div id="players-list" class="players-list">
+        <p class="empty-msg">No players connected yet.</p>
+      </div>
+    </section>
+
+    <!-- Test Score -->
+    <section class="card" id="card-test">
+      <h2>Test Score</h2>
+      <p class="hint">Simulate a sensor score event via WebSocket.</p>
+      <div class="form-group">
+        <label for="score-player">Player</label>
+        <select id="score-player">
+          <option value="">— select player —</option>
+        </select>
+      </div>
+      <div class="btn-row score-btn-row">
+        <button id="btn-score-1" class="btn btn-score" disabled>+1 Point</button>
+        <button id="btn-score-2" class="btn btn-score btn-score-2" disabled>+2 Points</button>
+        <button id="btn-score-3" class="btn btn-score btn-score-3" disabled>+3 Points</button>
+      </div>
+    </section>
+
+    <!-- Bots -->
+    <section class="card card-wide" id="card-bots">
+      <h2>Bots</h2>
+      <p class="hint">Add virtual sensors that simulate rolls at random intervals while the game is running. Each bot independently throws with a 2–8 s human-like delay between rolls.</p>
+      <div class="bot-add-row">
+        <div class="form-group">
+          <label for="bot-player-select">Player</label>
+          <select id="bot-player-select">
+            <option value="">— select player —</option>
+          </select>
+        </div>
+        <button id="btn-add-bot" class="btn btn-primary">+ Add Bot</button>
+      </div>
+      <div id="bot-list" class="bot-list">
+        <p class="empty-msg">No bots added yet.</p>
+      </div>
+    </section>
+
+    <!-- Event Log -->
+    <section class="card card-wide" id="card-log">
+      <h2>Event Log</h2>
+      <ul id="event-log" class="event-log" aria-live="polite" aria-relevant="additions"></ul>
+    </section>
+
+  </main>
+
+  <script src="js/connection.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/admin.js"></script>
+  <script src="js/test.js"></script>
+  <script src="js/bots.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

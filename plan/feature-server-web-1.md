@@ -4,13 +4,13 @@ version: 1.0
 date_created: 2026-04-07
 last_updated: 2026-04-07
 owner: "@tamaygz"
-status: "Planned"
+status: "Completed"
 tags: [feature, architecture, server]
 ---
 
 # Server Web — Implementation Plan
 
-![Status: Planned](https://img.shields.io/badge/status-Planned-blue)
+![Status: Completed](https://img.shields.io/badge/status-Completed-brightgreen)
 
 The game server is the central brain of the Roll-a-Ball Derby system. It runs as a single Node.js process serving REST endpoints for game administration, a WebSocket hub for real-time bidirectional communication with all clients (display, web test, ESP8266 sensors, ESP8266 motor controller), and a static file server for the frontend SPAs.
 
