@@ -44,6 +44,8 @@ window.Derby = window.Derby || {};
         if (Derby.Test) Derby.Test.syncButtons();
         // Keep bots in sync (start/stop timers, refresh player list)
         if (Derby.Bots) Derby.Bots.syncState(msg.payload);
+        // Update LED device list with connected devices
+        if (Derby.LED) Derby.LED.updateDeviceList(msg.payload.devices || []);
         break;
 
       case 'scored': {
@@ -78,6 +80,7 @@ window.Derby = window.Derby || {};
   Derby.Admin.init();
   Derby.Test.init();
   Derby.Bots.init();
+  if (Derby.LED) Derby.LED.init();
 
   // ── Player name (localStorage persistence) ────────────────────────────────
 

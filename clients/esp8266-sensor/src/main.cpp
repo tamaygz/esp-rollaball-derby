@@ -13,7 +13,7 @@
 // ─── Global Instances ─────────────────────────────────────────────────────────
 static WSClient        wsClient;
 static Sensors         sensors;
-static StatusLed       led;
+static LedManager      ledManager;
 static ESP8266WebServer httpServer(HTTP_CONFIG_PORT);
 
 // Flag set by the /config handler so the reboot happens after the HTTP response
@@ -148,8 +148,8 @@ void setup() {
     delay(100);
     Serial.println("\n[BOOT] Roll-a-Ball Derby — Sensor Client");
 
-    led.begin(PIN_LED);
-    led.setState(LedState::NO_WIFI);
+    ledManager.begin(ledConfigDefaults());
+    wsClient.setLedMetadata(LED_DEFAULT_COUNT);
 
     sensors.begin();
 
@@ -235,7 +235,7 @@ void setup() {
     }
 
     Serial.printf("[WiFi] Connected — IP: %s\n", WiFi.localIP().toString().c_str());
-    led.setState(LedState::WIFI_ONLY);
+    ledManager.setState(LedState::WIFI_ONLY);
 
     uint16_t port = static_cast<uint16_t>(atoi(g_serverPort));
     wsClient.begin(g_serverIp, port, g_playerName);
@@ -252,7 +252,7 @@ void setup() {
 static bool s_wifiWasConnected = false;
 
 void loop() {
-    led.loop();
+    ledManager.loop();
 
     bool wifiOk = (WiFi.status() == WL_CONNECTED);
 
@@ -262,7 +262,7 @@ void loop() {
             wsClient.onWiFiLost();
             Serial.println("[WiFi] Connection lost");
         }
-        led.setState(LedState::NO_WIFI);
+        ledManager.setState(LedState::NO_WIFI);
         return;
     }
 
@@ -281,19 +281,35 @@ void loop() {
 
     wsClient.loop();
 
-    int points    = sensors.check();
-    GameEvent ev  = wsClient.pollEvent();
+    // ── LED config hot-reload ────────────────────────────────────────────────
+    LedConfig pendingCfg;
+    if (wsClient.pollLedConfig(pendingCfg)) {
+        ledManager.applyConfig(pendingCfg);
+        wsClient.setLedMetadata(pendingCfg.ledCount);
+    }
+
+    // ── LED test effect ──────────────────────────────────────────────────────
+    LedTestEffectMessage pendingEffect;
+    if (wsClient.pollTestEffect(pendingEffect)) {
+        ledManager.playTestEffect(pendingEffect);
+    }
+
+    int points   = sensors.check();
+    GameEvent ev = wsClient.pollEvent();
 
     if (wsClient.isConnected()) {
-        led.setState(LedState::WS_CONNECTED);
+        ledManager.setState(LedState::WS_CONNECTED);
 
-        // Game event LED feedback
-        if (ev == GameEvent::COUNTDOWN_TICK) {
-            led.triggerCountdownTick();
-        } else if (ev == GameEvent::WINNER_SELF) {
-            led.triggerWinner();
-        } else if (ev == GameEvent::WINNER_OTHER) {
-            led.triggerLoser();
+        // Map GameEvent → GameEventType and forward to LedManager.
+        switch (ev) {
+            case GameEvent::COUNTDOWN_TICK: ledManager.onGameEvent(GameEventType::COUNTDOWN_TICK); break;
+            case GameEvent::SCORE_PLUS1:    ledManager.onGameEvent(GameEventType::SCORE_PLUS1);    break;
+            case GameEvent::SCORE_PLUS2:    ledManager.onGameEvent(GameEventType::SCORE_PLUS2);    break;
+            case GameEvent::SCORE_PLUS3:    ledManager.onGameEvent(GameEventType::SCORE_PLUS3);    break;
+            case GameEvent::ZERO_ROLL:      ledManager.onGameEvent(GameEventType::ZERO_ROLL);      break;
+            case GameEvent::WINNER_SELF:    ledManager.onGameEvent(GameEventType::WINNER_SELF);    break;
+            case GameEvent::WINNER_OTHER:   ledManager.onGameEvent(GameEventType::WINNER_OTHER);   break;
+            default: break;
         }
 
         // Only send score events once a playerId has been assigned by the server.
@@ -306,7 +322,7 @@ void loop() {
             Serial.printf("[SENSOR] Dropped trigger while waiting for player assignment: +%d\n", points);
         }
     } else {
-        led.setState(LedState::WIFI_ONLY);
+        ledManager.setState(LedState::WIFI_ONLY);
         if (points > 0) {
             Serial.printf("[SENSOR] Dropped offline trigger: +%d\n", points);
         }

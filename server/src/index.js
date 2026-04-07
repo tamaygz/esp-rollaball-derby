@@ -9,12 +9,14 @@ const { WebSocketServer } = require('ws');
 const GameState = require('./game/GameState');
 const BotManager = require('./game/BotManager');
 const ConnectionManager = require('./ws/ConnectionManager');
+const LedConfigManager = require('./config/LedConfigManager');
 const healthRouter = require('./routes/health');
 const createGameRouter = require('./routes/game');
 const createPlayersRouter = require('./routes/players');
 const createClientsRouter = require('./routes/clients');
 const createBotsRouter = require('./routes/bots');
 const createSensorsRouter = require('./routes/sensors');
+const createLedRoutes = require('./routes/leds');
 
 const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
@@ -23,6 +25,12 @@ const HOST = process.env.HOST || '0.0.0.0';
 
 const app = express();
 const gameState = new GameState();
+const ledConfigManager = new LedConfigManager();
+
+// Load LED configuration on startup
+ledConfigManager.loadConfig().catch(error => {
+  console.error('[Derby Server] Failed to load LED config:', error.message);
+});
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
 
@@ -53,6 +61,7 @@ let connectionManager;
 let botManager;
 
 app.use('/api/health', healthRouter);
+app.use('/api/leds', (req, res, next) => createLedRoutes(ledConfigManager, connectionManager)(req, res, next));
 
 app.use('/api/game', (req, res, next) => createGameRouter(gameState, connectionManager, botManager)(req, res, next));
 app.use('/api/players', (req, res, next) => createPlayersRouter(gameState, connectionManager)(req, res, next));
@@ -72,9 +81,14 @@ app.use((err, req, res, next) => {
 const server = http.createServer(app);
 
 const wss = new WebSocketServer({ server });
-connectionManager = new ConnectionManager(gameState);
+connectionManager = new ConnectionManager(gameState, ledConfigManager);
 botManager = new BotManager(gameState, connectionManager);
 connectionManager.setBotManager(botManager);
+
+// Wire config change events to broadcast LED config
+ledConfigManager.on('configChanged', (deviceType, config) => {
+  connectionManager.broadcastLedConfig(deviceType, config);
+});
 
 wss.on('connection', (ws) => {
   connectionManager.handleConnection(ws);

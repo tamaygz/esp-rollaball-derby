@@ -1,52 +1,71 @@
 #pragma once
 #include <Arduino.h>
 #include <leds/LedController.h>
+#include <leds/AnimationManager.h>
+#include <leds/GameEventMapper.h>
+#include <leds/effects/BlinkEffect.h>
+#include <leds/effects/PulseEffect.h>
+#include <leds/effects/RainbowEffect.h>
+#include <leds/effects/SolidEffect.h>
+#include <leds/effects/SparkleEffect.h>
+#include "config.h"
+#include "websocket.h"  // for LedTestEffectMessage
 
-// One step of a non-blocking LED sequence: LED on/off for a given duration.
-struct LedStep { bool on; unsigned long ms; };
-
-// LED states drive the visual status indicator on the built-in LED.
+// Visual status states driven by connection and game state.
 enum class LedState {
-    NO_WIFI,       // Fast blink 5 Hz (100 ms half-period) — no WiFi
-    WIFI_ONLY,     // Slow blink 1 Hz (500 ms half-period) — WiFi OK, WS disconnected
-    WS_CONNECTED   // Solid on — WebSocket connected
+    NO_WIFI,       // Red fast-blink    — no WiFi connectivity
+    WIFI_ONLY,     // Orange slow-blink — WiFi up, WebSocket disconnected
+    WS_CONNECTED   // Slow green pulse  — fully connected, idle
 };
 
-class StatusLed {
+// Manages the LED strip on the sensor.
+// Wraps LedController + AnimationManager + GameEventMapper and provides
+// the sensor firmware's three consumption points:
+//   1. Connection-state ambient effects (setState)
+//   2. Game-event one-shot effects      (onGameEvent)
+//   3. Admin test effects               (playTestEffect)
+class LedManager {
 public:
-    // Call once in setup(). pin should be PIN_LED from config.h.
-    void begin(uint8_t pin);
+    LedManager();
 
-    // Change the displayed state. Redundant calls (same state) are ignored.
+    // Initialise the LED strip. Call once in setup() BEFORE setState().
+    void begin(const LedConfig& cfg);
+
+    // Hot-reload LED configuration (e.g. received via led_config WebSocket message).
+    // Diffs against the current config and only re-initialises the strip when the
+    // LED count changes, avoiding unnecessary memory operations.
+    void applyConfig(const LedConfig& cfg);
+
+    // Change the displayed connection state. Idempotent for same-state calls.
     void setState(LedState state);
 
-    // Must be called every loop() iteration for non-blocking blink.
+    // Trigger a one-shot game-event effect (delegates to GameEventMapper).
+    void onGameEvent(GameEventType event);
+
+    // Play an admin-requested test effect from the server.
+    void playTestEffect(const LedTestEffectMessage& msg);
+
+    // Must be called every loop() iteration.
     void loop();
 
-    // One-shot LED sequences for game events. Each call interrupts any in-progress
-    // sequence and starts a new one; normal state resumes when the sequence ends.
-    void triggerCountdownTick(); // 1 long blink (600 ms on)
-    void triggerWinner();        // 6 fast blinks
-    void triggerLoser();         // 1 long blink (1000 ms on)
-
 private:
-    static constexpr uint8_t SEQ_MAX = 14; // enough for 6 on+off pairs
+    // Declaration order = initialisation order; _controller must be first.
+    LedController    _controller;
+    AnimationManager _animator;
+    GameEventMapper  _mapper;
 
-    LedController _controller;           // Uses LedController for WS2812B or single LED
-    uint8_t       _pin          = LED_BUILTIN;
-    LedState      _state        = LedState::NO_WIFI;
-    LedState      _resumeState  = LedState::NO_WIFI; // restored after sequence
-    bool          _ledOn        = false;
-    unsigned long _lastToggle   = 0;
+    // Pre-allocated effect instances reused for ambient/test effects to avoid
+    // heap allocations in loop().
+    BlinkEffect      _blinkEffect;
+    PulseEffect      _pulseEffect;
+    RainbowEffect    _rainbowEffect;
+    SolidEffect      _solidEffect;
+    SparkleEffect    _sparkleEffect;
 
-    // One-shot sequence player
-    LedStep       _seq[SEQ_MAX]  = {};
-    uint8_t       _seqLen        = 0;
-    uint8_t       _seqIdx        = 0;
-    bool          _inSeq         = false;
-    unsigned long _seqStart      = 0;
+    LedConfig        _config  = {};
+    LedState         _state   = LedState::NO_WIFI;
+    bool             _begun   = false;
 
-    // Write LED, accounting for active-LOW wiring of Wemos D1 Mini LED.
-    void _write(bool on);
-    void _startSeq(const LedStep* steps, uint8_t len);
+    // Start the ambient effect for the given connection state.
+    void _playAmbient(LedState state);
 };

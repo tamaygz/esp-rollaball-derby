@@ -10,9 +10,10 @@ const COUNTDOWN_TICK_MS   = 1_000;
 const COUNTDOWN_GO_HOLD_MS = 600;
 
 class ConnectionManager {
-  constructor(gameState) {
+  constructor(gameState, ledConfigManager = null) {
     this.gameState       = gameState;
-    this.clients         = new Map(); // id → { ws, type, playerId, id }
+    this.ledConfigManager = ledConfigManager;
+    this.clients         = new Map(); // id → { ws, type, playerId, id, chipType, reportedLedCount }
     this._botManager     = null;
     this._autoResetTimer = null;
     this._countingDown   = false;
@@ -206,7 +207,75 @@ class ConnectionManager {
     }, AUTO_RESET_DELAY_MS);
   }
 
-  // ─── Private ──────────────────────────────────────────────────────────────
+  /**
+   * Broadcast LED configuration to all devices of a specific type
+   * @param {string} deviceType - Device type (sensor, motor, display)
+   * @param {Object} config - LED configuration object
+   */
+  broadcastLedConfig(deviceType, config) {
+    const startTime = Date.now();
+    const msg = JSON.stringify({
+      type: 'led_config',
+      timestamp: startTime,
+      payload: config
+    });
+
+    let sentCount = 0;
+    for (const client of this.clients.values()) {
+      if (client.type === deviceType && client.ws.readyState === 1 /* OPEN */) {
+        client.ws.send(msg);
+        sentCount++;
+      }
+    }
+
+    const elapsed = Date.now() - startTime;
+    if (sentCount === 0) {
+      console.log(`[ConnectionManager] LED config broadcast: no ${deviceType} devices connected`);
+    } else {
+      console.log(`[ConnectionManager] LED config broadcast: ${sentCount} ${deviceType} device(s) updated in ${elapsed}ms`);
+    }
+  }
+
+  /**
+   * Send test effect to a specific device
+   * @param {string} deviceId - Device client ID
+   * @param {string} effectName - Effect name
+   * @param {Object} params - Effect parameters
+   * @returns {boolean} Success status
+   */
+  sendTestEffect(deviceId, effectName, params) {
+    const client = this.clients.get(deviceId);
+    if (!client || client.ws.readyState !== 1 /* OPEN */) {
+      return false;
+    }
+
+    const msg = JSON.stringify({
+      type: 'test_effect',
+      payload: {
+        effectName,
+        params
+      }
+    });
+
+    try {
+      client.ws.send(msg);
+      return true;
+    } catch (error) {
+      console.error(`[ConnectionManager] Failed to send test effect to ${deviceId}:`, error.message);
+      return false;
+    }
+  }
+
+  /**
+   * Get device by client ID
+   * @param {string} deviceId - Device client ID
+   * @returns {Object|null} Client object or null
+   */
+  getDeviceById(deviceId) {
+    return this.clients.get(deviceId) || null;
+  }
+
+  // ─── Private ──────────────────────────────────────────────────────────────────
 
   _send(ws, msg) {
     if (ws.readyState === 1) {
@@ -247,7 +316,7 @@ class ConnectionManager {
   }
 
   _handleRegister(clientId, ws, payload) {
-    const { type, playerName, playerId: reconnectId } = payload;
+    const { type, playerName, playerId: reconnectId, ledCount, chipType } = payload;
 
     if (!VALID_TYPES.has(type)) {
       this._send(ws, {
@@ -259,6 +328,14 @@ class ConnectionManager {
 
     const client = this.clients.get(clientId);
     client.type = type;
+
+    // Store LED metadata if provided
+    if (typeof ledCount === 'number') {
+      client.reportedLedCount = ledCount;
+    }
+    if (typeof chipType === 'string') {
+      client.chipType = chipType;
+    }
 
     // Sanitize name
     let sanitized = '';
@@ -275,11 +352,37 @@ class ConnectionManager {
         // Accept a name update if the client provided one
         if (sanitized.length > 0) existing.name = sanitized;
         client.playerId = reconnectId;
-        this._send(ws, {
+
+        // Build response with LED validation warning if applicable
+        const response = {
           type: 'registered',
-          payload: { id: reconnectId, name: existing.name, playerType: type },
-        });
+          payload: { id: reconnectId, name: existing.name, playerType: type }
+        };
+
+        // Validate LED count if LED config manager available
+        if (this.ledConfigManager && typeof ledCount === 'number' && chipType) {
+          const validation = this.ledConfigManager.validateDeviceLedCount(type, ledCount, chipType);
+          if (!validation.valid && validation.warning) {
+            response.payload.warning = validation.warning;
+          }
+          console.log(`[ConnectionManager] Device ${reconnectId} reconnected: ${chipType}, ${ledCount} LEDs detected`);
+        }
+
+        this._send(ws, response);
         this.broadcastState();
+
+        // Send LED config to newly registered device
+        if (this.ledConfigManager && type !== 'display') {
+          const ledConfig = this.ledConfigManager.getConfigForDeviceType(type);
+          if (ledConfig && ledConfig.ledCount > 0) {
+            this._send(ws, {
+              type: 'led_config',
+              timestamp: Date.now(),
+              payload: ledConfig
+            });
+          }
+        }
+
         return;
       }
     }
@@ -294,12 +397,35 @@ class ConnectionManager {
       client.playerId = null;
     }
 
-    this._send(ws, {
+    // Build response with LED validation warning if applicable
+    const response = {
       type: 'registered',
-      payload: { id: clientId, name, playerType: type },
-    });
+      payload: { id: clientId, name, playerType: type }
+    };
 
+    // Validate LED count and log device registration
+    if (this.ledConfigManager && typeof ledCount === 'number' && chipType) {
+      const validation = this.ledConfigManager.validateDeviceLedCount(type, ledCount, chipType);
+      if (!validation.valid && validation.warning) {
+        response.payload.warning = validation.warning;
+      }
+      console.log(`[ConnectionManager] Device ${clientId} registered: ${chipType}, ${ledCount} LEDs detected`);
+    }
+
+    this._send(ws, response);
     this.broadcastState();
+
+    // Send LED config to newly registered device
+    if (this.ledConfigManager && type !== 'display') {
+      const ledConfig = this.ledConfigManager.getConfigForDeviceType(type);
+      if (ledConfig && ledConfig.ledCount > 0) {
+        this._send(ws, {
+          type: 'led_config',
+          timestamp: Date.now(),
+          payload: ledConfig
+        });
+      }
+    }
   }
 
   _handleScore(clientId, ws, payload) {

@@ -1,0 +1,23 @@
+{
+  "sensor": {
+    "ledCount": 10,
+    "topology": "strip",
+    "gpioPin": 4,
+    "brightness": 128,
+    "defaultEffect": "rainbow"
+  },
+  "motor": {
+    "ledCount": 10,
+    "topology": "strip",
+    "gpioPin": 4,
+    "brightness": 128,
+    "defaultEffect": "chase"
+  },
+  "display": {
+    "ledCount": 0,
+    "topology": "strip",
+    "gpioPin": 4,
+    "brightness": 0,
+    "defaultEffect": "solid"
+  }
+}

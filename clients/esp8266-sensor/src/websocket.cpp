@@ -43,8 +43,8 @@ void WSClient::_connect() {
 }
 
 void WSClient::_sendRegister() {
-    // Buffer covers: type(10) + payload.type(10) + playerName(≤21) + playerId(≤40 UUID) + JSON overhead ≈ 150 bytes; 256 gives ample headroom.
-    char buf[256];
+    // Buffer covers: type + payload fields + LED capabilities ≈ 300 bytes; 384 gives ample headroom.
+    char buf[384];
     JsonDocument doc;
     doc["type"] = "register";
     JsonObject payload = doc["payload"].to<JsonObject>();
@@ -56,6 +56,13 @@ void WSClient::_sendRegister() {
     if (_playerId.length() > 0) {
         payload["playerId"] = _playerId;
     }
+    // LED metadata — lets the server validate LED count and log device capabilities.
+    payload["ledCount"] = _ledMetadataCount;
+    payload["chipType"] = "ESP8266";
+    JsonObject ledCaps = payload["ledCapabilities"].to<JsonObject>();
+    ledCaps["maxLeds"] = 300;
+    ledCaps["method"]  = "DMA";
+    ledCaps["pin"]     = PIN_LED;
 
     serializeJson(doc, buf, sizeof(buf));
     _client.send(buf);
@@ -132,13 +139,105 @@ void WSClient::_onMessage(WebsocketsMessage msg) {
         return;
     }
 
-    // Silently ignore other broadcast messages (state, scored, positions).
+    if (strcmp(type, "scored") == 0) {
+        // Only react to scoring events for our own player.
+        const char* scoredId = doc["payload"]["playerId"];
+        if (!scoredId || _playerId.isEmpty() || _playerId != scoredId) return;
+
+        // events[] is an array of strings; the first element carries the score type.
+        JsonArrayConst events = doc["payload"]["events"].as<JsonArrayConst>();
+        for (JsonVariantConst ev : events) {
+            const char* evStr = ev.as<const char*>();
+            if (!evStr) continue;
+            if (strcmp(evStr, "score_1") == 0) { _pendingEvent = GameEvent::SCORE_PLUS1; return; }
+            if (strcmp(evStr, "score_2") == 0) { _pendingEvent = GameEvent::SCORE_PLUS2; return; }
+            if (strcmp(evStr, "score_3") == 0) { _pendingEvent = GameEvent::SCORE_PLUS3; return; }
+            if (strcmp(evStr, "zero_roll") == 0) { _pendingEvent = GameEvent::ZERO_ROLL; return; }
+        }
+        return;
+    }
+
+    if (strcmp(type, "led_config") == 0) {
+        // Parse the LED configuration sent by the server after registration or
+        // when an admin updates it via the web UI.
+        LedConfig cfg = {};
+        cfg.ledCount   = static_cast<uint16_t>(doc["payload"]["ledCount"] | LED_DEFAULT_COUNT);
+        cfg.pin        = static_cast<uint8_t> (doc["payload"]["gpioPin"]  | LED_DEFAULT_PIN);
+        cfg.brightness = static_cast<uint8_t> (doc["payload"]["brightness"] | LED_DEFAULT_BRIGHTNESS);
+        cfg.topology   = LedTopology::STRIP; // default
+        cfg.matrixRows = 8;
+        cfg.matrixCols = 8;
+
+        const char* topStr = doc["payload"]["topology"] | "strip";
+        if      (strcmp(topStr, "ring")               == 0) cfg.topology = LedTopology::RING;
+        else if (strcmp(topStr, "matrix_zigzag")      == 0) cfg.topology = LedTopology::MATRIX_ZIGZAG;
+        else if (strcmp(topStr, "matrix_progressive") == 0) cfg.topology = LedTopology::MATRIX_PROGRESSIVE;
+
+        _pendingLedConfig    = cfg;
+        _hasPendingLedConfig = true;
+        Serial.printf("[WS] led_config: %u LEDs, pin=%u, brightness=%u\n",
+                      cfg.ledCount, cfg.pin, cfg.brightness);
+        return;
+    }
+
+    if (strcmp(type, "test_effect") == 0) {
+        // Parse the test-effect command sent to this specific device by the admin.
+        LedTestEffectMessage msg = {};
+
+        const char* name = doc["payload"]["effectName"] | "solid";
+        strlcpy(msg.effectName, name, sizeof(msg.effectName));
+
+        // Color is sent as a hex string "#RRGGBB" or as separate r/g/b fields.
+        const char* hexColor = doc["payload"]["params"]["color"] | "";
+        if (hexColor[0] == '#' && strlen(hexColor) == 7) {
+            // Parse "#RRGGBB"
+            char hex[3] = {0};
+            hex[0] = hexColor[1]; hex[1] = hexColor[2];
+            msg.r = static_cast<uint8_t>(strtoul(hex, nullptr, 16));
+            hex[0] = hexColor[3]; hex[1] = hexColor[4];
+            msg.g = static_cast<uint8_t>(strtoul(hex, nullptr, 16));
+            hex[0] = hexColor[5]; hex[1] = hexColor[6];
+            msg.b = static_cast<uint8_t>(strtoul(hex, nullptr, 16));
+        } else {
+            // Fallback: white
+            msg.r = 255; msg.g = 255; msg.b = 255;
+        }
+
+        msg.speedMs   = static_cast<uint16_t>(doc["payload"]["params"]["speed"]      | 1000);
+        msg.brightness = static_cast<uint8_t>(doc["payload"]["params"]["brightness"] | 255);
+
+        _pendingTestEffect    = msg;
+        _hasPendingTestEffect = true;
+        Serial.printf("[WS] test_effect: effect=%s rgb=(%u,%u,%u) speed=%u\n",
+                      msg.effectName, msg.r, msg.g, msg.b, msg.speedMs);
+        return;
+    }
+
+    // Silently ignore other broadcast messages (state, positions).
 }
 
 GameEvent WSClient::pollEvent() {
     GameEvent ev  = _pendingEvent;
     _pendingEvent = GameEvent::NONE;
     return ev;
+}
+
+bool WSClient::pollLedConfig(LedConfig& out) {
+    if (!_hasPendingLedConfig) return false;
+    out                  = _pendingLedConfig;
+    _hasPendingLedConfig = false;
+    return true;
+}
+
+bool WSClient::pollTestEffect(LedTestEffectMessage& out) {
+    if (!_hasPendingTestEffect) return false;
+    out                   = _pendingTestEffect;
+    _hasPendingTestEffect = false;
+    return true;
+}
+
+void WSClient::setLedMetadata(uint16_t ledCount) {
+    _ledMetadataCount = ledCount;
 }
 
 void WSClient::_onEvent(WebsocketsEvent event, String data) {
