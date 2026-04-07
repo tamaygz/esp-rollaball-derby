@@ -38,7 +38,7 @@ using LedStrip = NeoPixelBus<NeoGrbFeature, LedMethod>;
 
 // Color types for convenience
 using RgbColor = ::RgbColor;
-using HsvColor = ::HsvColor;
+using HsvColor = ::HsbColor;  // NeoPixelBus v2.7+ renamed HsvColor to HsbColor
 
 // ─── Compile-Time Assertions ──────────────────────────────────────────────────
 #ifdef LED_PLATFORM_ESP8266

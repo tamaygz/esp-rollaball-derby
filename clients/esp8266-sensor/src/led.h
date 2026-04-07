@@ -1,13 +1,13 @@
 #pragma once
 #include <Arduino.h>
-#include <leds/LedController.h>
-#include <leds/AnimationManager.h>
-#include <leds/GameEventMapper.h>
-#include <leds/effects/BlinkEffect.h>
-#include <leds/effects/PulseEffect.h>
-#include <leds/effects/RainbowEffect.h>
-#include <leds/effects/SolidEffect.h>
-#include <leds/effects/SparkleEffect.h>
+#include <LedController.h>
+#include <AnimationManager.h>
+#include <GameEventMapper.h>
+#include <effects/BlinkEffect.h>
+#include <effects/PulseEffect.h>
+#include <effects/RainbowEffect.h>
+#include <effects/SolidEffect.h>
+#include <effects/SparkleEffect.h>
 #include "config.h"
 #include "websocket.h"  // for LedTestEffectMessage
 
