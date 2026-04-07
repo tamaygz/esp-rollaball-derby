@@ -8,14 +8,15 @@
 // accepted triggers per sensor.
 class Sensors {
 public:
-    // Attach interrupts on PIN_SENSOR_1 and PIN_SENSOR_3. Call once in setup().
+    // Attach interrupts on PIN_SENSOR_1, PIN_SENSOR_2, and PIN_SENSOR_3. Call once in setup().
     void begin();
 
-    // Poll triggered flags from loop(). Returns 0 (nothing), 1 (+1 sensor), or 3
-    // (+3 sensor). Clears the flag atomically before returning.
+    // Poll triggered flags from loop(). Returns 0 (nothing), 1 (+1 sensor), 2 (+2 sensor),
+    // or 3 (+3 sensor). Clears the flag atomically before returning.
     int check();
 
 private:
     static void ICACHE_RAM_ATTR _isr1();
+    static void ICACHE_RAM_ATTR _isr2();
     static void ICACHE_RAM_ATTR _isr3();
 };
