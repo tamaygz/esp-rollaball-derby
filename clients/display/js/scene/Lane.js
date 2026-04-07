@@ -41,11 +41,13 @@ class Lane extends PIXI.Container {
     var w          = this._w;
     var h          = this._h;
     var nameAreaW  = Math.max(110, w * 0.13);
-    // Finish flag natural aspect from loaded texture (fallback to 52/84 ≈ 0.619)
+    // Finish flag aspect ratio — derived from the loaded texture once available,
+    // falling back to 52/84 (the horse finish-flag.svg viewBox: 0 0 52 84).
+    var DEFAULT_FLAG_ASPECT = 52 / 84; // ≈ 0.619
     var flagTex    = ThemeManager.getTexture('finishFlag');
     var flagAspect = (flagTex && flagTex.width && flagTex.height)
       ? flagTex.width / flagTex.height
-      : 0.619;
+      : DEFAULT_FLAG_ASPECT;
     var flagH      = h * 0.92;
     var flagW      = Math.max(24, flagH * flagAspect);
     var trackStartX = nameAreaW + 6;
@@ -99,8 +101,13 @@ class Lane extends PIXI.Container {
     this.addChild(flagSprite);
 
     // ── 4. Player figure — tinted white SVG sprite ────────────────────────────
+    // Aspect ratio comes from the loaded texture (consistent with flagAspect approach above).
+    // Falls back to ThemeManager.getSpriteAspect() (parsed from theme.json viewBox) when
+    // the texture is not yet available — both methods yield the same ratio.
     var spriteTex  = ThemeManager.getTexture('sprite');
-    var aspect     = ThemeManager.getSpriteAspect();
+    var aspect     = (spriteTex && spriteTex.width && spriteTex.height)
+      ? spriteTex.width / spriteTex.height
+      : ThemeManager.getSpriteAspect();
     // Figure is tall — 65% of lane height.  Bottom anchored on the turf ground line.
     var figureH    = Math.max(40, h * 0.65);
     var figureW    = figureH * aspect;
