@@ -56,34 +56,37 @@ var DisplayConnection = (function () {
     _shouldReconnect = true;
     _setStatus('connecting');
 
+    var socket;
     try {
-      ws = new WebSocket(_wsUrl());
+      socket = new WebSocket(_wsUrl());
     } catch (e) {
       console.error('[DisplayConnection] init error', e);
       _setStatus('');
       _scheduleReconnect();
       return;
     }
+    ws = socket;
 
-    ws.addEventListener('open', function () {
+    socket.addEventListener('open', function () {
       reconnectDelay = INITIAL_DELAY;
       _setStatus('connected');
       // Register as display observer — no playerName needed (TASK-005)
-      ws.send(JSON.stringify({ type: 'register', payload: { type: 'display' } }));
+      socket.send(JSON.stringify({ type: 'register', payload: { type: 'display' } }));
     });
 
-    ws.addEventListener('message', function (event) {
+    socket.addEventListener('message', function (event) {
       var msg;
       try { msg = JSON.parse(event.data); } catch (e) { return; }
       _dispatch(msg);
     });
 
-    ws.addEventListener('close', function () {
+    socket.addEventListener('close', function () {
       _setStatus('');
-      if (_shouldReconnect) _scheduleReconnect();
+      // Only reconnect if this socket is still the current one
+      if (socket === ws && _shouldReconnect) _scheduleReconnect();
     });
 
-    ws.addEventListener('error', function () {
+    socket.addEventListener('error', function () {
       _setStatus('');
       // 'close' fires after 'error', so reconnect is triggered there
     });

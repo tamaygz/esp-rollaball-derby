@@ -75,7 +75,10 @@ var ActionEffect = (function () {
 
     gsap.timeline({
       onComplete: function () {
-        if (t && !t.destroyed) t.destroy();
+        if (t && !t.destroyed) {
+          if (t.parent) t.removeFromParent();
+          t.destroy();
+        }
       },
     })
       .to(t, { alpha: 1, y: t.y - POPUP_RISE * 0.15, duration: 0.12, ease: 'power2.out' })

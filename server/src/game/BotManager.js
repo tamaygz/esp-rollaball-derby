@@ -61,6 +61,7 @@ class BotManager {
     }
 
     this.connectionManager.broadcastState();
+    this.connectionManager.broadcastPositions();
     return { id: bot.id, playerId: bot.playerId, playerName: bot.playerName };
   }
 
@@ -76,10 +77,16 @@ class BotManager {
     this._stopBot(bot);
     this._bots.delete(botId);
 
-    // Force-remove the player regardless of game state
-    this.gameState.players.delete(bot.playerId);
+    // Delegate to GameState.removePlayer() for standard semantics first.
+    // In idle state this fully deletes; in running/paused it only disconnects.
+    // Bots have no real WS connection, so if only disconnected, force-delete.
+    this.gameState.removePlayer(bot.playerId);
+    if (this.gameState.players.has(bot.playerId)) {
+      this.gameState.players.delete(bot.playerId);
+    }
 
     this.connectionManager.broadcastState();
+    this.connectionManager.broadcastPositions();
     return true;
   }
 
@@ -126,7 +133,10 @@ class BotManager {
   removeAll() {
     for (const bot of this._bots.values()) {
       this._stopBot(bot);
-      this.gameState.players.delete(bot.playerId);
+      this.gameState.removePlayer(bot.playerId);
+      if (this.gameState.players.has(bot.playerId)) {
+        this.gameState.players.delete(bot.playerId);
+      }
     }
     this._bots.clear();
   }

@@ -221,9 +221,21 @@ class Lane extends PIXI.Container {
       ? (this._figureContainer.x - m.trackStartX) / usable
       : 0;
 
+    // Kill active GSAP tweens targeting lane children to prevent leaks
+    if (this._figureContainer) {
+      gsap.killTweensOf(this._figureContainer);
+      gsap.killTweensOf(this._figureContainer.scale);
+    }
+    if (this._flashOverlay) gsap.killTweensOf(this._flashOverlay);
+
+    // Destroy old children before rebuilding
+    var oldChildren = this.removeChildren();
+    for (var i = 0; i < oldChildren.length; i++) {
+      if (oldChildren[i] && !oldChildren[i].destroyed) oldChildren[i].destroy({ children: true });
+    }
+
     this._w = laneWidth;
     this._h = laneHeight;
-    this.removeChildren();
     this._figureContainer = null;
     this._build();
 
