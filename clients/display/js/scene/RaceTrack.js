@@ -98,10 +98,26 @@ class RaceTrack extends PIXI.Container {
 
     var players = (state.players || []).filter(function (p) { return p.connected || state.status !== 'idle'; });
 
-    // Detect player set change (add / remove)
+    // Detect player set change (add / remove / color reassignment)
     var newIds = players.map(function (p) { return p.id; }).sort().join(',');
     var curIds = [...this._lanes.keys()].sort().join(',');
-    if (newIds !== curIds) {
+    var needsRebuild = (newIds !== curIds);
+
+    if (!needsRebuild) {
+      // Also rebuild if any player's color changed since the last state
+      var prevColors = {};
+      for (var pi = 0; pi < this._players.length; pi++) {
+        prevColors[this._players[pi].id] = this._players[pi].colorIndex;
+      }
+      for (var pj = 0; pj < players.length; pj++) {
+        if (prevColors[players[pj].id] !== players[pj].colorIndex) {
+          needsRebuild = true;
+          break;
+        }
+      }
+    }
+
+    if (needsRebuild) {
       this._rebuildLanes(players);
     } else {
       // Update positions and connected state
@@ -149,7 +165,8 @@ class RaceTrack extends PIXI.Container {
 
     for (var i = 0; i < players.length; i++) {
       var p    = players[i];
-      var lane = new Lane(p, i, i, w, Math.floor(h / n));
+      var ci   = (typeof p.colorIndex === 'number') ? p.colorIndex : i;
+      var lane = new Lane(p, ci, i, w, Math.floor(h / n));
       lane.y   = i * Math.floor(h / n);
       lane.updatePosition(p.position, this._config.trackLength);
       lane.setConnected(p.connected);

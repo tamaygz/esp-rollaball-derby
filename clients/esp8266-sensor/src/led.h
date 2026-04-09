@@ -1,11 +1,13 @@
 #pragma once
 #include <Arduino.h>
+#include <NeoPixelBus.h>
 #include <LedController.h>
 #include <AnimationManager.h>
 #include <GameEventMapper.h>
 #include <effects/BlinkEffect.h>
 #include <effects/PulseEffect.h>
 #include <effects/RainbowEffect.h>
+#include <effects/ChaseEffect.h>
 #include <effects/SolidEffect.h>
 #include <effects/SparkleEffect.h>
 #include "config.h"
@@ -15,7 +17,7 @@
 enum class LedState {
     NO_WIFI,       // Red fast-blink    — no WiFi connectivity
     WIFI_ONLY,     // Orange slow-blink — WiFi up, WebSocket disconnected
-    WS_CONNECTED   // Slow green pulse  — fully connected, idle
+    WS_CONNECTED   // Device-color pulse — fully connected (idle ambient, auto-restores after effects)
 };
 
 // Manages the LED strip on the sensor.
@@ -39,8 +41,11 @@ public:
     // Change the displayed connection state. Idempotent for same-state calls.
     void setState(LedState state);
 
-    // Trigger a one-shot game-event effect (delegates to GameEventMapper).
-    void onGameEvent(GameEventType event);
+    // Trigger a device-local one-shot effect (scoring, streaks, rank changes).
+    void onLocalEvent(LocalEventType event);
+
+    // Trigger a game-global one-shot effect (countdown, lifecycle, winner).
+    void onGlobalEvent(GlobalEventType event);
 
     // Play an admin-requested test effect from the server.
     void playTestEffect(const LedTestEffectMessage& msg);
@@ -57,15 +62,24 @@ private:
     // Pre-allocated effect instances reused for ambient/test effects to avoid
     // heap allocations in loop().
     BlinkEffect      _blinkEffect;
+    ChaseEffect      _chaseEffect;
     PulseEffect      _pulseEffect;
     RainbowEffect    _rainbowEffect;
     SolidEffect      _solidEffect;
     SparkleEffect    _sparkleEffect;
 
-    LedConfig        _config  = {};
-    LedState         _state   = LedState::NO_WIFI;
-    bool             _begun   = false;
+    LedConfig        _config      = {};
+    LedState         _state       = LedState::NO_WIFI;
+    bool             _begun       = false;
+    bool             _gameActive  = false;  // true while game running/paused
+
+    // Random startup color (REQ-007) — generated once at construction,
+    // used until the server assigns a device color.
+    RgbColor         _startupColor;
 
     // Start the ambient effect for the given connection state.
     void _playAmbient(LedState state);
+
+    // Return the current device identity color (server-assigned or random startup).
+    RgbColor _getDeviceColor();
 };

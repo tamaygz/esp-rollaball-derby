@@ -6,16 +6,30 @@
 
 using namespace websockets;
 
-// Game events decoded from server broadcast messages.
-enum class GameEvent {
+// Device-local events: only the owning device reacts (from 'scored' messages).
+// Ordered by priority (higher enum value = higher priority for event selection).
+enum class LocalEvent {
     NONE,
-    COUNTDOWN_TICK,  // server countdown, one tick (count >= 1)
-    SCORE_PLUS1,     // this player scored +1
-    SCORE_PLUS2,     // this player scored +2
-    SCORE_PLUS3,     // this player scored +3
-    ZERO_ROLL,       // this player scored 0
-    WINNER_SELF,     // this sensor's player won
-    WINNER_OTHER,    // another player won
+    BECAME_LAST,       // this player dropped to last place
+    ZERO_ROLL,         // this player scored 0
+    STREAK_ZERO,       // 3 consecutive zero rolls
+    SCORE_PLUS1,       // this player scored +1
+    SCORE_PLUS2,       // this player scored +2
+    SCORE_PLUS3,       // this player scored +3
+    STREAK_THREE,      // 2 consecutive +3 rolls
+    TOOK_LEAD,         // this player just took the lead
+};
+
+// Game-global events: all devices react (from 'game_event', 'countdown', 'winner').
+enum class GlobalEvent {
+    NONE,
+    COUNTDOWN_TICK,    // countdown tick (count >= 1)
+    GAME_STARTED,      // game transitioned to running
+    GAME_PAUSED,       // game paused
+    GAME_RESUMED,      // game resumed from pause
+    GAME_RESET,        // game reset to idle
+    WINNER_SELF,       // this sensor's player won
+    WINNER_OTHER,      // another player won
 };
 
 // LED test-effect command received from the server via the admin web UI.
@@ -47,8 +61,11 @@ public:
     // Send a score event. Does nothing if not connected or playerId not yet assigned.
     void sendScore(int points);
 
-    // Return and clear the oldest pending game event (NONE if nothing queued).
-    GameEvent pollEvent();
+    // Return and clear the pending device-local event (NONE if nothing queued).
+    LocalEvent pollLocalEvent();
+
+    // Return and clear the pending game-global event (NONE if nothing queued).
+    GlobalEvent pollGlobalEvent();
 
     // Poll for a pending led_config message. Returns true and fills `out` if one
     // has arrived since the last call; false otherwise.
@@ -81,7 +98,8 @@ private:
     unsigned long    _lastAttempt  = 0;
     unsigned long    _backoffMs    = WS_BACKOFF_MIN_MS;
 
-    GameEvent        _pendingEvent = GameEvent::NONE;
+    LocalEvent       _pendingLocalEvent  = LocalEvent::NONE;
+    GlobalEvent      _pendingGlobalEvent = GlobalEvent::NONE;
 
     // Pending LED config message (from server led_config broadcast)
     LedConfig        _pendingLedConfig      = {};

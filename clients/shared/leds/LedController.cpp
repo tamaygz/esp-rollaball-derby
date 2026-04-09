@@ -7,7 +7,14 @@ static constexpr unsigned long WS2812_RESET_TIME_US = 50;
 static constexpr unsigned long WIFI_YIELD_INTERVAL_MS = 50;
 
 LedController::LedController()
-    : _strip(nullptr)
+    :
+#ifdef LED_PLATFORM_ESP8266
+      _stripUart1(nullptr)
+    , _stripDma(nullptr)
+    , _method(Esp8266Method::METHOD_UART1)
+#else
+      _strip(nullptr)
+#endif
     , _ledCount(0)
     , _pin(0)
     , _brightness(255)
@@ -17,10 +24,14 @@ LedController::LedController()
 }
 
 LedController::~LedController() {
+#ifdef LED_PLATFORM_ESP8266
+    _stripDelete();
+#else
     if (_strip) {
         delete _strip;
         _strip = nullptr;
     }
+#endif
 }
 
 bool LedController::begin(uint16_t ledCount, uint8_t pin) {
@@ -39,16 +50,44 @@ bool LedController::begin(uint16_t ledCount, uint8_t pin) {
     _ledCount = ledCount;
     _pin      = pin;
 
+    // Free any previous strip before allocating a new one
+#ifdef LED_PLATFORM_ESP8266
+    _stripDelete();
+
+    // Select method based on pin: GPIO3 → DMA, anything else → UART1 (fixed to GPIO2)
+    if (pin == 3) {
+        _method   = Esp8266Method::METHOD_DMA;
+        _stripDma = new LedStripDma(_ledCount, _pin);
+        if (!_stripDma) {
+            Serial.printf("[LedController] ERROR: Failed to allocate DMA strip (%u LEDs)\n", _ledCount);
+            return false;
+        }
+    } else {
+        _method     = Esp8266Method::METHOD_UART1;
+        _pin        = 2;  // UART1 is hardwired to GPIO2
+        _stripUart1 = new LedStripUart1(_ledCount, _pin);
+        if (!_stripUart1) {
+            Serial.printf("[LedController] ERROR: Failed to allocate UART1 strip (%u LEDs)\n", _ledCount);
+            return false;
+        }
+    }
+#else
+    if (_strip) {
+        delete _strip;
+        _strip = nullptr;
+    }
+
     // Create platform-specific NeoPixelBus instance
     _strip = new LedStrip(_ledCount, _pin);
     if (!_strip) {
         Serial.printf("[LedController] ERROR: Failed to allocate NeoPixelBus (%u LEDs)\n", _ledCount);
         return false;
     }
+#endif
 
     // Initialize hardware
-    _strip->Begin();
-    _strip->Show();  // Initialize to all LEDs off
+    _stripBegin();
+    _stripShow();  // Initialize to all LEDs off
 
     _logInit();
     return true;
@@ -61,7 +100,11 @@ void LedController::setPixel(uint16_t index, RgbColor color) {
         return;
     }
 
+#ifdef LED_PLATFORM_ESP8266
+    if (!_stripUart1 && !_stripDma) {
+#else
     if (!_strip) {
+#endif
         Serial.println("[LedController] ERROR: setPixel() called before begin()");
         return;
     }
@@ -71,7 +114,7 @@ void LedController::setPixel(uint16_t index, RgbColor color) {
         color = RgbColor::LinearBlend(RgbColor(0, 0, 0), color, _brightness);
     }
 
-    _strip->SetPixelColor(index, color);
+    _stripSetPixel(index, color);
 }
 
 void LedController::setPixel(uint16_t index, HsvColor color) {
@@ -89,18 +132,26 @@ uint8_t LedController::getBrightness() const {
 }
 
 void LedController::clear() {
+#ifdef LED_PLATFORM_ESP8266
+    if (!_stripUart1 && !_stripDma) {
+#else
     if (!_strip) {
+#endif
         Serial.println("[LedController] ERROR: clear() called before begin()");
         return;
     }
 
     for (uint16_t i = 0; i < _ledCount; i++) {
-        _strip->SetPixelColor(i, RgbColor(0, 0, 0));
+        _stripSetPixel(i, RgbColor(0, 0, 0));
     }
 }
 
 void LedController::show() {
+#ifdef LED_PLATFORM_ESP8266
+    if (!_stripUart1 && !_stripDma) {
+#else
     if (!_strip) {
+#endif
         Serial.println("[LedController] ERROR: show() called before begin()");
         return;
     }
@@ -111,7 +162,7 @@ void LedController::show() {
         delayMicroseconds(WS2812_RESET_TIME_US);
     }
 
-    _strip->Show();
+    _stripShow();
     _lastShow = micros();
 
     // Yield to WiFi stack if it's been too long
@@ -144,17 +195,9 @@ bool LedController::_validateLedCount(uint16_t count) const {
 
 bool LedController::_validatePin(uint8_t pin) const {
 #ifdef LED_PLATFORM_ESP8266
-    // ESP8266 DMA method requires GPIO3 (RX pin)
-    // If using UART method in future, this validation can be relaxed
-    if (pin != 3) {
-        Serial.printf("[LedController] WARNING: ESP8266 DMA requires GPIO3, got GPIO%u. "
-                      "Consider using UART method for other pins.\n", pin);
-        // Allow it but warn — user might be using UART method
-    }
-
-    // Reject pins that conflict with boot mode
-    if (pin == 0 || pin == 2 || pin == 15) {
-        Serial.printf("[LedController] ERROR: GPIO%u conflicts with boot mode/flash\n", pin);
+    // Only GPIO2 (UART1) and GPIO3 (DMA) have hardware-timed output.
+    if (pin != 2 && pin != 3) {
+        Serial.printf("[LedController] ERROR: ESP8266 only supports GPIO2 (UART1) or GPIO3 (DMA), got GPIO%u\n", pin);
         return false;
     }
 #endif
@@ -175,6 +218,10 @@ void LedController::_logInit() const {
     
     Serial.println("[LedController] ====================================");
     Serial.printf("[LedController] Platform:  %s\n", LED_PLATFORM_NAME);
+#ifdef LED_PLATFORM_ESP8266
+    Serial.printf("[LedController] Method:    %s\n",
+                  _method == Esp8266Method::METHOD_DMA ? "DMA (GPIO3/RX)" : "UART1 (GPIO2/D4)");
+#endif
     Serial.printf("[LedController] LED Count: %u (max %u)\n", _ledCount, LED_MAX_COUNT);
     Serial.printf("[LedController] GPIO Pin:  %u\n", _pin);
     Serial.printf("[LedController] RAM Usage: ~%u bytes\n", ramUsage);
@@ -182,3 +229,42 @@ void LedController::_logInit() const {
                   (_ledCount * 60.0) / 1000.0);
     Serial.println("[LedController] ====================================");
 }
+
+// ─── ESP8266 strip dispatch helpers ───────────────────────────────────────────
+#ifdef LED_PLATFORM_ESP8266
+
+void LedController::_stripBegin() {
+    if (_method == Esp8266Method::METHOD_DMA)
+        _stripDma->Begin();
+    else
+        _stripUart1->Begin();
+}
+
+void LedController::_stripShow() {
+    if (_method == Esp8266Method::METHOD_DMA)
+        _stripDma->Show();
+    else
+        _stripUart1->Show();
+}
+
+void LedController::_stripSetPixel(uint16_t i, RgbColor c) {
+    if (_method == Esp8266Method::METHOD_DMA)
+        _stripDma->SetPixelColor(i, c);
+    else
+        _stripUart1->SetPixelColor(i, c);
+}
+
+void LedController::_stripDelete() {
+    if (_stripDma)   { delete _stripDma;   _stripDma   = nullptr; }
+    if (_stripUart1) { delete _stripUart1; _stripUart1 = nullptr; }
+}
+
+#else
+// ─── Non-ESP8266: thin wrappers around the single _strip pointer ──────────────
+
+void LedController::_stripBegin()                      { _strip->Begin(); }
+void LedController::_stripShow()                       { _strip->Show(); }
+void LedController::_stripSetPixel(uint16_t i, RgbColor c) { _strip->SetPixelColor(i, c); }
+void LedController::_stripDelete()                     { if (_strip) { delete _strip; _strip = nullptr; } }
+
+#endif

@@ -1,10 +1,10 @@
 {
   "sensor": {
-    "ledCount": 10,
+    "ledCount": 8,
+    "gpioPin": 3,
     "topology": "strip",
-    "gpioPin": 4,
-    "brightness": 128,
-    "defaultEffect": "rainbow"
+    "brightness": 80,
+    "defaultEffect": "sparkle"
   },
   "motor": {
     "ledCount": 10,
@@ -19,5 +19,11 @@
     "gpioPin": 4,
     "brightness": 0,
     "defaultEffect": "solid"
+  },
+  "deviceColorMap": {
+    "00B7F33C": 8
+  },
+  "deviceNameMap": {
+    "00B7F33C": "Gallop Poll"
   }
 }

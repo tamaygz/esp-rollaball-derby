@@ -1,6 +1,19 @@
 const fs = require('fs/promises');
+const fsSync = require('fs');
 const path = require('path');
 const { EventEmitter } = require('events');
+
+// Load the shared 16-color palette once at module load.
+const PALETTE_PATH = path.join(__dirname, '../../../clients/assets/themes/shared/player-colors.json');
+let _palette = [];
+try {
+  const raw = fsSync.readFileSync(PALETTE_PATH, 'utf8');
+  _palette = JSON.parse(raw).colors;
+} catch (err) {
+  console.error('[LedConfigManager] Failed to load player-colors.json:', err.message);
+  _palette = [];
+}
+const PALETTE_SIZE = _palette.length || 16;
 
 /**
  * LED Configuration Manager
@@ -34,7 +47,9 @@ class LedConfigManager extends EventEmitter {
         gpioPin: 4,
         brightness: 0,
         defaultEffect: 'solid'
-      }
+      },
+      deviceColorMap: {},  // { "<chipId>": colorIndex }
+      deviceNameMap: {}    // { "<chipId>": name }
     };
   }
 
@@ -46,6 +61,13 @@ class LedConfigManager extends EventEmitter {
     try {
       const data = await fs.readFile(this.configFilePath, 'utf8');
       this.config = JSON.parse(data);
+      // Ensure deviceColorMap and deviceNameMap exist (migration from older config files)
+      if (!this.config.deviceColorMap) {
+        this.config.deviceColorMap = {};
+      }
+      if (!this.config.deviceNameMap) {
+        this.config.deviceNameMap = {};
+      }
       console.log('[LedConfigManager] Configuration loaded from', this.configFilePath);
       return this.config;
     } catch (error) {
@@ -151,14 +173,150 @@ class LedConfigManager extends EventEmitter {
       throw new Error('Configuration must be an object');
     }
     
-    // Validate each device type config
-    for (const [deviceType, deviceConfig] of Object.entries(config)) {
+    // Validate each device type config (skip non-device-type keys)
+    for (const [key, value] of Object.entries(config)) {
+      if (key === 'deviceColorMap') continue;
+      if (key === 'deviceNameMap') continue;
       try {
-        this._validateDeviceConfig(deviceConfig);
+        this._validateDeviceConfig(value);
       } catch (error) {
-        throw new Error(`Invalid config for ${deviceType}: ${error.message}`);
+        throw new Error(`Invalid config for ${key}: ${error.message}`);
       }
     }
+  }
+
+  // ─── Device Color Management ────────────────────────────────────────────────
+
+  /**
+   * Get the full player-color palette.
+   * @returns {Array} Array of { index, hex, pixi, name }
+   */
+  getPalette() {
+    return _palette;
+  }
+
+  /**
+   * Get the persistent device → colorIndex map.
+   * @returns {Object} { "<chipId>": colorIndex }
+   */
+  getDeviceColorMap() {
+    if (!this.config) return {};
+    return this.config.deviceColorMap || {};
+  }
+
+  /**
+   * Get the persistent device → name map.
+   * @returns {Object} { "<chipId>": name }
+   */
+  getDeviceNameMap() {
+    if (!this.config) return {};
+    return this.config.deviceNameMap || {};
+  }
+
+  /**
+   * Look up the persisted name for a known device.
+   * @param {string|null} chipId
+   * @returns {string|null} Persisted name, or null if unknown.
+   */
+  getDeviceName(chipId) {
+    if (!chipId) return null;
+    const map = this.getDeviceNameMap();
+    return map[chipId] !== undefined ? map[chipId] : null;
+  }
+
+  /**
+   * Persist a name for a device identified by chipId.
+   * Fire-and-forget — errors are logged but not thrown.
+   * @param {string} chipId
+   * @param {string} name
+   */
+  setDeviceName(chipId, name) {
+    if (!chipId || !this.config) return;
+    const map = this.getDeviceNameMap();
+    map[chipId] = name;
+    this.config.deviceNameMap = map;
+    this.saveConfig(this.config).catch((err) => {
+      console.error('[LedConfigManager] Failed to persist deviceNameMap:', err.message);
+    });
+  }
+
+  /**
+   * Assign a color to a device (or web client).
+   *
+   * For devices with a chipId: looks up the persisted mapping first. If the
+   * chipId is unknown, picks the lowest unused colorIndex and persists it.
+   *
+   * For web clients (chipId is null/undefined): picks the lowest colorIndex
+   * not currently claimed by any persisted device.
+   *
+   * @param {string|null} chipId  The ESP chipId hex string, or null for web clients.
+   * @returns {number} colorIndex 0 … PALETTE_SIZE-1
+   */
+  assignColor(chipId) {
+    const map = this.getDeviceColorMap();
+
+    // Known device → return persisted color
+    if (chipId && map[chipId] !== undefined) {
+      return map[chipId];
+    }
+
+    // Collect indices already claimed by persisted devices
+    const usedByDevices = new Set(Object.values(map));
+
+    // Pick lowest unused index
+    for (let i = 0; i < PALETTE_SIZE; i++) {
+      if (!usedByDevices.has(i)) {
+        // Persist for hardware devices, not for web clients
+        if (chipId) {
+          map[chipId] = i;
+          this._persistDeviceColorMap(map);
+        }
+        return i;
+      }
+    }
+
+    // All slots occupied — wrap with modulo (RISK-002)
+    const fallback = Object.keys(map).length % PALETTE_SIZE;
+    if (chipId) {
+      map[chipId] = fallback;
+      this._persistDeviceColorMap(map);
+    }
+    return fallback;
+  }
+
+  /**
+   * Admin override: assign a specific color to a device.
+   * @param {string} chipId     ESP chipId hex string
+   * @param {number} colorIndex 0 … PALETTE_SIZE-1
+   */
+  async updateDeviceColor(chipId, colorIndex) {
+    if (typeof colorIndex !== 'number' || colorIndex < 0 || colorIndex >= PALETTE_SIZE) {
+      throw new Error(`colorIndex must be 0–${PALETTE_SIZE - 1}`);
+    }
+    const map = this.getDeviceColorMap();
+    map[chipId] = colorIndex;
+    if (!this.config) await this.loadConfig();
+    this.config.deviceColorMap = map;
+    await this.saveConfig(this.config);
+  }
+
+  /**
+   * Get the hex color string for a given colorIndex.
+   * @param {number} colorIndex
+   * @returns {string} e.g. "#E53E3E"
+   */
+  getColorHex(colorIndex) {
+    if (_palette[colorIndex]) return _palette[colorIndex].hex;
+    return '#FFFFFF';
+  }
+
+  /** @private — fire-and-forget persistence of deviceColorMap */
+  _persistDeviceColorMap(map) {
+    if (!this.config) return;
+    this.config.deviceColorMap = map;
+    this.saveConfig(this.config).catch((err) => {
+      console.error('[LedConfigManager] Failed to persist deviceColorMap:', err.message);
+    });
   }
 
   /**

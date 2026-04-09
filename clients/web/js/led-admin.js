@@ -175,26 +175,79 @@ Derby.LED = (function () {
     var detectedLEDs = device.ledCount || 0;
     var connected = device.connected ? 'connected' : 'disconnected';
 
+    // Resolve device color from palette
+    var colorHex = '#888888';
+    var colorName = 'Unassigned';
+    if (typeof device.colorIndex === 'number' && _playerColors[device.colorIndex]) {
+      colorHex = _playerColors[device.colorIndex].hex;
+      colorName = _playerColors[device.colorIndex].name;
+    }
+
     card.innerHTML = 
       '<div class="led-device-header">' +
+        '<span class="led-device-color-swatch" style="background:' + _esc(colorHex) + '"></span>' +
         '<span class="led-device-icon">' + typeIcon + '</span>' +
         '<div class="led-device-info">' +
           '<div class="led-device-name">' + _esc(device.name || 'Unknown') + '</div>' +
-          '<div class="led-device-meta">' + device.type + ' • ' + detectedLEDs + ' LEDs</div>' +
+          '<div class="led-device-meta">' + device.type + ' • ' + detectedLEDs + ' LEDs • ' + _esc(colorName) + '</div>' +
         '</div>' +
         '<span class="led-status-badge led-status-' + connected + '"></span>' +
       '</div>' +
+      (device.chipId
+        ? '<div class="led-device-color-picker">' +
+            '<label>Device Color:</label>' +
+            '<select class="led-device-color-select" data-chip-id="' + _esc(device.chipId) + '">' +
+              _buildColorOptions(device.colorIndex) +
+            '</select>' +
+          '</div>'
+        : '') +
       '<canvas class="led-mini-preview" width="100" height="20"></canvas>';
 
-    card.addEventListener('click', function () {
+    card.addEventListener('click', function (e) {
+      // Don't select device when interacting with color dropdown
+      if (e.target.classList.contains('led-device-color-select')) return;
       selectDevice(device.id);
     });
 
-    // Mini LED preview — the simulator is a singleton so we can't create
-    // multiple instances.  Skipping mini-preview on device cards for now.
-    // TODO: refactor LEDSimulator into a constructor to support multiple canvases.
+    // Attach color change handler
+    var colorSelect = card.querySelector('.led-device-color-select');
+    if (colorSelect) {
+      colorSelect.addEventListener('change', function (e) {
+        e.stopPropagation();
+        _handleDeviceColorChange(device.chipId, parseInt(this.value, 10));
+      });
+    }
 
     return card;
+  }
+
+  function _buildColorOptions(selectedIndex) {
+    var html = '';
+    _playerColors.forEach(function (color) {
+      var selected = (color.index === selectedIndex) ? ' selected' : '';
+      html += '<option value="' + color.index + '"' + selected + ' style="color:' + color.hex + '">' +
+              _esc(color.name) + '</option>';
+    });
+    return html;
+  }
+
+  function _handleDeviceColorChange(chipId, colorIndex) {
+    fetch('/api/leds/device-colors/' + encodeURIComponent(chipId), {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ colorIndex: colorIndex }),
+    })
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        if (data.error) {
+          _showError(data.error);
+        } else {
+          _showSuccess('Device color updated');
+        }
+      })
+      .catch(function (err) {
+        _showError('Color update failed: ' + err.message);
+      });
   }
 
   function selectDevice(deviceId) {
@@ -266,10 +319,15 @@ Derby.LED = (function () {
     var effectName = _el('led-effect-select').value;
     if (!effectName) return;
 
-    var colorHex = _el('led-color').value || '#FFFFFF';
+    var colorVal = _el('led-color').value || '#FFFFFF';
+    if (colorVal === 'device' && _selectedDevice && typeof _selectedDevice.colorIndex === 'number' && _playerColors[_selectedDevice.colorIndex]) {
+      colorVal = _playerColors[_selectedDevice.colorIndex].hex;
+    } else if (colorVal === 'device') {
+      colorVal = '#FFFFFF';
+    }
     var speed = parseInt(_el('led-speed').value, 10) || 50;
 
-    _simulator.playEffect(effectName, { color: colorHex, speed: speed });
+    _simulator.playEffect(effectName, { color: colorVal, speed: speed });
   }
 
   function _populateColorPicker() {
@@ -277,6 +335,14 @@ Derby.LED = (function () {
     if (!select) return;
 
     select.innerHTML = '';
+
+    // "Device Color" as first/default option — uses the selected device's assigned color
+    var deviceOption = document.createElement('option');
+    deviceOption.value = 'device';
+    deviceOption.textContent = '🎨 Device Color';
+    deviceOption.selected = true;
+    select.appendChild(deviceOption);
+
     _playerColors.forEach(function (color) {
       var option = document.createElement('option');
       option.value = color.hex;
@@ -296,9 +362,10 @@ Derby.LED = (function () {
 
     var config = {
       ledCount: parseInt(_el('led-count').value, 10),
-      pin: _el('led-pin').value,
+      gpioPin: parseInt(_el('led-pin').value, 10),
       topology: _el('led-topology').value,
       brightness: parseInt(_el('led-brightness').value, 10),
+      defaultEffect: _el('led-effect-select').value || 'solid',
     };
 
     if (config.topology.startsWith('matrix')) {
@@ -348,12 +415,13 @@ Derby.LED = (function () {
       params: _getEffectParams(effectName),
     };
 
-    fetch('/api/leds/test', {
+    fetch('/api/leds/effects/test', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         deviceId: _selectedDevice.id,
-        effect: payload,
+        effectName: effectName,
+        params: _getEffectParams(effectName),
       }),
     })
       .then(function (res) { return res.json(); })
@@ -380,7 +448,16 @@ Derby.LED = (function () {
     var colorEl = _el('led-color');
     var speedEl = _el('led-speed');
 
-    if (colorEl) params.color = colorEl.value;
+    if (colorEl) {
+      var colorVal = colorEl.value;
+      if (colorVal === 'device' && _selectedDevice && typeof _selectedDevice.colorIndex === 'number' && _playerColors[_selectedDevice.colorIndex]) {
+        params.color = _playerColors[_selectedDevice.colorIndex].hex;
+      } else if (colorVal !== 'device') {
+        params.color = colorVal;
+      } else {
+        params.color = '#FFFFFF';
+      }
+    }
     if (speedEl) params.speed = parseInt(speedEl.value, 10);
 
     return params;

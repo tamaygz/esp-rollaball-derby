@@ -7,7 +7,7 @@
  * LedController — Unified LED control for WS2812B addressable LEDs on ESP8266/ESP32.
  * 
  * Features:
- * - Platform abstraction: ESP8266 (DMA) and ESP32 (RMT) hardware acceleration
+ * - Platform abstraction: ESP8266 (DMA / UART1) and ESP32 (RMT) hardware acceleration
  * - HSV and RGB color support with automatic conversion
  * - Global brightness control
  * - Memory-safe with bounds checking
@@ -15,7 +15,7 @@
  * 
  * Hardware requirements:
  * - WS2812B LEDs with external 5V power supply
- * - Data pin connected to ESP GPIO (ESP8266: GPIO3 for DMA, ESP32: any GPIO)
+ * - Data pin connected to ESP GPIO (ESP8266: GPIO2 for UART1 or GPIO3 for DMA, ESP32: any GPIO)
  * - Maximum LEDs: 300 (ESP8266), 1000 (ESP32)
  * - Power budget: 60mA per LED at full brightness
  * 
@@ -37,7 +37,9 @@ public:
      * Initialize the LED strip.
      * 
      * @param ledCount Number of LEDs (1-300 for ESP8266, 1-1000 for ESP32)
-     * @param pin GPIO pin for data output (ESP8266: must be GPIO3 for DMA, ESP32: any valid GPIO)
+     * @param pin GPIO pin for data output.
+     *            ESP8266: GPIO2 → UART1 method, GPIO3 → DMA method.
+     *            ESP32: any valid GPIO.
      * @return true if successful, false if validation failed
      */
     bool begin(uint16_t ledCount, uint8_t pin);
@@ -105,7 +107,21 @@ public:
     uint16_t getLedCount() const;
 
 private:
+#ifdef LED_PLATFORM_ESP8266
+    // ESP8266: two hardware-timed methods, selected at runtime by pin.
+    enum class Esp8266Method : uint8_t { METHOD_UART1, METHOD_DMA };
+    LedStripUart1* _stripUart1 = nullptr;
+    LedStripDma*   _stripDma   = nullptr;
+    Esp8266Method  _method     = Esp8266Method::METHOD_UART1;
+#else
     LedStrip*     _strip;
+#endif
+
+    // Dispatch helpers — route calls to the active strip instance.
+    void _stripBegin();
+    void _stripShow();
+    void _stripSetPixel(uint16_t i, RgbColor c);
+    void _stripDelete();
     uint16_t      _ledCount;
     uint8_t       _pin;
     uint8_t       _brightness;

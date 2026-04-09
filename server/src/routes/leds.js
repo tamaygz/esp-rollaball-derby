@@ -10,6 +10,22 @@ const rateLimit = require('express-rate-limit');
  * @requires express-rate-limit
  */
 
+// Rate limiter for effect test endpoint: 1 request per second per device
+const effectTestLimiter = rateLimit({
+  windowMs: 1000, // 1 second
+  max: 1,
+  keyGenerator: (req) => {
+    // Rate limit per deviceId
+    return req.body?.deviceId || req.ip;
+  },
+  handler: (req, res) => {
+    res.status(429).json({
+      error: 'Too many requests',
+      message: 'Effect test rate limit: 1 request per second per device'
+    });
+  }
+});
+
 /**
  * Create LED routes router
  * @param {LedConfigManager} ledConfigManager - Configuration manager instance
@@ -18,22 +34,6 @@ const rateLimit = require('express-rate-limit');
  */
 function createLedRoutes(ledConfigManager, connectionManager) {
   const router = express.Router();
-
-  // Rate limiter for effect test endpoint: 1 request per second per device
-  const effectTestLimiter = rateLimit({
-    windowMs: 1000, // 1 second
-    max: 1,
-    keyGenerator: (req) => {
-      // Rate limit per deviceId
-      return req.body?.deviceId || req.ip;
-    },
-    handler: (req, res) => {
-      res.status(429).json({
-        error: 'Too many requests',
-        message: 'Effect test rate limit: 1 request per second per device'
-      });
-    }
-  });
 
   /**
    * GET /api/leds/config
@@ -134,6 +134,101 @@ function createLedRoutes(ledConfigManager, connectionManager) {
         error: 'Internal server error',
         message: error.message
       });
+    }
+  });
+
+  /**
+   * POST /api/leds/config/sync-all
+   * Re-broadcast current LED config to all connected devices
+   */
+  router.post('/config/sync-all', (req, res) => {
+    try {
+      const config = ledConfigManager.config || {};
+      let totalSent = 0;
+
+      for (const deviceType of Object.keys(config)) {
+        if (deviceType === 'deviceColorMap') continue;
+        connectionManager.broadcastLedConfig(deviceType, config[deviceType]);
+        totalSent++;
+      }
+
+      console.log(`[LED Routes] Sync-all: broadcast config for ${totalSent} device type(s)`);
+      res.json({ success: true, message: `Configuration synced to ${totalSent} device type(s)` });
+    } catch (error) {
+      console.error('[LED Routes] Error syncing config:', error);
+      res.status(500).json({ error: 'Internal server error', message: error.message });
+    }
+  });
+
+  // ─── Device Color Management ────────────────────────────────────────────────
+
+  /**
+   * GET /api/leds/device-colors
+   * Returns the persistent deviceColorMap and the full palette.
+   */
+  router.get('/device-colors', (req, res) => {
+    try {
+      res.json({
+        deviceColorMap: ledConfigManager.getDeviceColorMap(),
+        palette: ledConfigManager.getPalette()
+      });
+    } catch (error) {
+      console.error('[LED Routes] Error getting device colors:', error);
+      res.status(500).json({ error: 'Internal server error', message: error.message });
+    }
+  });
+
+  /**
+   * PUT /api/leds/device-colors/:chipId
+   * Admin override: assign a specific color to a device.
+   * Body: { colorIndex: 0-15 }
+   * Re-broadcasts led_config to the affected device.
+   */
+  router.put('/device-colors/:chipId', async (req, res) => {
+    try {
+      const { chipId } = req.params;
+      const { colorIndex } = req.body;
+
+      if (typeof colorIndex !== 'number' || !Number.isInteger(colorIndex) || colorIndex < 0 || colorIndex > 15) {
+        return res.status(400).json({ error: 'colorIndex must be an integer 0–15' });
+      }
+
+      await ledConfigManager.updateDeviceColor(chipId, colorIndex);
+
+      // Find the connected client with this chipId and update its player + re-send led_config
+      for (const client of connectionManager.clients.values()) {
+        if (client.chipId === chipId && client.playerId) {
+          const player = connectionManager.gameState.players.get(client.playerId);
+          if (player) {
+            player.colorIndex = colorIndex;
+          }
+          // Re-send led_config with new device color
+          const ledConfig = ledConfigManager.getConfigForDeviceType(client.type);
+          if (ledConfig) {
+            const payload = { ...ledConfig, deviceColor: ledConfigManager.getColorHex(colorIndex) };
+            if (client.ws.readyState === 1) {
+              client.ws.send(JSON.stringify({ type: 'led_config', timestamp: Date.now(), payload }));
+            }
+          }
+          break;
+        }
+      }
+
+      // Broadcast updated state so admin/display clients see the new color
+      connectionManager.broadcastState();
+
+      res.json({
+        success: true,
+        chipId,
+        colorIndex,
+        colorHex: ledConfigManager.getColorHex(colorIndex)
+      });
+    } catch (error) {
+      console.error('[LED Routes] Error updating device color:', error);
+      if (error.message.includes('must be')) {
+        return res.status(400).json({ error: error.message });
+      }
+      res.status(500).json({ error: 'Internal server error', message: error.message });
     }
   });
 

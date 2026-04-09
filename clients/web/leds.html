@@ -53,14 +53,10 @@
           <div class="form-group">
             <label for="led-pin">GPIO Pin</label>
             <select id="led-pin">
-              <option value="D1">D1 (GPIO5)</option>
-              <option value="D2">D2 (GPIO4)</option>
-              <option value="D3">D3 (GPIO0)</option>
-              <option value="D4" selected>D4 (GPIO2)</option>
-              <option value="D5">D5 (GPIO14)</option>
-              <option value="D6">D6 (GPIO12)</option>
-              <option value="D7">D7 (GPIO13)</option>
+              <option value="2" selected>D4 / GPIO2 (UART1)</option>
+              <option value="3">RX / GPIO3 (DMA)</option>
             </select>
+            <small style="color:#888">Hardware-timed output only. GPIO2 leaves Serial free; GPIO3 uses the RX pin.</small>
           </div>
 
           <div class="form-group">

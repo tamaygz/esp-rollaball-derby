@@ -122,7 +122,8 @@ Derby.State = (function () {
 
     var html = players.map(function (p, i) {
       var pct = trackLength > 0 ? Math.min((p.position / trackLength) * 100, 100) : 0;
-      var color = _color(i);
+      var ci = (typeof p.colorIndex === 'number') ? p.colorIndex : i;
+      var color = _color(ci);
       var dot = p.connected ? '🟢' : '🔴';
       var isMine = (p.id === _myId);
       var displayName = _esc(p.name) + (isMine ? ' <em style="opacity:.6;font-size:.8em">(you)</em>' : '');

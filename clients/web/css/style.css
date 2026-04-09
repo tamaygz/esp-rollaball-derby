@@ -796,6 +796,37 @@ input:disabled, select:disabled {
   border: 1px solid var(--border);
 }
 
+.led-device-color-swatch {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  border: 1px solid rgba(255,255,255,0.2);
+}
+
+.led-device-color-picker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.led-device-color-picker label {
+  white-space: nowrap;
+}
+
+.led-device-color-select {
+  flex: 1;
+  padding: 2px 4px;
+  font-size: 0.78rem;
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
 /* ─── Configuration Form ────────────────────────────────────────────────────── */
 .led-config-form .form-row {
   display: grid;

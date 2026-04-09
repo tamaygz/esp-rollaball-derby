@@ -55,6 +55,7 @@ class ConnectionManager {
     if (countdown === 0) {
       this.gameState.start();
       if (botManager) botManager.onGameStart();
+      this.broadcastGameEvent('game_started');
       this.broadcastState();
       return;
     }
@@ -79,6 +80,7 @@ class ConnectionManager {
 
       this.gameState.start();
       if (botManager) botManager.onGameStart();
+      this.broadcastGameEvent('game_started');
       this.broadcastState();
     } catch (err) {
       console.error('[Derby] Countdown aborted:', err.message);
@@ -128,6 +130,8 @@ class ConnectionManager {
         id: client.id,
         type: client.type,
         name: player ? player.name : (client.chipType || 'Unknown'),
+        chipId: client.chipId || null,
+        colorIndex: player ? player.colorIndex : null,
         ledCount: client.reportedLedCount || 0,
         connected: client.ws.readyState === 1,
       });
@@ -209,6 +213,15 @@ class ConnectionManager {
     });
   }
 
+  /**
+   * Broadcast a game lifecycle event to all connected clients.
+   * Used for events that affect all devices (start, pause, resume, reset).
+   * @param {'game_started'|'game_paused'|'game_resumed'|'game_reset'} event
+   */
+  broadcastGameEvent(event) {
+    this.broadcastAll({ type: 'game_event', payload: { event } });
+  }
+
   broadcastWinner(player) {
     this.broadcastAll({
       type: 'winner',
@@ -221,6 +234,7 @@ class ConnectionManager {
       this._autoResetTimer = null;
       if (this._botManager) this._botManager.onGameReset();
       this.gameState.reset();
+      this.broadcastGameEvent('game_reset');
       this.broadcastState();
       this.broadcastPositions();
     }, AUTO_RESET_DELAY_MS);
@@ -233,16 +247,23 @@ class ConnectionManager {
    */
   broadcastLedConfig(deviceType, config) {
     const startTime = Date.now();
-    const msg = JSON.stringify({
-      type: 'led_config',
-      timestamp: startTime,
-      payload: config
-    });
 
     let sentCount = 0;
     for (const client of this.clients.values()) {
       if (client.type === deviceType && client.ws.readyState === 1 /* OPEN */) {
-        client.ws.send(msg);
+        const payload = { ...config };
+        // Include per-device color if available
+        if (this.ledConfigManager && client.playerId) {
+          const player = this.gameState.players.get(client.playerId);
+          if (player && player.colorIndex !== undefined) {
+            payload.deviceColor = this.ledConfigManager.getColorHex(player.colorIndex);
+          }
+        }
+        client.ws.send(JSON.stringify({
+          type: 'led_config',
+          timestamp: startTime,
+          payload
+        }));
         sentCount++;
       }
     }
@@ -335,7 +356,7 @@ class ConnectionManager {
   }
 
   _handleRegister(clientId, ws, payload) {
-    const { type, playerName, playerId: reconnectId, ledCount, chipType } = payload;
+    const { type, playerName, playerId: reconnectId, ledCount, chipType, chipId } = payload;
 
     if (!VALID_TYPES.has(type)) {
       this._send(ws, {
@@ -355,6 +376,9 @@ class ConnectionManager {
     if (typeof chipType === 'string') {
       client.chipType = chipType;
     }
+    if (typeof chipId === 'string') {
+      client.chipId = chipId;
+    }
 
     // Sanitize name
     let sanitized = '';
@@ -368,14 +392,29 @@ class ConnectionManager {
     if (reconnectId && type !== 'display') {
       const existing = this.gameState.reconnectPlayer(reconnectId);
       if (existing) {
-        // Accept a name update if the client provided one
-        if (sanitized.length > 0) existing.name = sanitized;
+        // Accept a name update if the client provided one; otherwise restore
+        // the name from the persisted deviceNameMap (so names survive server restarts).
+        if (sanitized.length > 0) {
+          existing.name = sanitized;
+          if (this.ledConfigManager && chipId) {
+            this.ledConfigManager.setDeviceName(chipId, sanitized);
+          }
+        } else if (this.ledConfigManager && chipId) {
+          const persisted = this.ledConfigManager.getDeviceName(chipId);
+          if (persisted) existing.name = persisted;
+        }
         client.playerId = reconnectId;
+
+        // Assign / restore device color
+        if (this.ledConfigManager) {
+          const deviceChipId = (type === 'sensor' || type === 'motor') ? (chipId || null) : null;
+          existing.colorIndex = this.ledConfigManager.assignColor(deviceChipId);
+        }
 
         // Build response with LED validation warning if applicable
         const response = {
           type: 'registered',
-          payload: { id: reconnectId, name: existing.name, playerType: type }
+          payload: { id: reconnectId, name: existing.name, playerType: type, colorIndex: existing.colorIndex }
         };
 
         // Validate LED count if LED config manager available
@@ -390,14 +429,18 @@ class ConnectionManager {
         this._send(ws, response);
         this.broadcastState();
 
-        // Send LED config to newly registered device
+        // Send LED config to newly registered device (with device color)
         if (this.ledConfigManager && type !== 'display') {
           const ledConfig = this.ledConfigManager.getConfigForDeviceType(type);
           if (ledConfig && ledConfig.ledCount > 0) {
+            const configPayload = { ...ledConfig };
+            if (existing.colorIndex !== undefined) {
+              configPayload.deviceColor = this.ledConfigManager.getColorHex(existing.colorIndex);
+            }
             this._send(ws, {
               type: 'led_config',
               timestamp: Date.now(),
-              payload: ledConfig
+              payload: configPayload
             });
           }
         }
@@ -406,11 +449,37 @@ class ConnectionManager {
       }
     }
 
-    // Normal (first-time) registration
-    const name = sanitized.length > 0 ? sanitized : this.gameState.assignName();
+    // Normal (first-time) registration — restore persisted name if known device,
+    // otherwise auto-assign one and persist it for future sessions.
+    const deviceChipIdForName = (type === 'sensor' || type === 'motor') ? (chipId || null) : null;
+    let name;
+    if (sanitized.length > 0) {
+      name = sanitized;
+      if (this.ledConfigManager && deviceChipIdForName) {
+        this.ledConfigManager.setDeviceName(deviceChipIdForName, name);
+      }
+    } else {
+      const persistedName = this.ledConfigManager && deviceChipIdForName
+        ? this.ledConfigManager.getDeviceName(deviceChipIdForName)
+        : null;
+      if (persistedName) {
+        name = persistedName;
+      } else {
+        name = this.gameState.assignName();
+        if (this.ledConfigManager && deviceChipIdForName) {
+          this.ledConfigManager.setDeviceName(deviceChipIdForName, name);
+        }
+      }
+    }
+
+    // Assign device color
+    let colorIndex = 0;
+    if (this.ledConfigManager) {
+      colorIndex = this.ledConfigManager.assignColor(deviceChipIdForName);
+    }
 
     if (type !== 'display') {
-      this.gameState.addPlayer(clientId, name, type);
+      this.gameState.addPlayer(clientId, name, type, colorIndex);
       client.playerId = clientId;
     } else {
       client.playerId = null;
@@ -419,7 +488,7 @@ class ConnectionManager {
     // Build response with LED validation warning if applicable
     const response = {
       type: 'registered',
-      payload: { id: clientId, name, playerType: type }
+      payload: { id: clientId, name, playerType: type, colorIndex }
     };
 
     // Validate LED count and log device registration
@@ -434,14 +503,18 @@ class ConnectionManager {
     this._send(ws, response);
     this.broadcastState();
 
-    // Send LED config to newly registered device
+    // Send LED config to newly registered device (with device color)
     if (this.ledConfigManager && type !== 'display') {
       const ledConfig = this.ledConfigManager.getConfigForDeviceType(type);
       if (ledConfig && ledConfig.ledCount > 0) {
+        const configPayload = { ...ledConfig };
+        if (colorIndex !== undefined) {
+          configPayload.deviceColor = this.ledConfigManager.getColorHex(colorIndex);
+        }
         this._send(ws, {
           type: 'led_config',
           timestamp: Date.now(),
-          payload: ledConfig
+          payload: configPayload
         });
       }
     }

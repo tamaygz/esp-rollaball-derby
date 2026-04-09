@@ -33,6 +33,7 @@ function createGameRouter(gameState, connectionManager, botManager) {
         if (newStatus === 'running') botManager.onGameStart();
         else botManager.onGameStop();
       }
+      connectionManager.broadcastGameEvent(newStatus === 'running' ? 'game_resumed' : 'game_paused');
       connectionManager.broadcastState();
       res.json({ status: newStatus });
     } catch (err) {
@@ -46,6 +47,7 @@ function createGameRouter(gameState, connectionManager, botManager) {
     connectionManager.cancelAutoReset();
     if (botManager) botManager.onGameReset();
     gameState.reset();
+    connectionManager.broadcastGameEvent('game_reset');
     connectionManager.broadcastState();
     connectionManager.broadcastPositions();
     res.json({ ok: true });

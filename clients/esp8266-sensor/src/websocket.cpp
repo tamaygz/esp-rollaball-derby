@@ -59,6 +59,10 @@ void WSClient::_sendRegister() {
     // LED metadata — lets the server validate LED count and log device capabilities.
     payload["ledCount"] = _ledMetadataCount;
     payload["chipType"] = "ESP8266";
+    // Unique hardware identifier for persistent color assignment
+    char chipIdBuf[9];
+    snprintf(chipIdBuf, sizeof(chipIdBuf), "%08X", ESP.getChipId());
+    payload["chipId"] = chipIdBuf;
     JsonObject ledCaps = payload["ledCapabilities"].to<JsonObject>();
     ledCaps["maxLeds"] = 300;
     ledCaps["method"]  = "DMA";
@@ -124,7 +128,7 @@ void WSClient::_onMessage(WebsocketsMessage msg) {
     if (strcmp(type, "countdown") == 0) {
         int count = doc["payload"]["count"] | 0;
         if (count >= 1) {
-            _pendingEvent = GameEvent::COUNTDOWN_TICK;
+            _pendingGlobalEvent = GlobalEvent::COUNTDOWN_TICK;
         }
         return;
     }
@@ -132,27 +136,52 @@ void WSClient::_onMessage(WebsocketsMessage msg) {
     if (strcmp(type, "winner") == 0) {
         const char* winnerId = doc["payload"]["playerId"];
         if (winnerId) {
-            _pendingEvent = (_playerId == winnerId)
-                            ? GameEvent::WINNER_SELF
-                            : GameEvent::WINNER_OTHER;
+            _pendingGlobalEvent = (_playerId == winnerId)
+                            ? GlobalEvent::WINNER_SELF
+                            : GlobalEvent::WINNER_OTHER;
         }
         return;
     }
 
+    if (strcmp(type, "game_event") == 0) {
+        const char* event = doc["payload"]["event"];
+        if (!event) return;
+        if      (strcmp(event, "game_started") == 0) _pendingGlobalEvent = GlobalEvent::GAME_STARTED;
+        else if (strcmp(event, "game_paused")  == 0) _pendingGlobalEvent = GlobalEvent::GAME_PAUSED;
+        else if (strcmp(event, "game_resumed") == 0) _pendingGlobalEvent = GlobalEvent::GAME_RESUMED;
+        else if (strcmp(event, "game_reset")   == 0) _pendingGlobalEvent = GlobalEvent::GAME_RESET;
+        return;
+    }
+
     if (strcmp(type, "scored") == 0) {
-        // Only react to scoring events for our own player.
+        // Only react to scoring events for our own player (device-local).
         const char* scoredId = doc["payload"]["playerId"];
         if (!scoredId || _playerId.isEmpty() || _playerId != scoredId) return;
 
-        // events[] is an array of strings; the first element carries the score type.
+        // Pick the highest-priority event from the events array.
+        // Priority (high→low): took_lead > streak_three > score_3 > score_2
+        //   > score_1 > streak_zero > zero_roll > became_last
+        LocalEvent best = LocalEvent::NONE;
         JsonArrayConst events = doc["payload"]["events"].as<JsonArrayConst>();
         for (JsonVariantConst ev : events) {
             const char* evStr = ev.as<const char*>();
             if (!evStr) continue;
-            if (strcmp(evStr, "score_1") == 0) { _pendingEvent = GameEvent::SCORE_PLUS1; return; }
-            if (strcmp(evStr, "score_2") == 0) { _pendingEvent = GameEvent::SCORE_PLUS2; return; }
-            if (strcmp(evStr, "score_3") == 0) { _pendingEvent = GameEvent::SCORE_PLUS3; return; }
-            if (strcmp(evStr, "zero_roll") == 0) { _pendingEvent = GameEvent::ZERO_ROLL; return; }
+            LocalEvent candidate = LocalEvent::NONE;
+            if      (strcmp(evStr, "took_lead")      == 0) candidate = LocalEvent::TOOK_LEAD;
+            else if (strcmp(evStr, "streak_three_2x") == 0) candidate = LocalEvent::STREAK_THREE;
+            else if (strcmp(evStr, "score_3")         == 0) candidate = LocalEvent::SCORE_PLUS3;
+            else if (strcmp(evStr, "score_2")         == 0) candidate = LocalEvent::SCORE_PLUS2;
+            else if (strcmp(evStr, "score_1")         == 0) candidate = LocalEvent::SCORE_PLUS1;
+            else if (strcmp(evStr, "streak_zero_3x")  == 0) candidate = LocalEvent::STREAK_ZERO;
+            else if (strcmp(evStr, "zero_roll")        == 0) candidate = LocalEvent::ZERO_ROLL;
+            else if (strcmp(evStr, "became_last")      == 0) candidate = LocalEvent::BECAME_LAST;
+            // Higher enum value = higher priority in our ordering
+            if (static_cast<int>(candidate) > static_cast<int>(best)) {
+                best = candidate;
+            }
+        }
+        if (best != LocalEvent::NONE) {
+            _pendingLocalEvent = best;
         }
         return;
     }
@@ -172,6 +201,21 @@ void WSClient::_onMessage(WebsocketsMessage msg) {
         if      (strcmp(topStr, "ring")               == 0) cfg.topology = LedTopology::RING;
         else if (strcmp(topStr, "matrix_zigzag")      == 0) cfg.topology = LedTopology::MATRIX_ZIGZAG;
         else if (strcmp(topStr, "matrix_progressive") == 0) cfg.topology = LedTopology::MATRIX_PROGRESSIVE;
+
+        // Parse device color: "#RRGGBB" hex string from server
+        cfg.hasDeviceColor = false;
+        const char* devColor = doc["payload"]["deviceColor"] | "";
+        if (devColor[0] == '#' && strlen(devColor) == 7) {
+            char hex[3] = {0};
+            hex[0] = devColor[1]; hex[1] = devColor[2];
+            cfg.deviceColorR = static_cast<uint8_t>(strtoul(hex, nullptr, 16));
+            hex[0] = devColor[3]; hex[1] = devColor[4];
+            cfg.deviceColorG = static_cast<uint8_t>(strtoul(hex, nullptr, 16));
+            hex[0] = devColor[5]; hex[1] = devColor[6];
+            cfg.deviceColorB = static_cast<uint8_t>(strtoul(hex, nullptr, 16));
+            cfg.hasDeviceColor = true;
+            Serial.printf("[WS] deviceColor: #%02X%02X%02X\n", cfg.deviceColorR, cfg.deviceColorG, cfg.deviceColorB);
+        }
 
         _pendingLedConfig    = cfg;
         _hasPendingLedConfig = true;
@@ -216,9 +260,15 @@ void WSClient::_onMessage(WebsocketsMessage msg) {
     // Silently ignore other broadcast messages (state, positions).
 }
 
-GameEvent WSClient::pollEvent() {
-    GameEvent ev  = _pendingEvent;
-    _pendingEvent = GameEvent::NONE;
+LocalEvent WSClient::pollLocalEvent() {
+    LocalEvent ev       = _pendingLocalEvent;
+    _pendingLocalEvent  = LocalEvent::NONE;
+    return ev;
+}
+
+GlobalEvent WSClient::pollGlobalEvent() {
+    GlobalEvent ev       = _pendingGlobalEvent;
+    _pendingGlobalEvent  = GlobalEvent::NONE;
     return ev;
 }
 

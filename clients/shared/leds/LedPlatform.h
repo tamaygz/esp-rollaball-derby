@@ -13,9 +13,19 @@
     // ESP8266 constraints
     #define LED_MAX_COUNT 300
     
-    // Use DMA method on GPIO3 (RX pin) for best performance and WiFi compatibility.
-    // Alternative: Use NeoEsp8266Uart1Ws2812xMethod for configurable GPIO pin.
-    using LedMethod = NeoEsp8266Dma800KbpsMethod;
+    // ESP8266 has two reliable hardware-timed LED methods.
+    // The correct one is chosen at runtime based on the configured GPIO pin:
+    //   GPIO2 (D4 / TX1) → UART1   — leaves Serial (UART0) free for debugging
+    //   GPIO3 (RX)       → DMA     — occupies the RX pin, no Serial input
+    using LedMethodUart1 = NeoEsp8266Uart1800KbpsMethod;
+    using LedMethodDma   = NeoEsp8266Dma800KbpsMethod;
+
+    using LedStripUart1 = NeoPixelBus<NeoGrbFeature, LedMethodUart1>;
+    using LedStripDma   = NeoPixelBus<NeoGrbFeature, LedMethodDma>;
+
+    // Default method alias (used by ESP32 path where only one type exists)
+    using LedMethod = LedMethodUart1;
+    using LedStrip  = LedStripUart1;
     
 #elif defined(ESP32)
     #define LED_PLATFORM_ESP32

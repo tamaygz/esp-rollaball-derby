@@ -172,12 +172,13 @@ class GameState {
 
   // ─── Player management ────────────────────────────────────────────────────
 
-  addPlayer(id, name, type) {
+  addPlayer(id, name, type, colorIndex = 0) {
     const player = {
       id,
       name,
       position: 0,
       type,
+      colorIndex,
       connected: true,
       connectedAt: Date.now(),
       lastScoredAt: null,

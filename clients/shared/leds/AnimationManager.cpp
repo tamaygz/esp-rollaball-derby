@@ -64,7 +64,11 @@ void AnimationManager::loop() {
       Serial.print("[AnimationManager] Effect '");
       Serial.print(_currentEffect->getName());
       Serial.println("' completed");
+      _currentEffect->reset();
       _currentEffect = nullptr;
+      // Clear strip so LEDs don't stay frozen on the last frame
+      _controller->clear();
+      _controller->show();
     }
   }
   
@@ -161,6 +165,8 @@ void AnimationManager::stop() {
     Serial.println("'");
     _currentEffect->reset();
     _currentEffect = nullptr;
+    _controller->clear();
+    _controller->show();
   }
 }
 

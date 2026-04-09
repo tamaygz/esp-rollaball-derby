@@ -5,8 +5,7 @@
 #define PIN_SENSOR_1  5           // D1 → GPIO5  → +1 hole IR break-beam
 #define PIN_SENSOR_2  14          // D5 → GPIO14 → +2 hole IR break-beam
 #define PIN_SENSOR_3  4           // D2 → GPIO4  → +3 hole IR break-beam
-#define PIN_LED       3           // GPIO3 (RX) → WS2812B LED strip (DMA method)
-                                  // Note: GPIO3 conflicts with Serial debugging on ESP8266
+#define PIN_LED       2           // GPIO2 (D4 / TX1) → WS2812B LED strip (UART1 method)
 
 // ─── Sensor Debounce ──────────────────────────────────────────────────────────
 #define DEBOUNCE_MS   500UL       // Minimum ms between valid triggers per sensor
@@ -51,15 +50,23 @@ struct LedConfig {
     LedTopology topology;
     uint8_t     matrixRows;   // Only used for MATRIX topologies
     uint8_t     matrixCols;   // Only used for MATRIX topologies
+    uint8_t     deviceColorR; // Device identity color (from server)
+    uint8_t     deviceColorG;
+    uint8_t     deviceColorB;
+    bool        hasDeviceColor; // true once server has assigned a color
 };
 
 inline LedConfig ledConfigDefaults() {
     LedConfig cfg;
-    cfg.ledCount   = LED_DEFAULT_COUNT;
-    cfg.pin        = LED_DEFAULT_PIN;
-    cfg.brightness = LED_DEFAULT_BRIGHTNESS;
-    cfg.topology   = LedTopology::STRIP;
-    cfg.matrixRows = 8;
-    cfg.matrixCols = 8;
+    cfg.ledCount       = LED_DEFAULT_COUNT;
+    cfg.pin            = LED_DEFAULT_PIN;
+    cfg.brightness     = LED_DEFAULT_BRIGHTNESS;
+    cfg.topology       = LedTopology::STRIP;
+    cfg.matrixRows     = 8;
+    cfg.matrixCols     = 8;
+    cfg.deviceColorR   = 0;
+    cfg.deviceColorG   = 0;
+    cfg.deviceColorB   = 0;
+    cfg.hasDeviceColor = false;
     return cfg;
 }
