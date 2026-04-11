@@ -21,8 +21,9 @@
     using LedMethodUart1 = NeoEsp8266Uart1800KbpsMethod;
     using LedMethodDma   = NeoEsp8266Dma800KbpsMethod;
 
-    using LedStripUart1 = NeoPixelBus<NeoGrbFeature, LedMethodUart1>;
-    using LedStripDma   = NeoPixelBus<NeoGrbFeature, LedMethodDma>;
+    // NeoPixelBrightnessBus adds SetBrightness() used by MatrixDisplay.
+    using LedStripUart1 = NeoPixelBrightnessBus<NeoGrbFeature, LedMethodUart1>;
+    using LedStripDma   = NeoPixelBrightnessBus<NeoGrbFeature, LedMethodDma>;
 
     // Default method alias (used by ESP32 path where only one type exists)
     using LedMethod = LedMethodUart1;

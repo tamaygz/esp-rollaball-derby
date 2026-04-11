@@ -266,13 +266,13 @@ void WSClient::_onMessage(WebsocketsMessage msg) {
 }
 
 LocalEventType WSClient::pollLocalEvent() {
-    LocalEvent ev       = _pendingLocalEvent;
+    LocalEventType ev   = _pendingLocalEvent;
     _pendingLocalEvent  = LocalEventType::NONE;
     return ev;
 }
 
 GlobalEventType WSClient::pollGlobalEvent() {
-    GlobalEvent ev       = _pendingGlobalEvent;
+    GlobalEventType ev   = _pendingGlobalEvent;
     _pendingGlobalEvent  = GlobalEventType::NONE;
     return ev;
 }

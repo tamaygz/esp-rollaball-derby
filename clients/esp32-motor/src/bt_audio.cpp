@@ -24,21 +24,19 @@ bool BtAudio::begin() {
         }
     }, this);
 
-    // Register audio data callback
-    _a2dp.set_data_callback_in_frames(_staticAudioCb);
-
-    _a2dp.start("DerbyMotor", false);   // false = do not auto-connect
-
+    // Register audio data callback and start as A2DP source
+    // v1.8.4: set_auto_reconnect(addr) pre-configures the reconnect target before start()
     if (hadPaired && _pairedAddress[0] != '\0') {
         Serial.printf("[BT] Auto-connecting to saved device: %s (%s)\n",
                       _pairedName, _pairedAddress);
-        // Convert address string to esp_bd_addr_t
         uint8_t addr[6];
         if (sscanf(_pairedAddress, "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx",
                    &addr[0], &addr[1], &addr[2], &addr[3], &addr[4], &addr[5]) == 6) {
-            _a2dp.connect(addr);
+            _a2dp.set_auto_reconnect(addr);  // v1.8.4: must be called before start()
         }
     }
+
+    _a2dp.start(_staticAudioCb);  // start without name; auto-reconnect handles connection
 
     _available = true;
     Serial.println("[BT] A2DP Source started");
@@ -54,20 +52,25 @@ uint8_t BtAudio::scan(uint8_t timeoutSec) {
     _scanCount = 0;
     Serial.printf("[BT] Scanning for %u s...\n", timeoutSec);
 
-    // Use the ESP-IDF discovery API via the a2dp wrapper
-    // Note: ESP32-A2DP library scan is configured via startDiscovery() on some versions;
-    // using a simpler blocking approach here for admin UI use.
-    _a2dp.discover_bluetooth_devices(timeoutSec * 1000);
+    // v1.8.4: no discover_bluetooth_devices() API; use ssid_callback which fires
+    // for each device found during the discovery phase. Return false = don't connect.
+    _a2dp.set_ssid_callback([](const char* ssid, esp_bd_addr_t address, int rssi) -> bool {
+        if (!_instance || _instance->_scanCount >= BT_SCAN_MAX_RESULTS) return false;
+        strlcpy(_instance->_scanResults[_instance->_scanCount].name, ssid, 32);
+        snprintf(_instance->_scanResults[_instance->_scanCount].address, 18,
+                 "%02x:%02x:%02x:%02x:%02x:%02x",
+                 address[0], address[1], address[2], address[3], address[4], address[5]);
+        _instance->_scanResults[_instance->_scanCount].rssi = (int8_t)rssi;
+        _instance->_scanCount++;
+        return false;  // keep scanning, don't connect
+    });
 
-    auto* results = _a2dp.get_discovered_devices();
-    int count     = _a2dp.get_discovered_devices_count();
-
-    for (int i = 0; i < count && _scanCount < BT_SCAN_MAX_RESULTS; ++i) {
-        strlcpy(_scanResults[_scanCount].name,    results[i].name,    32);
-        strlcpy(_scanResults[_scanCount].address, results[i].address, 18);
-        _scanResults[_scanCount].rssi = results[i].rssi;
-        _scanCount++;
+    unsigned long deadline = millis() + (unsigned long)timeoutSec * 1000UL;
+    while (millis() < deadline) {
+        delay(100);
     }
+
+    _a2dp.set_ssid_callback(nullptr);
 
     Serial.printf("[BT] Scan found %u device(s)\n", (unsigned)_scanCount);
     return _scanCount;
@@ -95,7 +98,8 @@ bool BtAudio::connect(const char* address) {
     strlcpy(_pairedName, devName, sizeof(_pairedName));
     _persistPairedAddress(address, devName);
 
-    _a2dp.connect(addr);
+    _a2dp.set_auto_reconnect(addr);  // v1.8.4: set target before reconnect
+    _a2dp.reconnect();               // v1.8.4: reconnect() takes no arguments
     Serial.printf("[BT] Connecting to %s (%s)...\n", devName, address);
     return true;
 }
