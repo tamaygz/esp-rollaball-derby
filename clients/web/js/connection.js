@@ -19,6 +19,7 @@ Derby.Connection = (function () {
   var reconnectDelay = INITIAL_DELAY;
   var MAX_DELAY = 30000;
   var _currentPlayerName = '';
+  var _clientType = 'web';
   var _handlers = [];
 
   // ── Helpers ────────────────────────────────────────────────────────────────
@@ -51,8 +52,9 @@ Derby.Connection = (function () {
 
   // ── Connection lifecycle ────────────────────────────────────────────────────
 
-  function connect(playerName) {
+  function connect(playerName, clientType) {
     _currentPlayerName = (typeof playerName === 'string') ? playerName.trim() : '';
+    _clientType = (typeof clientType === 'string') ? clientType : 'web';
 
     // Close any stale socket. Because ws is reassigned below before the old
     // socket can fire its 'close' event, the per-socket guard (ws === thisWs)
@@ -85,13 +87,16 @@ Derby.Connection = (function () {
       reconnectDelay = INITIAL_DELAY; // reset backoff on successful connect
       _setStatus('connected');
 
-      // Register as web client; include the persisted player ID (if any) so the
-      // server can reconnect this client to its existing player entry rather than
-      // creating a new one.
-      var payload = { type: 'web' };
-      if (_currentPlayerName) payload.playerName = _currentPlayerName;
-      var storedId = localStorage.getItem('derby-player-id');
-      if (storedId) payload.playerId = storedId;
+      // Register with the server; web clients include their player name and
+      // persisted ID so the server can reconnect to an existing player entry.
+      // Non-player types (e.g. 'display') skip player name/ID to avoid
+      // creating an unwanted player entry.
+      var payload = { type: _clientType };
+      if (_clientType !== 'display') {
+        if (_currentPlayerName) payload.playerName = _currentPlayerName;
+        var storedId = localStorage.getItem('derby-player-id');
+        if (storedId) payload.playerId = storedId;
+      }
       ws.send(JSON.stringify({ type: 'register', payload: payload }));
     });
 
@@ -118,7 +123,7 @@ Derby.Connection = (function () {
     if (reconnectTimer) clearTimeout(reconnectTimer);
     reconnectTimer = setTimeout(function () {
       reconnectTimer = null;
-      connect(_currentPlayerName);
+      connect(_currentPlayerName, _clientType);
     }, reconnectDelay);
     reconnectDelay = Math.min(reconnectDelay * 2, MAX_DELAY);
   }
