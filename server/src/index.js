@@ -6,7 +6,7 @@ const os = require('os');
 
 const express = require('express');
 const { WebSocketServer } = require('ws');
-const Bonjour = require('bonjour-service');
+const { Bonjour } = require('bonjour-service');
 
 const GameState = require('./game/GameState');
 const BotManager = require('./game/BotManager');
