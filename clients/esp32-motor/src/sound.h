@@ -3,6 +3,7 @@
 #include "config.h"
 #include <Arduino.h>
 #include <WiFiClient.h>
+#include <HTTPClient.h>
 #ifdef HAS_BT_AUDIO
 #include <BluetoothA2DPSource.h>
 #endif
@@ -29,23 +30,15 @@ enum class SoundEvent {
     DRAW,
 };
 
-// Sound manager: fetches WAV files from the game server via HTTP,
-// decodes PCM and feeds the A2DP data callback.
+// Sound manager: streams WAV files from the game server via HTTP through
+// a small ring buffer fed to the A2DP audio callback.
 // Graceful degradation: if no BT speaker is connected, playback silently skips.
 class SoundManager {
 public:
-    // host/port: game server address for fetching sound files
     bool begin(BtAudio* btAudio, const char* host, uint16_t port);
-
-    // Non-blocking update (drives fetch, decoding, playback state) — call every loop()
     void loop();
-
-    // Queue a sound event for playback (replaces any currently queued event)
     void play(SoundEvent event);
-
-    // Optional: PWM buzzer fallback (set pin to 255 to disable)
     void setBuzzerPin(uint8_t pin);
-
     bool isAvailable() const { return _btAudio != nullptr; }
 
 private:
@@ -58,27 +51,28 @@ private:
 
     uint8_t   _buzzerPin  = 255;
 
-    // PCM playback state
-    // WAV is decoded to a simple PCM buffer in PSRAM (or heap as fallback)
-    static const size_t PCM_BUF_MAX = 256 * 1024;  // 256 KB — ~3 s at 44.1kHz stereo 16-bit
-    int16_t*  _pcmBuf     = nullptr;
-    size_t    _pcmSamples = 0;  // total stereo samples (L+R pairs = 1 frame)
-    size_t    _pcmPos     = 0;  // current playback position in samples
+    // Ring buffer for streaming PCM data (power of 2 for masking)
+    static const size_t RING_BUF_SIZE = 16 * 1024;  // 16 KB
+    static const size_t RING_MASK     = RING_BUF_SIZE - 1;
+    uint8_t*       _ringBuf  = nullptr;
+    volatile uint32_t _ringWr = 0;   // write index (producer: loop)
+    volatile uint32_t _ringRd = 0;   // read index  (consumer: audio callback)
 
-    // A2DP data callback (only when Classic BT is available)
+    // HTTP streaming state
+    HTTPClient  _http;
+    WiFiClient* _httpStream = nullptr;
+    bool        _streaming  = false;
+    bool        _httpDone   = false;
+
+    // A2DP data callback
     static SoundManager* _instance;
 #ifdef HAS_BT_AUDIO
     static int32_t _audioCallback(Frame* frame, int32_t frame_count);
 #endif
 
-    // Fetch + decode WAV for a given sound event
-    bool _fetchAndDecode(SoundEvent event);
+    bool _startStream(SoundEvent event);
+    void _fillRingBuffer();
+    void _stopStream();
     const char* _fileNameForEvent(SoundEvent event) const;
-
-    // Minimal WAV header parser: fills pcmOffset and sampleCount
-    bool _parseWavHeader(const uint8_t* data, size_t dataLen,
-                         uint32_t& pcmOffset, uint32_t& numSamples);
-
-    // Play a fallback buzzer tone
     void _buzzerTone(uint32_t freqHz, uint32_t durationMs);
 };

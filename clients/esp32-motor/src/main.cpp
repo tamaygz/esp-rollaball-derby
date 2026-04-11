@@ -411,22 +411,6 @@ static void handleBtDisconnect() {
     httpServer.send(200, "application/json", "{\"ok\":true}");
 }
 
-// POST /api/bt/connect   (reconnect to already-paired device)
-static void handleBtConnect() {
-    if (!btAudio.hasPairedDevice()) {
-        httpServer.send(400, "application/json", "{\"error\":\"No paired device\"}");
-        return;
-    }
-    btAudio.connect(btAudio.getPairedAddress());
-    httpServer.send(200, "application/json", "{\"ok\":true}");
-}
-
-// POST /api/bt/disconnect   (disconnect without forgetting the device)
-static void handleBtDisconnect() {
-    btAudio.disconnect(false);
-    httpServer.send(200, "application/json", "{\"ok\":true}");
-}
-
 // POST /api/bt/pair   { "address": "XX:XX:XX:XX:XX:XX" }
 static void handleBtPair() {
     if (httpServer.method() != HTTP_POST) { httpServer.send(405, "application/json", "{\"error\":\"Method Not Allowed\"}"); return; }

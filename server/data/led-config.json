@@ -10,10 +10,8 @@
     "ledCount": 64,
     "gpioPin": 4,
     "topology": "matrix_progressive",
-    "brightness": 29,
-    "defaultEffect": "blink",
-    "matrixRows": 8,
-    "matrixCols": 8
+    "brightness": 10,
+    "defaultEffect": "pulse"
   },
   "display": {
     "ledCount": 0,
@@ -24,7 +22,7 @@
   },
   "deviceColorMap": {
     "00B7F33C": 15,
-    "701C34FE8CE0": 7
+    "701C34FE8CE0": 3
   },
   "deviceNameMap": {
     "00B7F33C": "Gallop Poll",

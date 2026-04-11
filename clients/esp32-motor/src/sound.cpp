@@ -1,5 +1,4 @@
 #include "sound.h"
-#include <HTTPClient.h>
 #include <Arduino.h>
 
 SoundManager* SoundManager::_instance = nullptr;
@@ -10,15 +9,15 @@ bool SoundManager::begin(BtAudio* btAudio, const char* host, uint16_t port) {
     _port = port;
     _instance = this;
 
-    // Allocate PCM buffer from PSRAM if available, else heap
+    // Allocate ring buffer (16 KB — tiny compared to old 256 KB PCM buf)
     if (psramFound()) {
-        _pcmBuf = static_cast<int16_t*>(ps_malloc(PCM_BUF_MAX));
+        _ringBuf = static_cast<uint8_t*>(ps_malloc(RING_BUF_SIZE));
     }
-    if (!_pcmBuf) {
-        _pcmBuf = static_cast<int16_t*>(malloc(PCM_BUF_MAX));
+    if (!_ringBuf) {
+        _ringBuf = static_cast<uint8_t*>(malloc(RING_BUF_SIZE));
     }
-    if (!_pcmBuf) {
-        Serial.println("[SOUND] Failed to allocate PCM buffer — sound disabled");
+    if (!_ringBuf) {
+        Serial.println("[SOUND] Failed to allocate ring buffer — sound disabled");
         return false;
     }
 
@@ -28,24 +27,22 @@ bool SoundManager::begin(BtAudio* btAudio, const char* host, uint16_t port) {
 #endif
     }
 
-    Serial.println("[SOUND] Sound manager ready");
+    Serial.printf("[SOUND] Sound manager ready (ring buf %u bytes)\n", RING_BUF_SIZE);
     return true;
 }
 
 void SoundManager::loop() {
-    // Promote queued event to playing if not currently playing
-    if (_queued != SoundEvent::NONE && _pcmPos >= _pcmSamples) {
+    // Start new stream when an event is queued
+    if (_queued != SoundEvent::NONE) {
         SoundEvent next = _queued;
-        _queued  = SoundEvent::NONE;
-        _playing = SoundEvent::NONE;
+        _queued = SoundEvent::NONE;
+
+        // Interrupt any active stream
+        if (_streaming) _stopStream();
 
         if (_btAudio && _btAudio->isConnected()) {
-            if (_fetchAndDecode(next)) {
-                _pcmPos  = 0;
-                _playing = next;
-            }
+            _startStream(next);
         } else if (_buzzerPin != 255) {
-            // Fallback: buzzer tone
             switch (next) {
                 case SoundEvent::COUNTDOWN_TICK: _buzzerTone(800,  80); break;
                 case SoundEvent::COUNTDOWN_GO:   _buzzerTone(1200, 200); break;
@@ -68,6 +65,17 @@ void SoundManager::loop() {
             }
         }
     }
+
+    // Feed ring buffer from HTTP stream
+    if (_streaming) {
+        _fillRingBuffer();
+
+        // Finished when HTTP done and callback has drained the buffer
+        if (_httpDone && (_ringWr == _ringRd)) {
+            Serial.println("[SOUND] Playback complete");
+            _stopStream();
+        }
+    }
 }
 
 void SoundManager::play(SoundEvent event) {
@@ -82,80 +90,156 @@ void SoundManager::setBuzzerPin(uint8_t pin) {
     }
 }
 
+// ─── A2DP audio callback (runs on BT core) ──────────────────────────────────
+
 #ifdef HAS_BT_AUDIO
 int32_t SoundManager::_audioCallback(Frame* frame, int32_t frame_count) {
-    if (!_instance || _instance->_pcmPos >= _instance->_pcmSamples) {
+    if (!_instance || !_instance->_streaming) {
         memset(frame, 0, frame_count * sizeof(Frame));
         return frame_count;
     }
 
-    int32_t remaining = (int32_t)(_instance->_pcmSamples - _instance->_pcmPos);
-    int32_t toWrite   = min(frame_count, remaining);
+    uint32_t wr = _instance->_ringWr;
+    uint32_t rd = _instance->_ringRd;
+    uint32_t avail = wr - rd;  // unsigned diff handles wrap
 
-    const int16_t* src = _instance->_pcmBuf + _instance->_pcmPos;
-    for (int32_t i = 0; i < toWrite; ++i) {
-        // PCM is stereo (L,R interleaved); Frame contains {int16_t channel1, int16_t channel2}
-        frame[i].channel1 = src[i * 2];
-        frame[i].channel2 = src[i * 2 + 1];
+    const uint32_t bytesPerFrame = sizeof(Frame);  // 4
+    int32_t framesAvail = (int32_t)(avail / bytesPerFrame);
+    int32_t toRead = min(frame_count, framesAvail);
+
+    for (int32_t i = 0; i < toRead; i++) {
+        uint32_t rdPos = rd & RING_MASK;
+        // rd is always 4-byte aligned (starts at 0, advances by 4)
+        // RING_BUF_SIZE is a multiple of 4, so no wrap-split possible
+        memcpy(&frame[i], _instance->_ringBuf + rdPos, bytesPerFrame);
+        rd += bytesPerFrame;
     }
-    _instance->_pcmPos += toWrite * 2;  // advance by stereo sample pairs
 
-    // Pad remaining frames with silence
-    if (toWrite < frame_count) {
-        memset(frame + toWrite, 0, (frame_count - toWrite) * sizeof(Frame));
+    _instance->_ringRd = rd;
+
+    // Pad remaining with silence
+    if (toRead < frame_count) {
+        memset(frame + toRead, 0, (frame_count - toRead) * sizeof(Frame));
     }
 
     return frame_count;
 }
 #endif  // HAS_BT_AUDIO
 
-bool SoundManager::_fetchAndDecode(SoundEvent event) {
+// ─── Streaming internals ─────────────────────────────────────────────────────
+
+bool SoundManager::_startStream(SoundEvent event) {
     const char* filename = _fileNameForEvent(event);
     if (!filename) return false;
 
     char url[128];
     snprintf(url, sizeof(url), "http://%s:%u/assets/sounds/%s", _host, _port, filename);
 
-    HTTPClient http;
-    http.begin(url);
-    http.setTimeout(8000);  // 8 s timeout
-    int code = http.GET();
+    _http.begin(url);
+    _http.setTimeout(8000);
+    int code = _http.GET();
     if (code != 200) {
         Serial.printf("[SOUND] HTTP %d fetching %s\n", code, url);
-        http.end();
+        _http.end();
         return false;
     }
 
-    size_t len = http.getSize();
-    if (len == 0 || len > PCM_BUF_MAX) {
-        Serial.printf("[SOUND] File too large or empty (%u bytes): %s\n", len, filename);
-        http.end();
+    _httpStream = _http.getStreamPtr();
+    if (!_httpStream) { _http.end(); return false; }
+
+    // Read WAV header (up to 256 bytes covers any standard WAV)
+    uint8_t hdr[256];
+    size_t hdrRead = _httpStream->readBytes(reinterpret_cast<char*>(hdr),
+                                            min((size_t)256, (size_t)_http.getSize()));
+    if (hdrRead < 44 || memcmp(hdr, "RIFF", 4) != 0 || memcmp(hdr + 8, "WAVE", 4) != 0) {
+        Serial.printf("[SOUND] Invalid WAV header for %s\n", filename);
+        _http.end(); _httpStream = nullptr;
         return false;
     }
 
-    // Read WAV data into a temporary buffer
-    uint8_t* wavBuf = reinterpret_cast<uint8_t*>(_pcmBuf);  // reuse PCM buf as staging
-    size_t   bytesRead = http.getStream().readBytes(reinterpret_cast<char*>(wavBuf), len);
-    http.end();
+    // Walk sub-chunks to find "data"
+    uint32_t offset = 12;
+    bool found = false;
+    while (offset + 8 <= hdrRead) {
+        uint32_t chunkSize;
+        memcpy(&chunkSize, hdr + offset + 4, 4);
+        if (memcmp(hdr + offset, "data", 4) == 0) {
+            uint32_t dataStart = offset + 8;
+            // Reset ring buffer
+            _ringWr = 0;
+            _ringRd = 0;
+            // Seed with any PCM bytes already read past the data chunk header
+            if (dataStart < hdrRead) {
+                size_t seed = hdrRead - dataStart;
+                if (seed > RING_BUF_SIZE) seed = RING_BUF_SIZE;
+                memcpy(_ringBuf, hdr + dataStart, seed);
+                _ringWr = (uint32_t)seed;
+            }
+            found = true;
+            break;
+        }
+        offset += 8 + chunkSize;
+        if (chunkSize % 2 != 0) offset++;  // RIFF word alignment
+    }
 
-    if (bytesRead < 44) {  // WAV header minimum
-        Serial.printf("[SOUND] Short read (%u bytes) for %s\n", bytesRead, filename);
+    if (!found) {
+        Serial.printf("[SOUND] No data chunk in %s\n", filename);
+        _http.end(); _httpStream = nullptr;
         return false;
     }
 
-    uint32_t pcmOffset = 0, numSamples = 0;
-    if (!_parseWavHeader(wavBuf, bytesRead, pcmOffset, numSamples)) {
-        Serial.printf("[SOUND] WAV header parse failed for %s\n", filename);
-        return false;
-    }
-
-    // Copy PCM data to start of PCM buffer (may overlap — use memmove)
-    memmove(_pcmBuf, wavBuf + pcmOffset, numSamples * sizeof(int16_t));
-    _pcmSamples = numSamples;
-    _pcmPos     = 0;
-
-    Serial.printf("[SOUND] Loaded %s: %u stereo samples\n", filename, numSamples / 2);
+    _httpDone  = false;
+    _streaming = true;
+    _playing   = event;
+    Serial.printf("[SOUND] Streaming %s\n", filename);
     return true;
+}
+
+void SoundManager::_fillRingBuffer() {
+    if (_httpDone || !_httpStream) return;
+
+    uint32_t wr = _ringWr;
+    uint32_t rd = _ringRd;
+    uint32_t used = wr - rd;
+    uint32_t freeBytes = RING_BUF_SIZE - used;
+
+    // Fill in up to two contiguous segments (handles wrap-around)
+    while (freeBytes > 0) {
+        int avail = _httpStream->available();
+        if (avail <= 0) break;
+
+        uint32_t wrPos = wr & RING_MASK;
+        uint32_t contiguous = RING_BUF_SIZE - wrPos;        // bytes to end of buffer
+        uint32_t toRead = min(freeBytes, contiguous);
+        if ((uint32_t)avail < toRead) toRead = (uint32_t)avail;
+
+        int got = _httpStream->readBytes(reinterpret_cast<char*>(_ringBuf + wrPos), toRead);
+        if (got <= 0) break;
+
+        wr += (uint32_t)got;
+        freeBytes -= (uint32_t)got;
+    }
+
+    _ringWr = wr;
+
+    // Detect end-of-stream
+    if (!_httpStream->available() && !_httpStream->connected()) {
+        _httpDone = true;
+        _http.end();
+        _httpStream = nullptr;
+    }
+}
+
+void SoundManager::_stopStream() {
+    _streaming = false;  // stop callback from reading first
+    _playing   = SoundEvent::NONE;
+    _ringWr    = 0;
+    _ringRd    = 0;
+    _httpDone  = true;
+    if (_httpStream) {
+        _http.end();
+        _httpStream = nullptr;
+    }
 }
 
 const char* SoundManager::_fileNameForEvent(SoundEvent event) const {
@@ -179,45 +263,6 @@ const char* SoundManager::_fileNameForEvent(SoundEvent event) const {
         case SoundEvent::DRAW:           return SOUND_FILE_DRAW;
         default:                         return nullptr;
     }
-}
-
-bool SoundManager::_parseWavHeader(const uint8_t* data, size_t dataLen,
-                                    uint32_t& pcmOffset, uint32_t& numSamples) {
-    // Standard RIFF WAV header layout:
-    //  Offset  Size  Field
-    //  0       4     "RIFF"
-    //  4       4     file size - 8
-    //  8       4     "WAVE"
-    //  12      4     "fmt "
-    //  16      4     fmt chunk size (16 for PCM)
-    //  20      2     audio format (1=PCM)
-    //  22      2     num channels
-    //  24      4     sample rate
-    //  28      4     byte rate
-    //  32      2     block align
-    //  34      2     bits per sample
-    //  36      4     "data"
-    //  40      4     data chunk size
-
-    if (dataLen < 44) return false;
-    if (memcmp(data,     "RIFF", 4) != 0) return false;
-    if (memcmp(data + 8, "WAVE", 4) != 0) return false;
-
-    // Walk sub-chunks to find "data"
-    uint32_t offset = 12;
-    while (offset + 8 <= dataLen) {
-        uint32_t chunkSize;
-        memcpy(&chunkSize, data + offset + 4, 4);
-        if (memcmp(data + offset, "data", 4) == 0) {
-            pcmOffset  = offset + 8;
-            // numSamples = total int16_t values in the data chunk
-            numSamples = chunkSize / sizeof(int16_t);
-            return true;
-        }
-        offset += 8 + chunkSize;
-        if (chunkSize % 2 != 0) offset++;  // RIFF chunks are word-aligned
-    }
-    return false;
 }
 
 void SoundManager::_buzzerTone(uint32_t freqHz, uint32_t durationMs) {
