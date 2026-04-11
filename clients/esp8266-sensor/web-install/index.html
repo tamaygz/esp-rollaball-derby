@@ -591,12 +591,22 @@ function handleBinFile(file) {
 }
 
 // ── Bundled firmware availability check ───────────────────────────────────────
+let _bundledCheckGen = 0;
+
 async function checkBundledAndSet() {
-  const manifestUrl = MANIFESTS_BUNDLED[currentBoard];
+  // Capture the board+source state and a generation token at the time of this call.
+  // Any state change (board switch, source switch) that re-invokes this function will
+  // increment the generation, causing older in-flight calls to discard their results.
+  const gen = ++_bundledCheckGen;
+  const board = currentBoard;
+  const src = currentSrc;
+  const manifestUrl = MANIFESTS_BUNDLED[board];
+
   setStatus('Checking bundled firmware…');
   try {
     // Fetch and parse the manifest to find the .bin paths
     const mRes = await fetch(manifestUrl);
+    if (gen !== _bundledCheckGen || src !== currentSrc || board !== currentBoard) return;
     if (!mRes.ok) {
       setStatus('Bundled firmware manifest not found on this server', 'err');
       return;
@@ -605,9 +615,12 @@ async function checkBundledAndSet() {
     try {
       manifest = await mRes.json();
     } catch (_) {
+      if (gen !== _bundledCheckGen || src !== currentSrc || board !== currentBoard) return;
       setStatus('Bundled firmware manifest is invalid', 'err');
       return;
     }
+
+    if (gen !== _bundledCheckGen || src !== currentSrc || board !== currentBoard) return;
 
     // Resolve parts relative to the manifest URL
     const base = manifestUrl.substring(0, manifestUrl.lastIndexOf('/') + 1);
@@ -621,6 +634,7 @@ async function checkBundledAndSet() {
     for (const part of parts) {
       const binUrl = part.path.startsWith('http') ? part.path : base + part.path.replace(/^\.\//, '');
       const binRes = await fetch(binUrl, { method: 'HEAD' });
+      if (gen !== _bundledCheckGen || src !== currentSrc || board !== currentBoard) return;
       if (!binRes.ok) {
         setStatus(`Bundled firmware binary not found: ${part.path}`, 'err');
         return;
@@ -630,6 +644,7 @@ async function checkBundledAndSet() {
     ewib.manifest = manifestUrl;
     setStatus('');
   } catch (_) {
+    if (gen !== _bundledCheckGen || src !== currentSrc || board !== currentBoard) return;
     setStatus('Bundled firmware not found on this server', 'err');
   }
 }
