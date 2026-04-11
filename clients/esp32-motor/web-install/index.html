@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Derby Sensor — Firmware Flasher</title>
+  <title>Derby Motor — Firmware Flasher</title>
   <link rel="icon" href="/favicon.ico" sizes="any">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -153,6 +153,10 @@
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
       gap: .45rem;
+    }
+    .seg-group.single {
+      grid-template-columns: auto;
+      display: inline-grid;
     }
     .seg {
       display: flex;
@@ -347,9 +351,9 @@
 
   <!-- Header -->
   <header class="hdr">
-    <div class="badge">⚡ ESP8266 Flasher</div>
-    <h1>Derby <em>Sensor</em></h1>
-    <p class="sub">Flash IR sensor firmware directly from your browser — no toolchain required.</p>
+    <div class="badge">⚡ ESP32 Flasher</div>
+    <h1>Derby <em>Motor</em></h1>
+    <p class="sub">Flash motor controller firmware directly from your browser — no toolchain required.</p>
   </header>
 
   <!-- Browser compat warning -->
@@ -362,7 +366,7 @@
     </span>
     <span id="warn-insecure" style="display:none">
       Web Serial requires a <strong>secure context</strong>.
-      Open from <code>http://localhost:3000/flash-sensor</code> (same machine) or serve over HTTPS.
+      Open from <code>http://localhost:3000/flash-motor</code> (same machine) or serve over HTTPS.
     </span>
   </div>
 
@@ -373,16 +377,12 @@
     <div class="step">
       <div class="step-row">
         <span class="step-n">01</span>
-        <span class="step-label">Select Board</span>
+        <span class="step-label">Board</span>
       </div>
-      <div class="seg-group" id="board-group">
-        <button class="seg on" data-board="d1_mini">
-          <strong>Wemos D1 Mini</strong>
-          <small>CP2104 · 4 MB flash</small>
-        </button>
-        <button class="seg" data-board="nodemcuv2">
-          <strong>NodeMCU v2 / v3</strong>
-          <small>CH340 · 4 MB flash</small>
+      <div class="seg-group single" id="board-group">
+        <button class="seg on" data-board="esp32dev">
+          <strong>ESP32 Dev Module</strong>
+          <small>DOIT DevKit · 4 MB flash</small>
         </button>
       </div>
     </div>
@@ -444,8 +444,8 @@
                      autocomplete="off" inputmode="numeric">
             </label>
             <label class="field full">
-              <span>Player Name <em>(optional)</em></span>
-              <input type="text" id="f-name" placeholder="e.g. Lane 1"
+              <span>Device Name <em>(optional)</em></span>
+              <input type="text" id="f-name" placeholder="e.g. Motor Controller"
                      maxlength="20" autocomplete="off">
             </label>
           </div>
@@ -476,25 +476,23 @@
     <a href="https://github.com/tamaygz/esp-rollaball-derby/releases/latest" target="_blank" rel="noopener">GitHub Releases ↗</a>
     &nbsp;·&nbsp; Chrome or Edge 89+ required (Web Serial API)
     <br>
-    <a href="/flash-motor">⚙️ Flash Motor Controller instead</a>
+    <a href="/flash-sensor">⚡ Flash IR Sensor instead</a>
   </p>
 
 </div><!-- /wrap -->
 
-<!-- ESP Web Tools v10.2.1 — vendored locally for offline/LAN use -->
-<script type="module" src="./vendor/install-button.js"></script>
+<!-- ESP Web Tools — vendored locally; shared with sensor flasher for LAN/offline use -->
+<script type="module" src="/flash-vendor/install-button.js"></script>
 
 <script>
 'use strict';
 
 // ── Manifest URLs ─────────────────────────────────────────────────────────────
 const MANIFESTS = {
-  d1_mini:   './manifest.json',
-  nodemcuv2: './manifest-nodemcuv2.json',
+  esp32dev: './manifest.json',
 };
 const MANIFESTS_BUNDLED = {
-  d1_mini:   './manifest-bundled.json',
-  nodemcuv2: './manifest-bundled-nodemcuv2.json',
+  esp32dev: './manifest-bundled.json',
 };
 
 // ── DOM refs ──────────────────────────────────────────────────────────────────
@@ -514,7 +512,7 @@ const cfgProgress   = document.getElementById('cfg-progress');
 const cfgRetryBtn   = document.getElementById('cfg-retry-btn');
 
 // ── State ─────────────────────────────────────────────────────────────────────
-let currentBoard = 'd1_mini';
+let currentBoard = 'esp32dev';
 let currentSrc   = 'auto';
 let manualUrl    = null;   // Object URL for blob manifest when source=manual
 
@@ -582,9 +580,9 @@ function handleBinFile(file) {
 
   const binUrl = URL.createObjectURL(file);
   const manifest = {
-    name: 'Derby Sensor (custom)',
+    name: 'Derby Motor (custom)',
     new_install_prompt_erase: true,
-    builds: [{ chipFamily: 'ESP8266', parts: [{ path: binUrl, offset: 0 }] }],
+    builds: [{ chipFamily: 'ESP32', parts: [{ path: binUrl, offset: 0 }] }],
   };
   const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
   manualUrl = URL.createObjectURL(manifestBlob);
@@ -597,9 +595,6 @@ function handleBinFile(file) {
 let _bundledCheckGen = 0;
 
 async function checkBundledAndSet() {
-  // Capture the board+source state and a generation token at the time of this call.
-  // Any state change (board switch, source switch) that re-invokes this function will
-  // increment the generation, causing older in-flight calls to discard their results.
   const gen = ++_bundledCheckGen;
   const board = currentBoard;
   const src = currentSrc;
@@ -607,7 +602,6 @@ async function checkBundledAndSet() {
 
   setStatus('Checking bundled firmware…');
   try {
-    // Fetch and parse the manifest to find the .bin paths
     const mRes = await fetch(manifestUrl);
     if (gen !== _bundledCheckGen || src !== currentSrc || board !== currentBoard) return;
     if (!mRes.ok) {
@@ -625,7 +619,6 @@ async function checkBundledAndSet() {
 
     if (gen !== _bundledCheckGen || src !== currentSrc || board !== currentBoard) return;
 
-    // Resolve parts relative to the manifest URL
     const base = manifestUrl.substring(0, manifestUrl.lastIndexOf('/') + 1);
     const parts = manifest?.builds?.[0]?.parts ?? [];
     if (parts.length === 0) {
@@ -633,7 +626,6 @@ async function checkBundledAndSet() {
       return;
     }
 
-    // HEAD-check each firmware .bin file
     for (const part of parts) {
       const binUrl = part.path.startsWith('http') ? part.path : base + part.path.replace(/^\.\//, '');
       const binRes = await fetch(binUrl, { method: 'HEAD' });
@@ -716,7 +708,7 @@ async function sendConfigViaSerial() {
   const ip   = document.getElementById('f-ip').value.trim();
   const port = document.getElementById('f-port').value.trim();
   const name = document.getElementById('f-name').value.trim();
-  const payload = JSON.stringify({ server_ip: ip, server_port: port, player_name: name });
+  const payload = JSON.stringify({ server_ip: ip, server_port: port, player_name: name || undefined });
 
   const setP = (msg, cls = '') => {
     cfgProgress.textContent = '';
@@ -739,7 +731,6 @@ async function sendConfigViaSerial() {
     const ports = await navigator.serial.getPorts();
     serialPort = ports.length > 0 ? ports[0] : await navigator.serial.requestPort();
 
-    // Close port if it was left open by esp-web-tools
     if (serialPort.readable || serialPort.writable) {
       try { await serialPort.close(); } catch (_) { /* already closing */ }
     }

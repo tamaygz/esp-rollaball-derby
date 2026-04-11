@@ -63,6 +63,12 @@ app.use('/assets', express.static(path.join(__dirname, '..', '..', 'clients', 'a
 // No toolchain needed — works from Chrome/Edge via Web Serial.
 app.use('/flash-sensor', express.static(path.join(__dirname, '..', '..', 'clients', 'esp8266-sensor', 'web-install')));
 
+// ESP Web Tools vendor bundle shared by both flasher pages (avoids duplication).
+app.use('/flash-vendor', express.static(path.join(__dirname, '..', '..', 'clients', 'esp8266-sensor', 'web-install', 'vendor')));
+
+// ESP32 motor controller browser flasher served at /flash-motor/
+app.use('/flash-motor', express.static(path.join(__dirname, '..', '..', 'clients', 'esp32-motor', 'web-install')));
+
 // ─── Routes ───────────────────────────────────────────────────────────────────
 
 // Placeholder — connectionManager created after HTTP server; routes mounted later.
