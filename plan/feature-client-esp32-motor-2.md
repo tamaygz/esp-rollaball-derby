@@ -4,14 +4,14 @@ version: 2.0
 date_created: 2026-04-11
 last_updated: 2026-04-11
 owner: "@tamaygz"
-status: "Planned"
+status: "In Progress"
 tags: [feature, firmware, esp32, arduino, platformio, motor, led-matrix, sound, buttons]
 supersedes: "feature-client-esp8266-motor-1.md"
 ---
 
 # Client ESP32 Peripheral Controller — Implementation Plan v2
 
-![Status: Planned](https://img.shields.io/badge/status-Planned-blue)
+![Status: In Progress](https://img.shields.io/badge/status-In%20Progress-yellow)
 
 PlatformIO project for **ESP32** peripheral controller firmware. Receives game state from the server via WebSocket and drives motors, LED matrix, buttons, and Bluetooth audio. Each subsystem is optional — the client degrades gracefully (e.g. works as LED matrix + BT sound client without motors attached).
 

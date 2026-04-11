@@ -11,7 +11,7 @@
 #include <effects/SolidEffect.h>
 #include <effects/SparkleEffect.h>
 #include "config.h"
-#include "websocket.h"  // for LedTestEffectMessage
+#include <leds/GameEvents.h>  // for LedTestEffectMessage
 
 // Visual status states driven by connection and game state.
 enum class LedState {

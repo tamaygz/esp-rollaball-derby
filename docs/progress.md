@@ -295,3 +295,45 @@
   - `clients/web/js/devices.js` — _fetchMdnsInfo()
   - `server/README.md`, `README.md`, `clients/esp8266-sensor/README.md`
   - `.github/copilot-instructions.md`, `docs/findings.md`, `docs/progress.md`
+
+---
+
+## Session: 2026-04-13 — ESP32 Motor Controller Implementation
+
+### Phase: ESP32 Motor Controller (feature-client-esp32-motor-2.md — Phases 1–9)
+- **Status:** In progress — firmware + server + admin UI complete; Phase 10 docs pending
+- Actions taken:
+  - **Firmware**: All 23 ESP32 source files created under `clients/esp32-motor/`
+    - Project setup: `platformio.ini`, `config.h`
+    - WebSocket: `websocket.h/.cpp` — registration with motorColors/capabilities, all 9 inbound message types
+    - Motors: `motor_interface.h`, `stepper_motor.h/.cpp` (AccelStepper HALF4WIRE), `motor_manager.h/.cpp`, `motor_calibration.h/.cpp`
+    - Buttons: `buttons.h/.cpp` — debounced physical buttons → WS `button` events
+    - LED matrix: `led.h/.cpp`, `font5x3.h`, `matrix_display.h/.cpp` — countdown/scored/winner displays
+    - BT audio: `bt_audio.h/.cpp` — A2DP Source, scan/pair/auto-connect; `sound.h/.cpp` — WAV fetch + PCM ring buffer
+    - Integration: `main.cpp` — all subsystems, REST API endpoints, LittleFS persistence
+  - **Interface pass**: fixed `MAX_MOTORS` → `MOTOR_MAX_LANES`, MotorCalibration API alignment, `moveLaneToNormalized()`, colorIndex position matching in `loop()`
+  - **Server**: `GameState.setPlayerColorIndex()`, `_applyMotorColorSync()` in ConnectionManager, proxy routes (`/api/clients/:id/motor/*`, `/api/clients/:id/bt/*`) in `clients.js`
+  - **Admin UI**: motor calibration panel in `devices.html`; jog, calibration wizard, BT management in `devices.js`; motor control CSS in `style.css`
+  - **Sound assets**: 8 silent WAV placeholder files in `clients/assets/sounds/` (served at `/assets/sounds/`)
+  - **Tests**: all 121 server tests passing
+- Remaining: TASK-084/085 (server tests for button handling + color sync), Phase 10 (README files)
+- Files created:
+  - `clients/esp32-motor/platformio.ini`
+  - `clients/esp32-motor/src/config.h`, `main.cpp`, `websocket.h`, `websocket.cpp`
+  - `clients/esp32-motor/src/motor_interface.h`, `stepper_motor.h`, `stepper_motor.cpp`
+  - `clients/esp32-motor/src/motor_manager.h`, `motor_manager.cpp`
+  - `clients/esp32-motor/src/motor_calibration.h`, `motor_calibration.cpp`
+  - `clients/esp32-motor/src/buttons.h`, `buttons.cpp`
+  - `clients/esp32-motor/src/led.h`, `led.cpp`, `font5x3.h`
+  - `clients/esp32-motor/src/matrix_display.h`, `matrix_display.cpp`
+  - `clients/esp32-motor/src/bt_audio.h`, `bt_audio.cpp`
+  - `clients/esp32-motor/src/sound.h`, `sound.cpp`
+  - `clients/assets/sounds/` (8 WAV placeholder files)
+- Files modified:
+  - `server/src/game/GameState.js` — `setPlayerColorIndex()`
+  - `server/src/ws/ConnectionManager.js` — button handling, motor color sync, capabilities storage
+  - `server/src/routes/clients.js` — motor + BT proxy routes
+  - `clients/web/devices.html` — motor control panel HTML
+  - `clients/web/js/devices.js` — motor control JS functions, BT management
+  - `clients/web/css/style.css` — motor control panel CSS
+  - `.github/copilot-instructions.md` — ESP32 peripheral added to component table

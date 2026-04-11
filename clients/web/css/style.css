@@ -911,6 +911,134 @@ input:disabled, select:disabled {
   gap: 12px;
 }
 
+/* ─── Motor Control Panel ───────────────────────────────────────────────────── */
+.motor-ctrl-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.motor-ctrl-header h2 { margin: 0; }
+
+.motor-ctrl-block {
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+  margin-top: 14px;
+}
+.motor-ctrl-block h3 {
+  margin: 0 0 10px 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* Lane status cards */
+.motor-lane-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.lane-card {
+  background: var(--surface-hi);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.lane-title {
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+.lane-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.lane-pos-bar {
+  height: 6px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.lane-pos-fill {
+  height: 100%;
+  background: #4fa8f5;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+.lane-pos-label {
+  font-size: 0.75rem;
+  color: var(--muted);
+  text-align: right;
+}
+
+/* Inline status badges */
+.badge {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+.badge-ok   { background: rgba(56,161,105,0.18); color: #68d391; }
+.badge-warn { background: rgba(214,158,46,0.15); color: #f6e05e; }
+.badge-info { background: rgba(79,142,247,0.15); color: #90cdf4; }
+
+/* Jog & calib rows */
+.motor-jog-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.motor-jog-row label {
+  font-size: 0.82rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.input-sm {
+  padding: 4px 8px;
+  font-size: 0.82rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface-hi);
+  color: var(--text);
+  min-width: 60px;
+}
+.btn-group {
+  display: flex;
+  gap: 4px;
+}
+.jog-size-btn.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+/* BT section */
+.bt-status-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.bt-device-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+}
+
 .effect-param-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
