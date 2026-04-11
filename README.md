@@ -31,6 +31,7 @@ All communication over WebSocket (`ws://`). The server is the single source of t
 - **Action effects**: 8 visual event types (zero_roll, score_1/2/3, streak_zero_3x, streak_three_2x, took_lead, became_last)
 - **Theming**: Horse 🐎 and camel 🐪 themes with auto-random selection
 - **Reconnect**: Both admin and display clients auto-reconnect with exponential backoff
+- **mDNS autodiscovery**: Server publishes `_derby._tcp` via DNS-SD; ESP8266 sensors find the server automatically on the LAN
 - **Rate limiting**: 300 ms per player to prevent spam
 
 ## Directory Structure
@@ -67,10 +68,12 @@ npm install
 npm start
 ```
 
-- Admin panel: `http://localhost:3000/admin`
+- Admin panel: `http://localhost:3000/admin` (or `http://derby-server.local:3000/admin`)
 - Display (TV): `http://localhost:3000/display/` (add `?fullscreen=1` for auto-fullscreen)
 - Health check: `http://localhost:3000/api/health`
 - Asset preview: open `clients/assets/themes/shared/preview.html` in a browser
+
+The server advertises itself via mDNS as `_derby._tcp`. ESP8266 sensors auto-discover the server IP and port on the same LAN — no manual IP entry required.
 
 ## Documentation
 

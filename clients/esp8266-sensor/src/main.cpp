@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
+#include <ESP8266mDNS.h>
 #include <WiFiManager.h>
 #include <LittleFS.h>
 #include <ArduinoJson.h>
@@ -261,6 +262,33 @@ static void flushStateIfNeeded() {
     }
 }
 
+// ─── mDNS Server Discovery ────────────────────────────────────────────────────
+// Queries the LAN for _derby._tcp to auto-discover the game server.
+// Returns true and fills host/port on success; false if no service found.
+
+static bool discoverServer(String& host, uint16_t& port) {
+    // Build a unique mDNS hostname: "derby-sensor-XXXX"
+    char mdnsName[32];
+    snprintf(mdnsName, sizeof(mdnsName), "derby-sensor-%04x", ESP.getChipId() & 0xFFFF);
+
+    if (!MDNS.begin(mdnsName)) {
+        Serial.println("[mDNS] Failed to start responder");
+        return false;
+    }
+
+    Serial.println("[mDNS] Querying for _derby._tcp ...");
+    int n = MDNS.queryService("derby", "tcp");
+    if (n > 0) {
+        host = MDNS.IP(0).toString();
+        port = MDNS.port(0);
+        Serial.printf("[mDNS] Found server at %s:%u\n", host.c_str(), port);
+        return true;
+    }
+
+    Serial.println("[mDNS] No server found — falling back to config");
+    return false;
+}
+
 // ─── WiFiManager Save Callback ────────────────────────────────────────────────
 
 static void onSaveParams() {
@@ -427,8 +455,15 @@ void setup() {
     Serial.printf("[WiFi] Connected — IP: %s\n", WiFi.localIP().toString().c_str());
     ledManager.setState(LedState::WIFI_ONLY);
 
-    uint16_t port = static_cast<uint16_t>(atoi(g_serverPort));
-    wsClient.begin(g_serverIp, port, g_playerName, g_playerId);
+    // Try mDNS autodiscovery first; fall back to stored config.
+    String discoveredHost;
+    uint16_t discoveredPort;
+    if (discoverServer(discoveredHost, discoveredPort)) {
+        wsClient.begin(discoveredHost.c_str(), discoveredPort, g_playerName, g_playerId);
+    } else {
+        uint16_t port = static_cast<uint16_t>(atoi(g_serverPort));
+        wsClient.begin(g_serverIp, port, g_playerName, g_playerId);
+    }
 
     // HTTP config server — lets the Node.js admin push new config without
     // needing to re-open the WiFiManager captive portal.
@@ -459,8 +494,16 @@ void loop() {
     if (!s_wifiWasConnected) {
         s_wifiWasConnected = true;
         Serial.printf("[WiFi] Reconnected — IP: %s\n", WiFi.localIP().toString().c_str());
+
+        // Re-attempt mDNS discovery after WiFi reconnect in case server IP changed.
+        String rediscoveredHost;
+        uint16_t rediscoveredPort;
+        if (discoverServer(rediscoveredHost, rediscoveredPort)) {
+            wsClient.begin(rediscoveredHost.c_str(), rediscoveredPort, g_playerName, g_playerId);
+        }
     }
 
+    MDNS.update();
     httpServer.handleClient();
 
     // Reboot after the HTTP response has been flushed (flagged by handleHttpConfig).

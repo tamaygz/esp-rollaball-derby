@@ -271,3 +271,27 @@
   - Web flashing end-to-end testing (multiple browsers, boards)
   - Serial output validation (debug logging completeness)
   - Edge cases: WiFi timeout, WS message queue overflow, sensor debounce edge cases
+
+---
+
+## Session: 2026-04-11 — mDNS Autodiscovery
+
+### Phase: mDNS Implementation + Docs
+- **Status:** complete
+- Actions taken:
+  - **Server**: Added `bonjour-service` dependency; server publishes `_derby._tcp` via DNS-SD on startup (`server/src/index.js`)
+  - **ESP8266 sensor**: Added `ESP8266mDNS.h` (built-in); sensor queries `_derby._tcp.local` on boot to auto-discover server IP/port, falls back to WiFiManager config; re-discovers on WiFi reconnect; registers itself as `derby-sensor-XXXX.local` (`clients/esp8266-sensor/src/main.cpp`)
+  - **Health endpoint**: `/api/health` now returns `hostname` and `mdns` object with service type/name/hostname (`server/src/routes/health.js`)
+  - **Devices page**: Added mDNS info panel fetched from `/api/health` (`clients/web/devices.html`, `clients/web/js/devices.js`)
+  - **Docs updated**: server README, main README, ESP8266 sensor README, copilot-instructions.md, findings.md, progress.md
+  - Web/display clients unaffected — they derive WS URL from `location.host` (browser-served)
+  - All 121 server tests pass
+- Files modified:
+  - `server/src/index.js` — bonjour-service import, mDNS publish block
+  - `server/package.json` — bonjour-service ^1.3.0
+  - `server/src/routes/health.js` — hostname + mdns status in response
+  - `clients/esp8266-sensor/src/main.cpp` — ESP8266mDNS include, discoverServer(), MDNS.update()
+  - `clients/web/devices.html` — mdns-info div
+  - `clients/web/js/devices.js` — _fetchMdnsInfo()
+  - `server/README.md`, `README.md`, `clients/esp8266-sensor/README.md`
+  - `.github/copilot-instructions.md`, `docs/findings.md`, `docs/progress.md`

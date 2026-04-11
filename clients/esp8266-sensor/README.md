@@ -68,7 +68,13 @@ On first boot (no saved credentials) the device opens a WiFi access point named 
 | Player Name | Optional label for this player lane | _(empty — server assigns one)_ |
 
 Save the settings; the device connects to your network and saves the config to LittleFS. Subsequent boots auto-connect without opening the portal.
+### mDNS Autodiscovery
 
+After connecting to WiFi, the sensor queries `_derby._tcp.local` to auto-discover the game server’s IP and port. If found, the manually configured Server IP/Port are bypassed. If no server is advertising via mDNS, the stored config values are used as fallback.
+
+The sensor also registers itself on mDNS as **`derby-sensor-XXXX.local`**, making it reachable by hostname on the LAN.
+
+On WiFi reconnect (e.g. after dropout), autodiscovery is re-attempted so the sensor can follow a server that changed IP.
 ## Status LED
 
 | Pattern | Meaning |
@@ -94,8 +100,7 @@ Save the settings; the device connects to your network and saves the config to L
 |---------|---------|---------|
 | `gilmaimon/ArduinoWebsockets` | ^0.5.4 | WebSocket client (RFC-6455) |
 | `tzapu/WiFiManager` | ^2.0.17 | WiFi config captive portal |
-| `bblanchon/ArduinoJson` | ^7.0.0 | JSON serialisation |
-
+| `bblanchon/ArduinoJson` | ^7.0.0 | JSON serialisation || `ESP8266mDNS` | _(built-in)_ | mDNS responder + DNS-SD service discovery |
 ## WebSocket Protocol
 
 Connects to `ws://<server_ip>:<server_port>/`.

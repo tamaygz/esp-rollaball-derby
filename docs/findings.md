@@ -19,6 +19,7 @@
 | 4 | WiFi config | Hardcoded vs WiFiManager AP portal | **Decided: WiFiManager AP portal** |
 | 5 | ESPHome / Home Assistant | Use ESPHome vs standalone Arduino | **Decided: Standalone** |
 | 6 | ESP8266 WebSocket lib | Links2004 vs gilmaimon | **Decided: gilmaimon/ArduinoWebsockets** |
+| 7 | Server autodiscovery | Hardcoded IP vs mDNS/DNS-SD | **Decided: mDNS via `bonjour-service` (server) + `ESP8266mDNS` (sensor)** |
 
 ## Research Findings
 
@@ -66,6 +67,13 @@ Both work. **Node.js + `ws`** has the edge because:
 - **WiFiManager (tzapu/tablatronix)**: De-facto standard. Falls back to AP mode with captive portal if WiFi creds not configured. One library call: `wifiManager.autoConnect("Derby-SensorX")`. Custom parameters supported (e.g., server IP).
 - **Hardcoded**: Simpler code but requires re-flash for every network change. Not practical at events.
 - **Recommendation**: **WiFiManager** — essential for event portability. Game host connects to AP, enters WiFi creds once per device.
+
+#### Server Autodiscovery (mDNS / DNS-SD)
+- **Problem**: Sensors need to know the server IP and port. Hardcoding or manual entry via WiFiManager is error-prone at events with DHCP.
+- **bonjour-service** (Node.js): Publishes `_derby._tcp` on the LAN. Zero config on macOS/iOS; Windows requires Bonjour (bundled with iTunes/iCloud).
+- **ESP8266mDNS** (built into ESP8266 Arduino core): `MDNS.queryService("derby", "tcp")` discovers the server IP and port in one call. Also registers the sensor as `derby-sensor-XXXX.local`.
+- **Alternatives considered**: Custom UDP broadcast (fragile, no standard), hardcoded IP (impractical at events), static DHCP reservation (host-dependent).
+- **Recommendation**: **mDNS/DNS-SD** — zero manual IP entry when both server and sensors are on the same LAN. WiFiManager IP/port fields remain as fallback.
 
 #### OTA Updates
 - **ArduinoOTA**: Built into ESP8266 Arduino core. ~5 lines of setup code. Allows re-flashing over WiFi without USB cable.

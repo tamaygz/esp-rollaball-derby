@@ -7,6 +7,7 @@ Node.js + Express + `ws` game server. Central hub for all clients.
 - **Node.js** 20+ (LTS)
 - **Express** 4 — REST API + static file serving
 - **ws** 8 — raw WebSocket server (RFC 6455)
+- **bonjour-service** — mDNS/DNS-SD advertisement (`_derby._tcp`) for LAN autodiscovery
 
 ## Quick Start
 
@@ -20,11 +21,13 @@ npm test           # run all tests
 
 Server starts on **http://localhost:3000** (override with `PORT` env var). Copy `.env.example` to `.env` to configure.
 
+On startup the server publishes `_derby._tcp` via mDNS (DNS-SD). ESP8266 sensors auto-discover the server IP and port — no manual configuration needed if both are on the same LAN. Browser clients can reach the server at `http://derby-server.local:3000` on networks that support mDNS (macOS/iOS natively, Windows with Bonjour/iTunes installed).
+
 ## Routes
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/api/health` | Health check |
+| GET | `/api/health` | Health check + mDNS status |
 | GET | `/api/game` | Current game state + client counts |
 | POST | `/api/game/start` | Start the race |
 | POST | `/api/game/pause` | Pause / resume |

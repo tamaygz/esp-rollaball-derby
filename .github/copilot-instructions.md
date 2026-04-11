@@ -30,11 +30,15 @@ npm run dev        # watch mode
 npm test           # Node built-in test runner — no jest/mocha
 ```
 
-- Admin: `http://localhost:3000/admin`
+- Admin: `http://localhost:3000/admin` (or `http://derby-server.local:3000/admin`)
 - Display: `http://localhost:3000/display/` (`?fullscreen=1` for auto-fullscreen)
 - Assets preview: open `clients/assets/themes/shared/preview.html` in a browser
 
 **No build step** for any client — all JS is served as static files.
+
+## Network Discovery (mDNS)
+
+The server publishes `_derby._tcp` via DNS-SD (`bonjour-service`). ESP8266 sensors query `_derby._tcp.local` on boot to auto-discover the server IP and port — no manual IP configuration needed when both are on the same LAN. The `/api/health` endpoint exposes mDNS status. Manually configured IP/port in WiFiManager serves as fallback.
 
 ## Code Conventions
 

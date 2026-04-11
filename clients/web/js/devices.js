@@ -193,12 +193,27 @@
     _pollTimer = setInterval(_refresh, POLL_INTERVAL);
   }
 
+  // ── mDNS Info ──────────────────────────────────────────────────────────────
+
+  function _fetchMdnsInfo() {
+    fetch('/api/health')
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        var el = _el('mdns-info');
+        if (!el || !data.mdns) return;
+        el.textContent = '📡 mDNS: advertising as ' + _esc(data.mdns.serviceType) +
+          ' — sensors auto-discover this server on the LAN (' + _esc(data.mdns.hostname) + ')';
+      })
+      .catch(function () { /* ignore — non-critical */ });
+  }
+
   // ── Init ────────────────────────────────────────────────────────────────────
 
   var btnRefresh = _el('btn-refresh');
   if (btnRefresh) btnRefresh.addEventListener('click', _refresh);
 
   _initSensorConfigForm();
+  _fetchMdnsInfo();
 
   // Pause polling when the tab is hidden to save server resources
   document.addEventListener('visibilitychange', function () {

@@ -2,9 +2,11 @@
 
 const http = require('http');
 const path = require('path');
+const os = require('os');
 
 const express = require('express');
 const { WebSocketServer } = require('ws');
+const Bonjour = require('bonjour-service');
 
 const GameState = require('./game/GameState');
 const BotManager = require('./game/BotManager');
@@ -103,6 +105,19 @@ server.listen(PORT, HOST, () => {
   console.log(
     `[Derby Server] Game state: ${gameState.getStatus()} | Players: ${gameState.players.size}`
   );
+
+  // ─── mDNS / DNS-SD advertisement ─────────────────────────────────────────
+  // Publishes _derby._tcp.local so ESP8266 sensors (and browsers on macOS/iOS)
+  // can auto-discover the server without manual IP configuration.
+  const bonjour = new Bonjour();
+  const hostname = os.hostname();
+  bonjour.publish({
+    name: 'derby-server',
+    type: 'derby',
+    port: Number(PORT),
+    txt: { version: '1', hostname }
+  });
+  console.log(`[Derby Server] mDNS: advertising _derby._tcp on port ${PORT}`);
 });
 
 module.exports = { app, server, gameState, connectionManager: () => connectionManager, botManager: () => botManager };
