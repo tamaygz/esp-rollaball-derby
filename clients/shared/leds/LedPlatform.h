@@ -37,14 +37,11 @@
     // Use RMT channel 0 for rock-solid timing with WiFi active.
     // ESP32 has 8 RMT channels; channel 0 is safe for most applications.
     using LedMethod = NeoEsp32Rmt0Ws2812xMethod;
-    
+    using LedStrip  = NeoPixelBus<NeoGrbFeature, LedMethod>;
+
 #else
     #error "Unsupported platform. This code requires ESP8266 or ESP32."
 #endif
-
-// ─── Type Aliases ─────────────────────────────────────────────────────────────
-// WS2812B uses GRB color order (not RGB). NeoPixelBus handles this automatically.
-using LedStrip = NeoPixelBus<NeoGrbFeature, LedMethod>;
 
 // Color types for convenience
 using RgbColor = ::RgbColor;

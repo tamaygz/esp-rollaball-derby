@@ -147,7 +147,7 @@
 
       var sensorIp   = (_el('input-sensor-ip')   || {}).value || '';
       var serverIp   = (inputServerIp             || {}).value || '';
-      var serverPort = (inputServerPort           || {}).value || '3000';
+      var serverPort = (inputServerPort           || {}).value || '';
       var playerName = (_el('input-player-name')  || {}).value || '';
 
       if (!sensorIp.trim()) {

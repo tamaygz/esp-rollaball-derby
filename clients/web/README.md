@@ -114,7 +114,7 @@ LED admin uses Phase 3 REST endpoints:
 
 - `GET /api/leds/config` — Fetch current LED configurations
 - `PUT /api/leds/config/:deviceType` — Save configuration (broadcast to devices)
-- `POST /api/leds/test` — Send test effect to specific device
+- `POST /api/leds/effects/test` — Send test effect to specific device
 
 ### Architecture
 

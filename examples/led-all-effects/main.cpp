@@ -112,7 +112,7 @@ void playEffect(uint8_t index) {
       animator.playEffect(&blinkEffect);
       break;
       
-    case 3:
+    case 2:
       // Pulse Green
       Serial.println("\n[3/6] Playing Effect: PULSE (Green, 2-second period)");
       params.color = RgbColor(0, 255, 0);
@@ -122,7 +122,7 @@ void playEffect(uint8_t index) {
       animator.playEffect(&pulseEffect);
       break;
       
-    case 4:
+    case 3:
       // Rainbow
       Serial.println("\n[4/6] Playing Effect: RAINBOW (3-second cycle)");
       params.brightness = 150;
@@ -132,7 +132,7 @@ void playEffect(uint8_t index) {
       animator.playEffect(&rainbowEffect);
       break;
       
-    case 5:
+    case 4:
       // Chase Orange
       Serial.println("\n[5/6] Playing Effect: CHASE (Orange, forward)");
       params.color = RgbColor(255, 128, 0);
@@ -143,7 +143,7 @@ void playEffect(uint8_t index) {
       animator.playEffect(&chaseEffect);
       break;
       
-    case 6:
+    case 5:
       // Sparkle White on Blue
       Serial.println("\n[6/6] Playing Effect: SPARKLE (White on blue)");
       params.brightness = 200;

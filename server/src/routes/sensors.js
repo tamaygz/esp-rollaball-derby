@@ -36,8 +36,13 @@ function _isPrivateIp(ip) {
  *
  * The sensor must be running firmware with the HTTP config server on port 80
  * (POST /config endpoint).
+ *
+ * @param {object} [options]
+ * @param {number} [options.sensorPort=80] Override the port used to reach the
+ *   sensor — useful for unit tests that spin up a fake sensor on an ephemeral
+ *   port.
  */
-function createSensorsRouter() {
+function createSensorsRouter({ sensorPort = 80 } = {}) {
   const router = Router();
 
   // POST /configure — push server config to a sensor over HTTP
@@ -83,7 +88,7 @@ function createSensorsRouter() {
     const payload = JSON.stringify(config);
     const options = {
       hostname: trimmedSensorIp,
-      port:     80,
+      port:     sensorPort,
       path:     '/config',
       method:   'POST',
       headers:  {

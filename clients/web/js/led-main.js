@@ -36,5 +36,5 @@ window.Derby = window.Derby || {};
 
   // ── Connect (no player name needed — LED page is admin-only) ──────────────
 
-  Derby.Connection.connect('');
+  Derby.Connection.connect('', 'display');
 }());

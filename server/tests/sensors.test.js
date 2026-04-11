@@ -16,11 +16,11 @@ const createSensorsRouter = require('../src/routes/sensors');
 
 // ─── Test-server helpers ──────────────────────────────────────────────────────
 
-function startApiServer() {
+function startApiServer(options = {}) {
   return new Promise((resolve) => {
     const app = express();
     app.use(express.json());
-    app.use('/api/sensors', createSensorsRouter());
+    app.use('/api/sensors', createSensorsRouter(options));
     const server = http.createServer(app);
     server.listen(0, '127.0.0.1', () => {
       resolve({ server, port: server.address().port });
@@ -133,9 +133,7 @@ describe('POST /api/sensors/configure — happy path', () => {
   let receivedBody;
 
   before(async () => {
-    ({ server: apiServer, port: apiPort } = await startApiServer());
-
-    // Fake sensor: accepts POST /config and records the request body.
+    // Start fake sensor first so we know its port before wiring the router.
     ({ server: fakeSensor, port: sensorPort } = await startFakeSensor((req, res) => {
       let data = '';
       req.on('data', (c) => { data += c; });
@@ -145,6 +143,9 @@ describe('POST /api/sensors/configure — happy path', () => {
         res.end('{"ok":true}');
       });
     }));
+
+    // Wire the API server to forward to the fake sensor's ephemeral port.
+    ({ server: apiServer, port: apiPort } = await startApiServer({ sensorPort }));
   });
 
   after(() => {
@@ -164,51 +165,33 @@ describe('POST /api/sensors/configure — happy path', () => {
     };
   }
 
-  // We cannot bind to port 80 without root privileges, so the route will attempt
-  // to connect to 127.0.0.1:80 and fail with ECONNREFUSED → 502.  This confirms
-  // validation passed and the forwarding logic was invoked.
   test('proxies config to sensor and returns ok:true', async () => {
-    // 127.0.0.1 is a valid private/loopback IP that passes validation.
-    // The route forwards to port 80; since nothing listens there in test, it
-    // returns 502 (ECONNREFUSED) — confirming validation passed and the proxy
-    // attempt was made.
-
-    const res = await apiPost(apiPort, '/api/sensors/configure', {
-      sensorIp:   '127.0.0.1',
-      serverIp:   '192.168.1.10',
-      serverPort: '3000',
-      playerName: 'Alice',
-    });
-    // Either 200 (if something listened on port 80) or 502/504 (connection
-    // refused / timeout) — both confirm the request passed validation and the
-    // route attempted to contact the sensor.
-    assert.ok(
-      res.status === 200 || res.status === 502 || res.status === 504,
-      `Unexpected status ${res.status}: ${JSON.stringify(res.body)}`
-    );
+    const res = await apiPost(apiPort, '/api/sensors/configure', sensorPayload());
+    assert.equal(res.status, 200, `Unexpected status ${res.status}: ${JSON.stringify(res.body)}`);
+    assert.deepEqual(res.body, { ok: true });
+    assert.equal(receivedBody.server_ip,   '192.168.1.10');
+    assert.equal(receivedBody.server_port, '3000');
+    assert.equal(receivedBody.player_name, 'Alice');
   });
 
   test('omits player_name from forwarded payload when blank', async () => {
-    // Blank playerName should be omitted from the JSON forwarded to the sensor.
-    const res = await apiPost(apiPort, '/api/sensors/configure', {
-      sensorIp:   '127.0.0.1',
-      serverIp:   '192.168.1.10',
-      serverPort: '3000',
-      playerName: '',  // blank — should be omitted
-    });
-    // Route passes validation; connection may be refused on port 80.
-    assert.ok(
-      res.status === 200 || res.status === 502 || res.status === 504,
-      `Unexpected status ${res.status}`
-    );
+    const res = await apiPost(apiPort, '/api/sensors/configure', sensorPayload({ playerName: '' }));
+    assert.equal(res.status, 200);
+    assert.equal(receivedBody.server_ip,   '192.168.1.10');
+    assert.equal(receivedBody.server_port, '3000');
+    assert.ok(!('player_name' in receivedBody), 'player_name should be omitted when blank');
+  });
+
+  test('omits server_port from forwarded payload when blank', async () => {
+    const res = await apiPost(apiPort, '/api/sensors/configure', sensorPayload({ serverPort: '' }));
+    assert.equal(res.status, 200);
+    assert.equal(receivedBody.server_ip, '192.168.1.10');
+    assert.ok(!('server_port' in receivedBody), 'server_port should be omitted when blank');
   });
 
   test('accepts 10.x.x.x private IP', async () => {
-    const res = await apiPost(apiPort, '/api/sensors/configure', {
-      sensorIp:   '10.0.0.50',
-      serverIp:   '192.168.1.10',
-      serverPort: '3000',
-    });
+    const res = await apiPost(apiPort, '/api/sensors/configure', sensorPayload({ sensorIp: '10.0.0.50' }));
+    // 10.x is allowed but the fake sensor only listens on 127.0.0.1, so we get ECONNREFUSED → 502.
     assert.ok(
       res.status === 200 || res.status === 502 || res.status === 504,
       `Expected connection attempt, got ${res.status}`
@@ -216,11 +199,7 @@ describe('POST /api/sensors/configure — happy path', () => {
   });
 
   test('accepts 172.16.x.x private IP', async () => {
-    const res = await apiPost(apiPort, '/api/sensors/configure', {
-      sensorIp:   '172.16.0.50',
-      serverIp:   '192.168.1.10',
-      serverPort: '3000',
-    });
+    const res = await apiPost(apiPort, '/api/sensors/configure', sensorPayload({ sensorIp: '172.16.0.50' }));
     assert.ok(
       res.status === 200 || res.status === 502 || res.status === 504,
       `Expected connection attempt, got ${res.status}`
