@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../partials/_head') %>
+</head>
+<body>
+
+  <%- include('../partials/_header') %>
+  <%- include('../partials/_nav') %>
+
+  <main class="grid-main">
+
+    <!-- Connection -->
+    <section class="card" id="card-connection">
+      <h2>Connection</h2>
+      <div class="form-group">
+        <label for="my-name">Player Name</label>
+        <input type="text" id="my-name" maxlength="20" placeholder="Leave blank for random">
+      </div>
+      <div class="btn-row">
+        <button id="btn-connect" class="btn btn-success">⚡ Connect</button>
+        <button id="btn-disconnect" class="btn btn-secondary" disabled>✕ Disconnect</button>
+      </div>
+      <div id="my-id-info" class="info-text hidden"></div>
+    </section>
+
+    <!-- My Status -->
+    <section class="card" id="card-my-status">
+      <h2>My Status</h2>
+      <div class="status-row">
+        <span class="label">Game</span>
+        <span id="dp-game-badge" class="badge badge-idle">Idle</span>
+      </div>
+      <div id="dp-player-info" class="dp-player-info hidden">
+        <div class="status-row">
+          <span class="label">Name</span>
+          <span id="dp-player-name" class="dp-value">—</span>
+        </div>
+        <form id="form-rename" class="rename-inline">
+          <input type="text" id="rename-input" maxlength="20" placeholder="New name…">
+          <button type="submit" class="btn btn-secondary btn-sm" id="btn-rename" disabled>✏️ Rename</button>
+        </form>
+        <div id="rename-error" class="error-msg hidden"></div>
+        <div class="status-row">
+          <span class="label">Position</span>
+          <span id="dp-player-pos" class="dp-value">0</span>
+        </div>
+        <div class="progress-wrap" id="dp-progress-wrap">
+          <div class="progress-bar" id="dp-progress-bar" style="width:0%"></div>
+        </div>
+      </div>
+      <p id="dp-not-connected" class="hint">Connect to see your player status.</p>
+    </section>
+
+    <!-- Score Controls -->
+    <section class="card" id="card-score">
+      <h2>Score</h2>
+      <p class="hint">Send a score event as your debug player.</p>
+      <div class="btn-row score-btn-row">
+        <button id="btn-score-0" class="btn btn-secondary" disabled>+0 Miss</button>
+        <button id="btn-score-1" class="btn btn-score" disabled>+1 Point</button>
+        <button id="btn-score-2" class="btn btn-score btn-score-2" disabled>+2 Points</button>
+        <button id="btn-score-3" class="btn btn-score btn-score-3" disabled>+3 Points</button>
+      </div>
+      <div id="score-error" class="error-msg hidden"></div>
+    </section>
+
+    <!-- Event Log -->
+    <section class="card card-wide" id="card-log">
+      <h2>Event Log</h2>
+      <ul id="event-log" class="event-log" aria-live="polite" aria-relevant="additions"></ul>
+    </section>
+
+  </main>
+
+  <script src="/admin/js/connection.js"></script>
+  <script src="/admin/js/debug-player.js"></script>
+</body>
+</html>

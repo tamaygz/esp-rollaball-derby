@@ -1,0 +1,19 @@
+  <nav class="page-nav">
+    <%
+      const navLinks = [
+        { key: 'admin',        href: '/admin',              label: '⚙️ Admin' },
+        { key: 'devices',      href: '/admin/devices',      label: '📡 Devices' },
+        { key: 'debug-player', href: '/admin/debug-player', label: '🎮 Debug Player' },
+        { key: 'leds',         href: '/admin/leds',         label: '💡 LEDs' },
+      ];
+    %>
+    <% navLinks.forEach(item => { %>
+      <% if (item.key === active) { %>
+    <span class="nav-active"><%- item.label %></span>
+      <% } else { %>
+    <a href="<%= item.href %>"><%- item.label %></a>
+      <% } %>
+    <% }); %>
+    <a href="/flash-sensor" target="_blank" rel="noopener">⚡ Flash Sensor</a>
+    <a href="/display/" target="_blank" class="nav-right">🖥️ Display</a>
+  </nav>

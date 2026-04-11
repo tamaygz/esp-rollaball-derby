@@ -13,6 +13,7 @@ const BotManager = require('./game/BotManager');
 const ConnectionManager = require('./ws/ConnectionManager');
 const LedConfigManager = require('./config/LedConfigManager');
 const healthRouter = require('./routes/health');
+const adminRouter = require('./routes/admin');
 const createGameRouter = require('./routes/game');
 const createPlayersRouter = require('./routes/players');
 const createClientsRouter = require('./routes/clients');
@@ -38,10 +39,17 @@ ledConfigManager.loadConfig().catch(error => {
 
 app.use(express.json());
 
+// ─── Template engine ─────────────────────────────────────────────────────────
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, '..', 'views'));
+
 // Static files (display SPA, web test client)
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
-// Admin + test client SPA served at /admin/
+// Admin page routes (EJS-rendered; must precede static middleware to take priority)
+app.use('/admin', adminRouter);
+
+// Admin static assets (CSS, JS, images) served at /admin/
 app.use('/admin', express.static(path.join(__dirname, '..', '..', 'clients', 'web')));
 
 // Display (beamer/TV) SPA served at /display/
