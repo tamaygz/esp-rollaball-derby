@@ -90,12 +90,15 @@ Derby.Connection = (function () {
       reconnectDelay = INITIAL_DELAY; // reset backoff on successful connect
       _setStatus('connected');
 
-      // Register with the server; web clients include their player name and
-      // persisted ID so the server can reconnect to an existing player entry.
-      // Non-player types (e.g. 'display') skip player name/ID to avoid
-      // creating an unwanted player entry.
+      // Register with the server; player-capable clients include their player
+      // name and persisted ID so the server can reconnect to an existing
+      // player entry. Display clients still send a fixed name so the server
+      // does not consume a generated player name, but they omit playerId to
+      // remain observer-only.
       var payload = { type: _clientType };
-      if (_clientType !== 'display') {
+      if (_clientType === 'display') {
+        payload.playerName = 'Observer';
+      } else {
         if (_currentPlayerName) payload.playerName = _currentPlayerName;
         var storedId = localStorage.getItem('derby-player-id');
         if (storedId) payload.playerId = storedId;
