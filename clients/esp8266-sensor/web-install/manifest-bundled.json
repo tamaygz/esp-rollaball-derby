@@ -1,0 +1,15 @@
+{
+  "name": "Derby Sensor (Wemos D1 Mini — bundled)",
+  "new_install_prompt_erase": true,
+  "builds": [
+    {
+      "chipFamily": "ESP8266",
+      "parts": [
+        {
+          "path": "./firmware.bin",
+          "offset": 0
+        }
+      ]
+    }
+  ]
+}
