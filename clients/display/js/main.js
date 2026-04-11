@@ -33,12 +33,23 @@
   var countdownEffect = null;
 
   var CONCRETE_THEMES = ['horse', 'camel'];
+  var _resolvedTheme  = null;   // concrete theme picked once 'auto' is encountered
+
+  /** Resolve a possibly-'auto' theme to a concrete one, persisting the choice. */
+  function _resolveTheme(theme) {
+    if (theme && theme !== 'auto') {
+      _resolvedTheme = theme;   // server gave us a concrete theme (game started)
+      return theme;
+    }
+    if (!_resolvedTheme) {
+      _resolvedTheme = CONCRETE_THEMES[Math.floor(Math.random() * CONCRETE_THEMES.length)];
+    }
+    return _resolvedTheme;
+  }
 
   // Initialise scene once we receive the first state message
   async function _initScene(theme) {
-    var resolvedTheme = (!theme || theme === 'auto')
-      ? CONCRETE_THEMES[Math.floor(Math.random() * CONCRETE_THEMES.length)]
-      : theme;
+    var resolvedTheme = _resolveTheme(theme);
     await ThemeManager.load(resolvedTheme);
 
     raceTrack = new RaceTrack(app);
@@ -61,6 +72,10 @@
   // ── Message handlers ──────────────────────────────────────────────────────────
 
   async function _handleState(state) {
+    // Resolve 'auto' to a concrete theme before any component sees state.config.theme
+    if (state.config) {
+      state.config.theme = _resolveTheme(state.config.theme);
+    }
     if (!raceTrack) {
       await _initScene(state.config && state.config.theme);
     }
