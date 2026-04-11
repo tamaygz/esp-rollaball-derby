@@ -484,11 +484,9 @@ static void handleHttpConfig() {
     } else {
         httpServer.send(200, "application/json", "{\"ok\":true,\"changed\":false}");
     }
-}  handleBtPair);
-    httpServer.on("/api/bt/unpair",              HTTP_DELETE, handleBtUnpair);
-    httpServer.on("/api/bt/connect",             HTTP_POST,   handleBtConnect);
-    httpServer.on("/api/bt/disconnect",          HTTP_POST,   handleBtDisconnect);
-    httpServer.on("/api/bt/play",               HTTP_POST, 
+}
+
+static void setupHttpRoutes() {
     httpServer.on("/api/motor/status",           HTTP_GET,  handleMotorStatus);
     httpServer.on("/api/motor/jog",              HTTP_POST, handleMotorJog);
     httpServer.on("/api/motor/moveto",           HTTP_POST, handleMotorMoveTo);
