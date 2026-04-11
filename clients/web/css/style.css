@@ -492,8 +492,35 @@ input:disabled, select:disabled {
 }
 .btn-bot-remove:not(:disabled):hover { background: rgba(229,62,62,0.35); }
 
+/* ─── Inner section heading (second h2 within the same card) ────────────────── */
+.card-inner-section {
+  margin-top: 20px;
+}
+
 /* ─── Utility ───────────────────────────────────────────────────────────────── */
 .hidden { display: none !important; }
+
+/* ─── Debug Player page ──────────────────────────────────────────────────────── */
+.dp-player-info { margin-top: 10px; }
+.dp-value { font-weight: 600; font-size: 0.95rem; }
+
+.rename-inline {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin: 8px 0 4px;
+}
+
+.rename-inline input {
+  flex: 1;
+  min-width: 0;
+}
+
+.btn-sm {
+  padding: 4px 12px;
+  min-height: 34px;
+  font-size: 0.85rem;
+}
 
 /* ─── Scrollbars ────────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar              { width: 5px; height: 5px; }
