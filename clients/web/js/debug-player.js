@@ -176,9 +176,27 @@ window.Derby = window.Derby || {};
 
   // ── Score sending ──────────────────────────────────────────────────────────
 
+  function _clearScoreError() {
+    var errorEl = _el('score-error');
+    if (errorEl) {
+      errorEl.textContent = '';
+    }
+  }
+
   function _sendScore(points) {
-    if (!_myId) return;
-    Derby.Connection.send({ type: 'score', payload: { playerId: _myId, points: points } });
+    if (!_myId) {
+      _showError('score-error', 'You are not connected as a player yet.');
+      return;
+    }
+
+    var sent = Derby.Connection.send({ type: 'score', payload: { playerId: _myId, points: points } });
+    if (!sent) {
+      _showError('score-error', 'Score could not be sent while disconnected. Please wait for reconnection.');
+      _addLog('error', _timestamp() + ' ⚠ Failed to send score: disconnected');
+      return;
+    }
+
+    _clearScoreError();
   }
 
   // ── REST: rename player ────────────────────────────────────────────────────
