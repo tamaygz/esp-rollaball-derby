@@ -153,30 +153,43 @@ static void loadState() {
     }
 
     if (doc["led_count"].is<int>()) {
-        g_savedLedConfig.ledCount   = static_cast<uint16_t>(doc["led_count"].as<int>());
-        g_savedLedConfig.pin        = doc["led_pin"].is<int>()
-            ? static_cast<uint8_t>(doc["led_pin"].as<int>())
-            : LED_DEFAULT_PIN;
-        g_savedLedConfig.brightness = doc["led_brightness"].is<int>()
-            ? static_cast<uint8_t>(doc["led_brightness"].as<int>())
-            : LED_DEFAULT_BRIGHTNESS;
-        g_savedLedConfig.topology   = LedTopology::STRIP;
-        g_savedLedConfig.matrixRows = 8;
-        g_savedLedConfig.matrixCols = 8;
+        const int count = doc["led_count"].as<int>();
+        const int pin   = doc["led_pin"]  | static_cast<int>(LED_DEFAULT_PIN);
+        const int bri   = doc["led_brightness"] | static_cast<int>(LED_DEFAULT_BRIGHTNESS);
 
-        const char* topo = doc["led_topology"] | "strip";
-        if      (strcmp(topo, "ring")               == 0) g_savedLedConfig.topology = LedTopology::RING;
-        else if (strcmp(topo, "matrix_zigzag")      == 0) g_savedLedConfig.topology = LedTopology::MATRIX_ZIGZAG;
-        else if (strcmp(topo, "matrix_progressive") == 0) g_savedLedConfig.topology = LedTopology::MATRIX_PROGRESSIVE;
+        // Validate / clamp to safe ranges — corrupted state must not brick LEDs.
+        if (count < 1 || count > 300 || pin < 0 || pin > 16 || bri < 0 || bri > 255) {
+            Serial.println("[STATE] LED config out of range — ignoring saved values");
+        } else {
+            g_savedLedConfig.ledCount   = static_cast<uint16_t>(count);
+            g_savedLedConfig.pin        = static_cast<uint8_t>(pin);
+            g_savedLedConfig.brightness = static_cast<uint8_t>(bri);
+            g_savedLedConfig.topology   = LedTopology::STRIP;
+            g_savedLedConfig.matrixRows = 8;
+            g_savedLedConfig.matrixCols = 8;
 
-        g_hasLedConfig = true;
+            const char* topo = doc["led_topology"] | "strip";
+            if      (strcmp(topo, "ring")               == 0) g_savedLedConfig.topology = LedTopology::RING;
+            else if (strcmp(topo, "matrix_zigzag")      == 0) g_savedLedConfig.topology = LedTopology::MATRIX_ZIGZAG;
+            else if (strcmp(topo, "matrix_progressive") == 0) g_savedLedConfig.topology = LedTopology::MATRIX_PROGRESSIVE;
+
+            g_hasLedConfig = true;
+        }
     }
 
     if (doc["device_color_r"].is<int>()) {
-        g_savedLedConfig.deviceColorR   = static_cast<uint8_t>(doc["device_color_r"] | 0);
-        g_savedLedConfig.deviceColorG   = static_cast<uint8_t>(doc["device_color_g"] | 0);
-        g_savedLedConfig.deviceColorB   = static_cast<uint8_t>(doc["device_color_b"] | 0);
-        g_savedLedConfig.hasDeviceColor = true;
+        const int r = doc["device_color_r"] | 0;
+        const int g = doc["device_color_g"] | 0;
+        const int b = doc["device_color_b"] | 0;
+
+        if (r >= 0 && r <= 255 && g >= 0 && g <= 255 && b >= 0 && b <= 255) {
+            g_savedLedConfig.deviceColorR   = static_cast<uint8_t>(r);
+            g_savedLedConfig.deviceColorG   = static_cast<uint8_t>(g);
+            g_savedLedConfig.deviceColorB   = static_cast<uint8_t>(b);
+            g_savedLedConfig.hasDeviceColor = true;
+        } else {
+            Serial.println("[STATE] Device color out of range — ignoring");
+        }
     }
 
     Serial.printf("[STATE] Loaded: playerId=%s ledCount=%u hasColor=%d\n",
