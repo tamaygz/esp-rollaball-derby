@@ -371,7 +371,7 @@ describe('ConnectionManager — chipId-based reconnect', () => {
     const [clientId] = cm.clients.keys();
     cm._handleRegister(clientId, ws, { type: 'sensor', playerName: 'Test', chipId: 'CHIP1' });
 
-    assert.equal(cm._chipIdToPlayerId.get('CHIP1'), clientId);
+    assert.equal(cm._chipIdToPlayerId.get('CHIP1'), cm.clients.get(clientId).playerId);
   });
 
   test('chipId-based reconnect preserves player name when none provided', () => {
