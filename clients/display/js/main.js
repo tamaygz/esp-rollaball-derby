@@ -27,14 +27,57 @@
   });
   document.body.appendChild(app.canvas);
 
+  // ── Load available concrete themes from shared manifest ──────────────────────
+  // Fetched at startup so display and server share a single source of truth.
+  // Falls back to a hardcoded list if the manifest cannot be fetched.
+  var CONCRETE_THEMES = await (async function () {
+    try {
+      var r = await fetch('/assets/themes/shared/themes.json');
+      if (r.ok) {
+        var m = await r.json();
+        if (Array.isArray(m.concreteThemes) && m.concreteThemes.length) {
+          return m.concreteThemes;
+        }
+      }
+    } catch (e) { /* fall through */ }
+    return ['horse', 'camel'];
+  }());
+
   // ── Scene objects ────────────────────────────────────────────────────────────
   var raceTrack       = null;
   var winnerOverlay   = null;
   var countdownEffect = null;
 
+  var _resolvedTheme  = null;   // concrete theme picked once 'auto' is encountered
+
+  /**
+   * Resolve a possibly-'auto' or unrecognised theme to a known concrete one,
+   * persisting the choice across state updates.
+   */
+  function _resolveTheme(theme) {
+    if (theme && theme !== 'auto' && CONCRETE_THEMES.indexOf(theme) !== -1) {
+      _resolvedTheme = theme;   // server gave us a concrete theme (game started)
+      return theme;
+    }
+    // theme is null/undefined, 'auto', or an unrecognised value — use/pick a concrete one
+    if (!_resolvedTheme) {
+      _resolvedTheme = CONCRETE_THEMES[Math.floor(Math.random() * CONCRETE_THEMES.length)];
+    }
+    return _resolvedTheme;
+  }
+
   // Initialise scene once we receive the first state message
   async function _initScene(theme) {
-    await ThemeManager.load(theme || 'horse');
+    var resolvedTheme = _resolveTheme(theme);
+    try {
+      await ThemeManager.load(resolvedTheme);
+    } catch (e) {
+      // If the resolved theme fails to load, fall back to the first concrete theme
+      // that is different from the one that failed (handles corrupted/missing assets).
+      var fallback = CONCRETE_THEMES.find(function (t) { return t !== resolvedTheme; }) || CONCRETE_THEMES[0];
+      _resolvedTheme = fallback;
+      await ThemeManager.load(fallback);
+    }
 
     raceTrack = new RaceTrack(app);
     app.stage.addChild(raceTrack);
@@ -56,6 +99,10 @@
   // ── Message handlers ──────────────────────────────────────────────────────────
 
   async function _handleState(state) {
+    // Resolve 'auto' to a concrete theme before any component sees state.config.theme
+    if (state.config) {
+      state.config.theme = _resolveTheme(state.config.theme);
+    }
     if (!raceTrack) {
       await _initScene(state.config && state.config.theme);
     }
