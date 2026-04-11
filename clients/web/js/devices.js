@@ -290,8 +290,10 @@
     if (!_motorCtrlId) return;
     _motorGet('/bt/status')
       .then(function (data) {
-        var label = _el('bt-status-label');
-        var btnUnpair = _el('btn-bt-unpair');
+        var label       = _el('bt-status-label');
+        var btnConnect  = _el('btn-bt-connect');
+        var btnDisconn  = _el('btn-bt-disconnect');
+        var btnUnpair   = _el('btn-bt-unpair');
         if (label) {
           if (data.connected) {
             label.textContent = '🔵 Connected: ' + _esc(data.pairedDevice || data.pairedAddress);
@@ -301,14 +303,64 @@
             label.textContent = 'No device paired.';
           }
         }
-        if (btnUnpair) btnUnpair.style.display = data.pairedAddress ? '' : 'none';
+        // Connect: show only when paired but not connected
+        if (btnConnect)  btnConnect.style.display  = (data.pairedAddress && !data.connected) ? '' : 'none';
+        // Disconnect: show only when connected
+        if (btnDisconn)  btnDisconn.style.display  = data.connected ? '' : 'none';
+        // Unpair: show when any paired address exists
+        if (btnUnpair)   btnUnpair.style.display  
+        }
+        // Connect: show only when paired but not connected
+        if (btnConnect)  btnConnect.style.display  = (data.pairedAddress && !data.connected) ? '' : 'none';
+        // Disconnect: show only when connected
+        if (btnDisconn)  btnDisconn.style.display  = data.connected ? '' : 'none';
+        // Unpair: = _el('btn-bt-scan');
+    var btnConnect = _el('btn-bt-connect');
+    var btnDisconn = _el('btn-bt-disconnect');
+    var btnUnpair  = _el('btn-bt-unpair');
+
+    if (btnConnect) btnConnect.addEventListener('click', function () {
+      btnConnect.disabled = true;
+      _showMotorMsg('bt-status-msg', '🔗 Connecting…');
+      _motorPost('/bt/connect', {})
+        .then(function () { _showMotorMsg('bt-status-msg', '✅ Connect initiated.'); setTimeout(_refreshBtStatus, 3000); })
+        .catch(function (e) { _showMotorMsg('bt-status-msg', '❌ ' + e.message); })
+        .finally(function () { btnConnect.disabled = false; });
+    });
+
+    if (btnDisconn) btnDisconn.addEventListener('click', function () {
+      btnDisconn.disabled = true;
+      _motorPost('/bt/disconnect', {})
+        .then(function () { _showMotorMsg('bt-status-msg', 'Disconnected.'); _refreshBtStatus(); })
+        .catch(function (e) { _showMotorMsg('bt-status-msg', '❌ ' + e.message); })
+        .finally(function () { btnDisconn.disabled = false; });
+    }e.display   = data.pairedAddress ? '' : 'none';
       })
       .catch(function () {});
   }
 
   function _initBtButtons() {
-    var btnScan   = _el('btn-bt-scan');
-    var btnUnpair = _el('btn-bt-unpair');
+    var btnScan    = _el('btn-bt-scan');
+    var btnConnect = _el('btn-bt-connect');
+    var btnDisconn = _el('btn-bt-disconnect');
+    var btnUnpair  = _el('btn-bt-unpair');
+
+    if (btnConnect) btnConnect.addEventListener('click', function () {
+      btnConnect.disabled = true;
+      _showMotorMsg('bt-status-msg', '🔗 Connecting…');
+      _motorPost('/bt/connect', {})
+        .then(function () { _showMotorMsg('bt-status-msg', '✅ Connect initiated.'); setTimeout(_refreshBtStatus, 3000); })
+        .catch(function (e) { _showMotorMsg('bt-status-msg', '❌ ' + e.message); })
+        .finally(function () { btnConnect.disabled = false; });
+    });
+
+    if (btnDisconn) btnDisconn.addEventListener('click', function () {
+      btnDisconn.disabled = true;
+      _motorPost('/bt/disconnect', {})
+        .then(function () { _showMotorMsg('bt-status-msg', 'Disconnected.'); _refreshBtStatus(); })
+        .catch(function (e) { _showMotorMsg('bt-status-msg', '❌ ' + e.message); })
+        .finally(function () { btnDisconn.disabled = false; });
+    });
 
     if (btnScan) btnScan.addEventListener('click', function () {
       _showMotorMsg('bt-status-msg', '🔍 Scanning (~10 s)…');

@@ -395,6 +395,38 @@ static void handleBtScan() {
     httpServer.send(200, "application/json", out);
 }
 
+// POST /api/bt/connect   (reconnect to already-paired device)
+static void handleBtConnect() {
+    if (!btAudio.hasPairedDevice()) {
+        httpServer.send(400, "application/json", "{\"error\":\"No paired device\"}");
+        return;
+    }
+    btAudio.connect(btAudio.getPairedAddress());
+    httpServer.send(200, "application/json", "{\"ok\":true}");
+}
+
+// POST /api/bt/disconnect   (disconnect without forgetting the device)
+static void handleBtDisconnect() {
+    btAudio.disconnect(false);
+    httpServer.send(200, "application/json", "{\"ok\":true}");
+}
+
+// POST /api/bt/connect   (reconnect to already-paired device)
+static void handleBtConnect() {
+    if (!btAudio.hasPairedDevice()) {
+        httpServer.send(400, "application/json", "{\"error\":\"No paired device\"}");
+        return;
+    }
+    btAudio.connect(btAudio.getPairedAddress());
+    httpServer.send(200, "application/json", "{\"ok\":true}");
+}
+
+// POST /api/bt/disconnect   (disconnect without forgetting the device)
+static void handleBtDisconnect() {
+    btAudio.disconnect(false);
+    httpServer.send(200, "application/json", "{\"ok\":true}");
+}
+
 // POST /api/bt/pair   { "address": "XX:XX:XX:XX:XX:XX" }
 static void handleBtPair() {
     if (httpServer.method() != HTTP_POST) { httpServer.send(405, "application/json", "{\"error\":\"Method Not Allowed\"}"); return; }
@@ -468,9 +500,11 @@ static void handleHttpConfig() {
     } else {
         httpServer.send(200, "application/json", "{\"ok\":true,\"changed\":false}");
     }
-}
-
-static void setupHttpRoutes() {
+}  handleBtPair);
+    httpServer.on("/api/bt/unpair",              HTTP_DELETE, handleBtUnpair);
+    httpServer.on("/api/bt/connect",             HTTP_POST,   handleBtConnect);
+    httpServer.on("/api/bt/disconnect",          HTTP_POST,   handleBtDisconnect);
+    httpServer.on("/api/bt/play",               HTTP_POST, 
     httpServer.on("/api/motor/status",           HTTP_GET,  handleMotorStatus);
     httpServer.on("/api/motor/jog",              HTTP_POST, handleMotorJog);
     httpServer.on("/api/motor/moveto",           HTTP_POST, handleMotorMoveTo);
@@ -484,9 +518,11 @@ static void setupHttpRoutes() {
     httpServer.on("/api/motor/config",           HTTP_POST, handleMotorConfigPost);
     httpServer.on("/api/bt/status",              HTTP_GET,  handleBtStatus);
     httpServer.on("/api/bt/scan",                HTTP_GET,  handleBtScan);
-    httpServer.on("/api/bt/pair",                HTTP_POST, handleBtPair);
+    httpServer.on("/api/bt/pair",                HTTP_POST,   handleBtPair);
     httpServer.on("/api/bt/unpair",              HTTP_DELETE, handleBtUnpair);
-    httpServer.on("/api/bt/play",               HTTP_POST,  handleBtPlay);
+    httpServer.on("/api/bt/connect",             HTTP_POST,   handleBtConnect);
+    httpServer.on("/api/bt/disconnect",          HTTP_POST,   handleBtDisconnect);
+    httpServer.on("/api/bt/play",               HTTP_POST,   handleBtPlay);
     httpServer.on("/config",                     handleHttpConfig);
     httpServer.begin();
     Serial.printf("[HTTP] REST API listening on port %d\n", HTTP_CONFIG_PORT);
