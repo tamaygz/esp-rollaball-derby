@@ -1,0 +1,7 @@
+{
+  "name": "leds",
+  "version": "1.0.0",
+  "description": "Shared LED control library for ESP8266/ESP32 addressable LEDs",
+  "frameworks": "arduino",
+  "platforms": ["espressif8266", "espressif32"]
+}

@@ -19,12 +19,15 @@
   <nav class="page-nav">
     <span class="nav-active">⚙️ Admin</span>
     <a href="devices.html">📡 Devices</a>
+    <a href="debug-player.html">🎮 Debug Player</a>
+    <a href="leds.html">💡 LEDs</a>
+    <a href="/flash-sensor" target="_blank" rel="noopener">⚡ Flash Sensor</a>
     <a href="/display/" target="_blank" class="nav-right">🖥️ Display</a>
   </nav>
 
   <main class="grid-main">
 
-    <!-- Game Status -->
+    <!-- Game Status + Controls -->
     <section class="card" id="card-status">
       <h2>Game Status</h2>
       <div class="status-row">
@@ -38,11 +41,8 @@
       <div id="winner-banner" class="winner-banner hidden">
         🏆 <strong id="winner-name">—</strong> wins!
       </div>
-    </section>
 
-    <!-- Game Controls -->
-    <section class="card" id="card-controls">
-      <h2>Game Controls</h2>
+      <h2 class="card-inner-section">Game Controls</h2>
       <div class="btn-row">
         <button id="btn-start" class="btn btn-success">▶ Start</button>
         <button id="btn-pause" class="btn btn-warning" disabled>⏸ Pause</button>
@@ -61,7 +61,7 @@
         </div>
         <div class="form-group">
           <label for="cfg-max">Max Players</label>
-          <input type="number" id="cfg-max" min="1" max="16" value="16">
+          <input type="number" id="cfg-max" min="1" max="16" value="4">
         </div>
         <div class="form-group">
           <label for="cfg-theme">Theme</label>
@@ -76,7 +76,7 @@
           <select id="cfg-countdown">
             <option value="0">None</option>
             <option value="3">3 seconds</option>
-            <option value="5">5 seconds</option>
+            <option value="5" selected>5 seconds</option>
           </select>
         </div>
         <button type="submit" class="btn btn-primary" id="btn-save-config">Save Config</button>
@@ -84,39 +84,11 @@
       <div id="config-error" class="error-msg hidden"></div>
     </section>
 
-    <!-- Connection -->
-    <section class="card" id="card-connection">
-      <h2>Connection</h2>
-      <div class="form-group">
-        <label for="my-name">Your Name</label>
-        <input type="text" id="my-name" maxlength="20" placeholder="Leave blank for random">
-      </div>
-      <button id="btn-reconnect" class="btn btn-secondary">↻ Reconnect</button>
-      <div id="my-id-info" class="info-text hidden"></div>
-    </section>
-
     <!-- Players -->
     <section class="card card-wide" id="card-players">
       <h2>Players</h2>
       <div id="players-list" class="players-list">
         <p class="empty-msg">No players connected yet.</p>
-      </div>
-    </section>
-
-    <!-- Test Score -->
-    <section class="card" id="card-test">
-      <h2>Test Score</h2>
-      <p class="hint">Simulate a sensor score event via WebSocket.</p>
-      <div class="form-group">
-        <label for="score-player">Player</label>
-        <select id="score-player">
-          <option value="">— select player —</option>
-        </select>
-      </div>
-      <div class="btn-row score-btn-row">
-        <button id="btn-score-1" class="btn btn-score" disabled>+1 Point</button>
-        <button id="btn-score-2" class="btn btn-score btn-score-2" disabled>+2 Points</button>
-        <button id="btn-score-3" class="btn btn-score btn-score-3" disabled>+3 Points</button>
       </div>
     </section>
 
@@ -143,7 +115,6 @@
   <script src="js/connection.js"></script>
   <script src="js/state.js"></script>
   <script src="js/admin.js"></script>
-  <script src="js/test.js"></script>
   <script src="js/bots.js"></script>
   <script src="js/main.js"></script>
 </body>

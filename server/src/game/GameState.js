@@ -14,9 +14,9 @@ class GameState {
     this.status = 'idle';
     this.config = {
       trackLength: 15,
-      maxPlayers: 16,
-      theme: 'horse',
-      countdown: 0,
+      maxPlayers: 4,
+      theme: 'auto',
+      countdown: 5,
     };
     this.players = new Map();
     this.startedAt = null;
@@ -172,12 +172,13 @@ class GameState {
 
   // ─── Player management ────────────────────────────────────────────────────
 
-  addPlayer(id, name, type) {
+  addPlayer(id, name, type, colorIndex = 0) {
     const player = {
       id,
       name,
       position: 0,
       type,
+      colorIndex,
       connected: true,
       connectedAt: Date.now(),
       lastScoredAt: null,

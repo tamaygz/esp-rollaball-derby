@@ -38,6 +38,10 @@ Server starts on **http://localhost:3000** (override with `PORT` env var). Copy 
 | DELETE | `/api/bots/:id` | Remove a bot and its player |
 | GET | `/api/clients` | List connected WebSocket clients |
 | DELETE | `/api/clients/:id` | Kick a WebSocket client |
+| GET | `/api/leds/config` | Get all LED configurations |
+| GET | `/api/leds/config/:deviceType` | Get LED config for device type (sensor/motor/display) |
+| PUT | `/api/leds/config/:deviceType` | Update LED config (triggers broadcast) |
+| POST | `/api/leds/effects/test` | Send test effect to a specific device (rate-limited) |
 
 Static mounts:
 - `/admin` → `../clients/web/` — admin SPA
@@ -57,7 +61,32 @@ Connect to `ws://localhost:3000`. All messages are JSON `{ type, payload }`.
 | `scored` | server→broadcast | `{ playerId, playerName, points, newPosition, events }` |
 | `positions` | server→motor | `{ players: [{ id, position, maxPosition }] }` |
 | `winner` | server→broadcast | `{ playerId, name }` |
+| `led_config` | server→device | LED configuration update with `{ timestamp, payload: { ledCount, topology, gpioPin, brightness, defaultEffect } }` |
+| `test_effect` | server→device | Test effect command with `{ payload: { effectName, params } }` |
 | `error` | server→client | `{ message }` |
+
+### LED Configuration
+
+Devices (sensor, motor) register with optional `ledCount` and `chipType` fields:
+
+```json
+{
+  "type": "register",
+  "payload": {
+    "type": "sensor",
+    "playerName": "ESP-001",
+    "ledCount": 10,
+    "chipType": "ESP8266"
+  }
+}
+```
+
+On registration, the server:
+1. Validates reported LED count against configured count (±5 tolerance)
+2. Includes `warning` field in `registered` response if mismatch detected
+3. Auto-sends `led_config` message with current configuration
+
+Configuration updates via REST API trigger broadcast to all devices of that type.
 
 ### Events array
 
@@ -76,7 +105,7 @@ Every `scored` message includes an `events[]` array with zero or more of:
 
 ## Server-Side Bots
 
-The `BotManager` creates autonomous bot players that score at random 2–8 s intervals while the game is running. Bots:
+The `BotManager` creates autonomous bot players that score at random 345 ms–6.3 s intervals while the game is running. Bots:
 
 - Are created via `POST /api/bots` (no WebSocket connection needed)
 - Get auto-assigned player names and type `'bot'`
@@ -93,6 +122,72 @@ idle ──start──► running ──pause──► paused
 ```
 
 Config fields (`trackLength`, `maxPlayers`, `theme`) can only be changed in `idle` state. Theme `'auto'` resolves to a random concrete theme (horse/camel) at game start.
+
+## LED Configuration API
+
+Server stores LED configurations for each device type in `server/data/led-config.json`. Configuration schema:
+
+```json
+{
+  "sensor": {
+    "ledCount": 10,
+    "topology": "strip",
+    "gpioPin": 4,
+    "brightness": 255,
+    "defaultEffect": "rainbow"
+  },
+  "motor": {
+    "ledCount": 10,
+    "topology": "strip",
+    "gpioPin": 4,
+    "brightness": 255,
+    "defaultEffect": "chase"
+  },
+  "display": {
+    "ledCount": 0,
+    "topology": "strip",
+    "gpioPin": 4,
+    "brightness": 0,
+    "defaultEffect": "solid"
+  }
+}
+```
+
+### Field Descriptions
+
+- `ledCount` (0–1000): Number of LEDs in the strip, subject to platform limits (ESP8266: 300, ESP32: 1000)
+- `topology` (`"strip"` | `"ring"` | `"matrix"`): Physical arrangement of LEDs
+- `gpioPin` (0–32): GPIO pin number for LED data line
+- `brightness` (0–255): Global brightness level (255 = 100%)
+- `defaultEffect` (`"solid"` | `"blink"` | `"pulse"` | `"rainbow"` | `"chase"` | `"sparkle"`): Effect shown when idle
+
+### Example API Requests
+
+**Get all configurations:**
+```bash
+curl http://localhost:3000/api/leds/config
+```
+
+**Get sensor configuration:**
+```bash
+curl http://localhost:3000/api/leds/config/sensor
+```
+
+**Update motor LED count and effect:**
+```bash
+curl -X PUT http://localhost:3000/api/leds/config/motor \
+  -H "Content-Type: application/json" \
+  -d '{"ledCount": 20, "defaultEffect": "pulse"}'
+```
+
+**Send test effect to device:**
+```bash
+curl -X POST http://localhost:3000/api/leds/effects/test \
+  -H "Content-Type: application/json" \
+  -d '{"deviceId": "abc123", "effectName": "rainbow", "params": {"duration": 3000}}'
+```
+
+Rate limiting: Test effect endpoint limited to 1 request/second per device ID.
 
 ## Tests
 

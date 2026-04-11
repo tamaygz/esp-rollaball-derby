@@ -4,7 +4,7 @@
 Resolve all open decisions in the PRD (server stack, frontend framework, ESP8266 libraries, motor control, WiFi config) through systematic research, then produce a finalized architecture document ready for implementation planning.
 
 ## Current Phase
-Phase 1
+Phase 7: ESP8266 Sensor Client Implementation (Phases 1–3 complete)
 
 ## Phases
 
@@ -48,6 +48,13 @@ Phase 1
 - [x] Update PRD with all resolved decisions
 - [x] Create implementation plans: server-web, client-display, client-web, esp8266-sensor, esp8266-motor
 - **Status:** complete
+
+### Phase 7: ESP8266 Sensor Client Implementation
+- [x] Phase 1: Project setup, WiFi config, WiFiManager integration
+- [x] Phase 2: WebSocket client, reconnection backoff, message routing
+- [x] Phase 3: IR sensor ISR handlers, debounce, score event transmission
+- [ ] Phase 4: Testing & field validation (stress tests, WiFi dropout, edge cases)
+- **Status:** in progress (phases 1–3 complete)
 
 ## Errors Encountered
 | Error | Attempt | Resolution |

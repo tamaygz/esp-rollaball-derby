@@ -20,7 +20,7 @@ Derby.State = (function () {
   // ── Internal state ──────────────────────────────────────────────────────────
   var _current = {
     status: 'idle',
-    config: { trackLength: 15, maxPlayers: 16, theme: 'horse' },
+    config: { trackLength: 15, maxPlayers: 4, theme: 'auto', countdown: 5 },
     players: [],
     startedAt: null,
     connectedClients: { total: 0, sensor: 0, web: 0, motor: 0, display: 0 },
@@ -122,7 +122,8 @@ Derby.State = (function () {
 
     var html = players.map(function (p, i) {
       var pct = trackLength > 0 ? Math.min((p.position / trackLength) * 100, 100) : 0;
-      var color = _color(i);
+      var ci = (typeof p.colorIndex === 'number') ? p.colorIndex : i;
+      var color = _color(ci);
       var dot = p.connected ? '🟢' : '🔴';
       var isMine = (p.id === _myId);
       var displayName = _esc(p.name) + (isMine ? ' <em style="opacity:.6;font-size:.8em">(you)</em>' : '');
@@ -245,7 +246,7 @@ Derby.State = (function () {
     state = state || {};
 
     var status = state.status || previous.status || 'idle';
-    var config = state.config || previous.config || { trackLength: 15, maxPlayers: 16, theme: 'horse' };
+    var config = state.config || previous.config || { trackLength: 15, maxPlayers: 4, theme: 'auto', countdown: 5 };
     var players = state.players || previous.players || [];
     var counts = state.connectedClients || previous.connectedClients || { total: 0, sensor: 0, web: 0, motor: 0, display: 0 };
 

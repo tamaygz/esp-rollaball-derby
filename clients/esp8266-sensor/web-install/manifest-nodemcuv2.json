@@ -1,0 +1,15 @@
+{
+  "name": "Derby Sensor (NodeMCU v2/v3)",
+  "new_install_prompt_erase": true,
+  "builds": [
+    {
+      "chipFamily": "ESP8266",
+      "parts": [
+        {
+          "path": "https://github.com/tamaygz/esp-rollaball-derby/releases/latest/download/firmware-nodemcu-v3.zip",
+          "offset": 0
+        }
+      ]
+    }
+  ]
+}

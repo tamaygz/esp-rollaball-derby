@@ -17,7 +17,7 @@ ESP8266 Motors ───┘         │
 | Shared assets | ✅ Complete | `clients/assets/` |
 | Web admin | ✅ Complete | `clients/web/` |
 | Display client | ✅ Complete | `clients/display/` |
-| ESP8266 sensor firmware | 🔲 Not started | `clients/esp8266-sensor/` |
+| ESP8266 sensor firmware | 🚧 In progress | `clients/esp8266-sensor/` |
 | ESP8266 motor firmware | ⏳ Deferred (Phase 3) | `clients/esp8266-motor/` |
 
 ## Build and Test

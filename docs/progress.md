@@ -221,3 +221,53 @@
 | connectionManager.test.js (27 tests) | — | pass | pass | ✅ |
 | integration.test.js (18 tests)       | — | pass | pass | ✅ |
 | **Total: 101 tests**                 | — | pass | pass | ✅ |
+
+---
+
+## Session: 2026-04-07 (cont.) — ESP8266 Sensor Client Firmware
+
+### Phase: Sensor Firmware Implementation (Phases 1–3)
+- **Status:** In progress (Phase 1–3 complete, Phase 4 testing backlog)
+- **Branch:** `copilot/implement-esp-sensor-client` (PR #3)
+- Actions taken:
+  - Implemented PlatformIO project structure with dual board support (Wemos D1 Mini, NodeMCU v3)
+  - Built WiFiManager integration with captive portal AP fallback (`Derby-Sensor-XXXX`)
+  - Custom WiFiManager parameters: server IP, port, optional player name
+  - Implemented `WSClient` — non-blocking WebSocket client with exponential backoff reconnect
+  - Built `Sensors` class — hardware interrupt-based IR sensor reading (3 sensors = +1, +2, +3 points)
+  - Implemented `ICACHE_RAM_ATTR` ISR functions for ESP8266 RAM-resident interrupt handlers
+  - Debounce logic: 500 ms minimum between triggers per sensor using `millis()` timer
+  - Built `StatusLed` state machine: NO_WIFI (5 Hz blink), WIFI_ONLY (1 Hz blink), WS_CONNECTED (solid on)
+  - One-shot LED sequences for game events: countdown ticks, winner celebration, loser notification
+  - LittleFS-based config persistence: server IP, port, player name survive device reboot
+  - HTTP config endpoint on port 80 for alternative WiFi credential management
+  - Serial debug output at 115200 baud for development/troubleshooting
+- Key implementation details:
+  - Pin mapping: D1=GPIO5 (+1), D5=GPIO14 (+2), D2=GPIO4 (+3), LED_BUILTIN=GPIO2
+  - Non-blocking event loop: WS poll → sensor check → LED update, no `delay()` calls
+  - Finite state machine for WiFi/WS/sensor flow
+  - ArduinoJson v7.x for JSON message parsing/construction
+  - gilmaimon/ArduinoWebsockets for raw RFC 6455 WebSocket protocol compatibility
+- Web flashing support:
+  - ESP Web Tools integration: browser-based flashing without PlatformIO toolchain
+  - Pre-built firmware binaries published to GitHub Releases
+  - Manifest files for d1_mini and nodemcuv2 board variants
+  - Secure context support (https://) for flashing from remote machines
+- Files created:
+  - `clients/esp8266-sensor/platformio.ini` — PlatformIO configuration (dual board targets)
+  - `clients/esp8266-sensor/src/main.cpp` — firmware entry point, setup/loop, WiFi setup
+  - `clients/esp8266-sensor/src/config.h` — pin definitions, constants, WS backoff timings
+  - `clients/esp8266-sensor/src/websocket.h/.cpp` — WebSocket client wrapper class
+  - `clients/esp8266-sensor/src/sensors.h/.cpp` — IR sensor ISR handlers + debounce
+  - `clients/esp8266-sensor/src/led.h/.cpp` — Status LED state machine + sequences
+  - `clients/esp8266-sensor/web-install/index.html` — Web flashing UI
+  - `clients/esp8266-sensor/web-install/manifest.json` — Firmware manifest (d1_mini + nodemcuv2)
+  - `clients/esp8266-sensor/README.md` — Hardware setup, flashing instructions, WiFi setup guide
+- Remaining tasks (Phase 4 — Testing Backlog):
+  - Field testing with actual IR sensors and break-beam hardware
+  - Stress testing with rapid-fire sensor triggers (ball flow simulation)
+  - WiFi reconnect scenario testing (network dropout + recovery)
+  - Server reconnect with player ID persistence verification
+  - Web flashing end-to-end testing (multiple browsers, boards)
+  - Serial output validation (debug logging completeness)
+  - Edge cases: WiFi timeout, WS message queue overflow, sensor debounce edge cases

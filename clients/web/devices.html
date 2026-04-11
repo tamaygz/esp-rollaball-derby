@@ -18,6 +18,9 @@
   <nav class="page-nav">
     <a href="index.html">⚙️ Admin</a>
     <span class="nav-active">📡 Devices</span>
+    <a href="debug-player.html">🎮 Debug Player</a>
+    <a href="leds.html">💡 LEDs</a>
+    <a href="/flash-sensor" target="_blank" rel="noopener">⚡ Flash Sensor</a>
     <a href="/display/" target="_blank" class="nav-right">🖥️ Display</a>
   </nav>
 
@@ -74,6 +77,36 @@
       <div id="unregistered-list" class="device-list">
         <p class="empty-msg">No unregistered clients.</p>
       </div>
+    </section>
+
+    <!-- Remote sensor config -->
+    <section class="card card-wide" id="card-sensor-config">
+      <h2>📡 Remote Sensor Config</h2>
+      <p class="hint">Push server connection details to a sensor already on the local network. The sensor will save the new config and reboot.</p>
+      <form id="sensor-config-form" class="sensor-config-form" autocomplete="off">
+        <div class="sensor-config-fields">
+          <div class="form-group">
+            <label for="input-sensor-ip">Sensor IP</label>
+            <input id="input-sensor-ip" type="text" placeholder="192.168.1.x" maxlength="39">
+          </div>
+          <div class="form-group">
+            <label for="input-server-ip">Server IP</label>
+            <input id="input-server-ip" type="text" maxlength="39">
+          </div>
+          <div class="form-group">
+            <label for="input-server-port">Server Port</label>
+            <input id="input-server-port" type="text" maxlength="5">
+          </div>
+          <div class="form-group">
+            <label for="input-player-name">Player Name <span class="muted">(optional)</span></label>
+            <input id="input-player-name" type="text" maxlength="20" placeholder="leave blank to keep current">
+          </div>
+        </div>
+        <div class="btn-row">
+          <button type="submit" id="btn-sensor-config" class="btn btn-primary">⚡ Configure Sensor</button>
+          <span id="sensor-config-status" class="muted text-sm"></span>
+        </div>
+      </form>
     </section>
 
   </main>
