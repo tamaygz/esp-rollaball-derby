@@ -14,9 +14,9 @@ class GameState {
     this.status = 'idle';
     this.config = {
       trackLength: 15,
-      maxPlayers: 16,
-      theme: 'horse',
-      countdown: 0,
+      maxPlayers: 4,
+      theme: 'auto',
+      countdown: 5,
     };
     this.players = new Map();
     this.startedAt = null;

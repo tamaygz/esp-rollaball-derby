@@ -20,7 +20,7 @@ Derby.State = (function () {
   // ── Internal state ──────────────────────────────────────────────────────────
   var _current = {
     status: 'idle',
-    config: { trackLength: 15, maxPlayers: 16, theme: 'horse' },
+    config: { trackLength: 15, maxPlayers: 4, theme: 'auto' },
     players: [],
     startedAt: null,
     connectedClients: { total: 0, sensor: 0, web: 0, motor: 0, display: 0 },
@@ -246,7 +246,7 @@ Derby.State = (function () {
     state = state || {};
 
     var status = state.status || previous.status || 'idle';
-    var config = state.config || previous.config || { trackLength: 15, maxPlayers: 16, theme: 'horse' };
+    var config = state.config || previous.config || { trackLength: 15, maxPlayers: 4, theme: 'auto' };
     var players = state.players || previous.players || [];
     var counts = state.connectedClients || previous.connectedClients || { total: 0, sensor: 0, web: 0, motor: 0, display: 0 };
 

@@ -150,7 +150,7 @@
     /* ── Seg buttons ──────────────────────────────────────────────────────── */
     .seg-group {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1fr 1fr 1fr;
       gap: .45rem;
     }
     .seg {
@@ -338,7 +338,8 @@
     }
     .foot a { color: var(--text-dim); text-decoration: none; }
     .foot a:hover { color: var(--amber); }
-  </head>
+  </style>
+</head>
 <body>
 
 <div class="wrap">
@@ -395,6 +396,10 @@
         <button class="seg on" data-src="auto">
           <strong>Auto-download</strong>
           <small>Latest from GitHub Releases</small>
+        </button>
+        <button class="seg" data-src="bundled">
+          <strong>Bundled firmware</strong>
+          <small>Served from this server</small>
         </button>
         <button class="seg" data-src="manual">
           <strong>Upload .bin</strong>
@@ -473,13 +478,8 @@
 
 </div><!-- /wrap -->
 
-<!-- ESP Web Tools — pinned to v10.2.1 with integrity hash to prevent supply-chain tampering -->
-<script
-  type="module"
-  src="https://unpkg.com/esp-web-tools@10.2.1/dist/web/install-button.js?module"
-  integrity="sha384-2Ea4WL8tjFb0qQKUqBoX45KlPVoUgL+Z3zUqsD0MHmtJ3faDbfNyZulLg/LfYDUZ"
-  crossorigin="anonymous"
-></script>
+<!-- ESP Web Tools v10.2.1 — vendored locally for offline/LAN use -->
+<script type="module" src="./vendor/install-button.js"></script>
 
 <script>
 'use strict';
@@ -488,6 +488,10 @@
 const MANIFESTS = {
   d1_mini:   './manifest.json',
   nodemcuv2: './manifest-nodemcuv2.json',
+};
+const MANIFESTS_BUNDLED = {
+  d1_mini:   './manifest-bundled.json',
+  nodemcuv2: './manifest-bundled-nodemcuv2.json',
 };
 
 // ── DOM refs ──────────────────────────────────────────────────────────────────
@@ -530,7 +534,8 @@ boardGroup.addEventListener('click', (e) => {
   if (!btn) return;
   currentBoard = btn.dataset.board;
   boardGroup.querySelectorAll('.seg').forEach(b => b.classList.toggle('on', b === btn));
-  if (currentSrc === 'auto') ewib.manifest = MANIFESTS[currentBoard];
+  if (currentSrc === 'auto')     ewib.manifest = MANIFESTS[currentBoard];
+  if (currentSrc === 'bundled')  checkBundledAndSet();
 });
 
 // ── Firmware source ───────────────────────────────────────────────────────────
@@ -543,6 +548,8 @@ srcGroup.addEventListener('click', (e) => {
   if (currentSrc === 'auto') {
     ewib.manifest = MANIFESTS[currentBoard];
     setStatus('');
+  } else if (currentSrc === 'bundled') {
+    checkBundledAndSet();
   } else if (manualUrl) {
     ewib.manifest = manualUrl;
   } else {
@@ -581,6 +588,23 @@ function handleBinFile(file) {
   ewib.manifest = manualUrl;
   binNameEl.textContent = `✓  ${file.name}`;
   setStatus('');
+}
+
+// ── Bundled firmware availability check ───────────────────────────────────────
+async function checkBundledAndSet() {
+  const manifestUrl = MANIFESTS_BUNDLED[currentBoard];
+  setStatus('Checking bundled firmware…');
+  try {
+    const r = await fetch(manifestUrl, { method: 'HEAD' });
+    if (r.ok) {
+      ewib.manifest = manifestUrl;
+      setStatus('');
+    } else {
+      setStatus('Bundled firmware not found on this server', 'err');
+    }
+  } catch (_) {
+    setStatus('Bundled firmware not found on this server', 'err');
+  }
 }
 
 // ── Pre-configure accordion ───────────────────────────────────────────────────
