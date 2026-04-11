@@ -52,6 +52,11 @@
           <span class="label">Name</span>
           <span id="dp-player-name" class="dp-value">—</span>
         </div>
+        <form id="form-rename" class="rename-inline">
+          <input type="text" id="rename-input" maxlength="20" placeholder="New name…">
+          <button type="submit" class="btn btn-secondary btn-sm" id="btn-rename" disabled>✏️ Rename</button>
+        </form>
+        <div id="rename-error" class="error-msg hidden"></div>
         <div class="status-row">
           <span class="label">Position</span>
           <span id="dp-player-pos" class="dp-value">0</span>
@@ -74,20 +79,6 @@
         <button id="btn-score-3" class="btn btn-score btn-score-3" disabled>+3 Points</button>
       </div>
       <div id="score-error" class="error-msg hidden"></div>
-    </section>
-
-    <!-- Rename -->
-    <section class="card" id="card-rename">
-      <h2>Rename</h2>
-      <p class="hint">Change your player name while connected.</p>
-      <form id="form-rename">
-        <div class="form-group">
-          <label for="rename-input">New Name</label>
-          <input type="text" id="rename-input" maxlength="20" placeholder="Enter new name">
-        </div>
-        <button type="submit" class="btn btn-primary" id="btn-rename" disabled>✏️ Rename</button>
-      </form>
-      <div id="rename-error" class="error-msg hidden"></div>
     </section>
 
     <!-- Event Log -->
