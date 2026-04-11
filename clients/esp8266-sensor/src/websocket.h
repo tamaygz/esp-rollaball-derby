@@ -53,7 +53,10 @@ struct LedTestEffectMessage {
 class WSClient {
 public:
     // Configure connection parameters. Call once in setup() after WiFi connects.
-    void begin(const char* host, uint16_t port, const char* playerName);
+    // persistedPlayerId is optional — pass the saved UUID from LittleFS so the
+    // device can re-register with the server after a power cycle.
+    void begin(const char* host, uint16_t port, const char* playerName,
+               const char* persistedPlayerId = nullptr);
 
     // Drive the WebSocket state machine. Call every loop() iteration.
     void loop();
