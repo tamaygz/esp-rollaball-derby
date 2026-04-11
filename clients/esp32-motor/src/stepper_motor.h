@@ -34,7 +34,7 @@ public:
     int32_t getTargetStep()  const override;
 
 private:
-    AccelStepper _stepper;
+    mutable AccelStepper _stepper;  // mutable: AccelStepper query methods are not const-qualified
     uint8_t      _limitPin;
     bool         _homed           = false;
     bool         _homing          = false;

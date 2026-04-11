@@ -45,6 +45,7 @@ struct LedConfig {
 #define LED_DEFAULT_BRIGHTNESS 128
 #endif
 
+#ifndef LEDCONFIG_DEFAULTS_OVERRIDE
 inline LedConfig ledConfigDefaults() {
     LedConfig cfg;
     cfg.ledCount       = LED_DEFAULT_COUNT;
@@ -59,3 +60,4 @@ inline LedConfig ledConfigDefaults() {
     cfg.hasDeviceColor = false;
     return cfg;
 }
+#endif  // LEDCONFIG_DEFAULTS_OVERRIDE

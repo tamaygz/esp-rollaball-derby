@@ -1,5 +1,7 @@
 #pragma once
 #include <Arduino.h>
+
+#ifdef HAS_BT_AUDIO
 #include <BluetoothA2DPSource.h>
 
 // Maximum number of scan results kept in memory
@@ -75,3 +77,27 @@ private:
     void _persistPairedAddress(const char* address, const char* name);
     bool _loadPairedAddress();
 };
+
+#else  // !HAS_BT_AUDIO — no-op stub for chips without Classic Bluetooth
+
+struct BtDevice { char name[32]; char address[18]; int8_t rssi; };
+
+class BtAudio {
+public:
+    bool        begin()                           { return false; }
+    void        loop()                            {}
+    uint8_t     scan(uint8_t = 10)                { return 0; }
+    bool        connect(const char*)              { return false; }
+    void        disconnect(bool = false)          {}
+    bool        isConnected()             const   { return false; }
+    const char* getPairedDeviceName()     const   { return ""; }
+    const char* getPairedAddress()        const   { return ""; }
+    bool        hasPairedDevice()         const   { return false; }
+    uint8_t     scanResultCount()         const   { return 0; }
+    const BtDevice* scanResult(uint8_t)   const   { return nullptr; }
+    using AudioCallback = void*;
+    void        setAudioCallback(AudioCallback)   {}
+    bool        isAvailable()             const   { return false; }
+};
+
+#endif  // HAS_BT_AUDIO

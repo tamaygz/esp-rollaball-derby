@@ -49,7 +49,7 @@ public:
     void setStepsPerMm(uint8_t lane, float stepsPerMm);
 
     // Full calibration struct update from REST API payload
-    void setFromJson(uint8_t lane, const JsonObject& obj);
+    void setFromJson(uint8_t lane, JsonObjectConst obj);
 
     // Getters ───────────────────────────────────────────────────────────────
 

@@ -3,7 +3,9 @@
 #include "config.h"
 #include <Arduino.h>
 #include <WiFiClient.h>
+#ifdef HAS_BT_AUDIO
 #include <BluetoothA2DPSource.h>
+#endif
 
 // Sound events mapped to WAV files on the server
 enum class SoundEvent {
@@ -63,9 +65,11 @@ private:
     size_t    _pcmSamples = 0;  // total stereo samples (L+R pairs = 1 frame)
     size_t    _pcmPos     = 0;  // current playback position in samples
 
-    // A2DP data callback
+    // A2DP data callback (only when Classic BT is available)
     static SoundManager* _instance;
+#ifdef HAS_BT_AUDIO
     static int32_t _audioCallback(Frame* frame, int32_t frame_count);
+#endif
 
     // Fetch + decode WAV for a given sound event
     bool _fetchAndDecode(SoundEvent event);

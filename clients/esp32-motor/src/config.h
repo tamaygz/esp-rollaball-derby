@@ -78,10 +78,11 @@
 // ─── LED Config ──────────────────────────────────────────────────────────────
 // LedTopology, LedConfig and ledConfigDefaults() live in the shared leds lib.
 // LED_DEFAULT_* are defined above so the shared header picks them up.
+// Define override guard BEFORE including to suppress the shared default.
+#define LEDCONFIG_DEFAULTS_OVERRIDE
 #include <leds/LedConfig.h>
 
 // ESP32 motor default topology is MATRIX_ZIGZAG — override the shared default.
-#undef  ledConfigDefaults
 inline LedConfig ledConfigDefaults() {
     LedConfig cfg;
     cfg.ledCount       = LED_DEFAULT_COUNT;

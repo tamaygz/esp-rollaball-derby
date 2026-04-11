@@ -160,7 +160,7 @@ void MotorCalibration::setStepsPerMm(uint8_t lane, float stepsPerMm) {
     _lanes[lane].stepsPerMm = stepsPerMm;
 }
 
-void MotorCalibration::setFromJson(uint8_t lane, const JsonObject& obj) {
+void MotorCalibration::setFromJson(uint8_t lane, JsonObjectConst obj) {
     if (lane >= _motorCount) return;
     LaneCalibration& c = _lanes[lane];
     if (obj["directionReversed"].is<bool>()) c.directionReversed = obj["directionReversed"];

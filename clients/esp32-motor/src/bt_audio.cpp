@@ -1,4 +1,7 @@
 #include "bt_audio.h"
+
+#ifdef HAS_BT_AUDIO
+
 #include <Preferences.h>
 #include <Arduino.h>
 
@@ -152,3 +155,5 @@ bool BtAudio::_loadPairedAddress() {
     }
     return false;
 }
+
+#endif  // HAS_BT_AUDIO

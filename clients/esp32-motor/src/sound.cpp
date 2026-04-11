@@ -23,7 +23,9 @@ bool SoundManager::begin(BtAudio* btAudio, const char* host, uint16_t port) {
     }
 
     if (btAudio) {
+#ifdef HAS_BT_AUDIO
         btAudio->setAudioCallback(_audioCallback);
+#endif
     }
 
     Serial.println("[SOUND] Sound manager ready");
@@ -80,6 +82,7 @@ void SoundManager::setBuzzerPin(uint8_t pin) {
     }
 }
 
+#ifdef HAS_BT_AUDIO
 int32_t SoundManager::_audioCallback(Frame* frame, int32_t frame_count) {
     if (!_instance || _instance->_pcmPos >= _instance->_pcmSamples) {
         memset(frame, 0, frame_count * sizeof(Frame));
@@ -104,6 +107,7 @@ int32_t SoundManager::_audioCallback(Frame* frame, int32_t frame_count) {
 
     return frame_count;
 }
+#endif  // HAS_BT_AUDIO
 
 bool SoundManager::_fetchAndDecode(SoundEvent event) {
     const char* filename = _fileNameForEvent(event);

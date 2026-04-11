@@ -261,7 +261,7 @@ bool WSClient::pollPositions(PlayerPosition out[], uint8_t& count) {
 }
 
 GlobalEventType WSClient::pollGlobalEvent() {
-    GlobalEvent ev       = _pendingGlobalEvent;
+    GlobalEventType ev   = _pendingGlobalEvent;
     _pendingGlobalEvent  = GlobalEventType::NONE;
     return ev;
 }

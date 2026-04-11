@@ -622,7 +622,7 @@ void loop() {
     }
 
     httpServer.handleClient();
-    MDNS.update();
+    // MDNS.update() — not needed on ESP32; mDNS runs automatically in the background.
 
     if (g_pendingRestart) {
         if (g_stateDirty) saveState();
