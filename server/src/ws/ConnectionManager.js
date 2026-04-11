@@ -15,7 +15,7 @@ class ConnectionManager {
   constructor(gameState, ledConfigManager = null) {
     this.gameState       = gameState;
     this.ledConfigManager = ledConfigManager;
-    this.clients         = new Map(); // id → { ws, type, playerId, id, chipType, reportedLedCount }
+    this.clients         = new Map(); // id → { ws, type, playerId, id, chipId, chipType, reportedLedCount }
     this._chipIdToPlayerId = new Map(); // chipId → playerId  (survives WS disconnects)
     this._botManager     = null;
     this._autoResetTimer = null;
