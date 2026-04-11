@@ -8,8 +8,6 @@ window.Derby = window.Derby || {};
  * Connects to the server as an observer (display type) and wires up modules.
  */
 (function () {
-  function _el(id) { return document.getElementById(id); }
-
   function _timestamp() {
     return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   }
