@@ -110,7 +110,7 @@ describe('Integration — WebSocket flow', () => {
   before(async () => {
     ({ server, port, gameState } = await startServer());
     // Disable countdown for test predictability — start transitions immediately.
-    gameState.config.countdown = 0;
+    gameState.updateConfig({ countdown: 0 });
   });
 
   after(() => {
