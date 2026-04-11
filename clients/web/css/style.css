@@ -492,6 +492,11 @@ input:disabled, select:disabled {
 }
 .btn-bot-remove:not(:disabled):hover { background: rgba(229,62,62,0.35); }
 
+/* ─── Inner section heading (second h2 within the same card) ────────────────── */
+.card-inner-section {
+  margin-top: 20px;
+}
+
 /* ─── Utility ───────────────────────────────────────────────────────────────── */
 .hidden { display: none !important; }
 

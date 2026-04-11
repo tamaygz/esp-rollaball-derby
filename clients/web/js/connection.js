@@ -7,7 +7,10 @@ window.Derby = window.Derby || {};
  * Derby.Connection — WebSocket client with exponential-backoff auto-reconnect.
  *
  * Public API:
- *   Derby.Connection.connect(playerName)  — open (or reopen) the WebSocket
+ *   Derby.Connection.connect(playerName, clientType)
+ *                             — open (or reopen) the WebSocket.
+ *                               clientType defaults to 'web' (creates a player entry).
+ *                               Pass 'display' to connect as an observer without creating a player.
  *   Derby.Connection.send(msg)            — send a JSON message; returns true on success
  *   Derby.Connection.onMessage(fn)        — register a message handler
  *   Derby.Connection.disconnect()         — close and cancel any pending reconnect
