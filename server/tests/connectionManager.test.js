@@ -369,9 +369,9 @@ describe('ConnectionManager — chipId-based reconnect', () => {
     const ws = makeMockWs();
     cm.handleConnection(ws);
     const [clientId] = cm.clients.keys();
-    cm._handleRegister(clientId, ws, { type: 'sensor', playerName: 'Test', chipId: 'CHIP1' });
+    cm._handleRegister(clientId, ws, { type: 'sensor', playerName: 'Test', chipId: 'C01D0001' });
 
-    assert.equal(cm._chipIdToPlayerId.get('CHIP1'), cm.clients.get(clientId).playerId);
+    assert.equal(cm._chipIdToPlayerId.get('C01D0001'), cm.clients.get(clientId).playerId);
   });
 
   test('chipId-based reconnect preserves player name when none provided', () => {
@@ -381,7 +381,7 @@ describe('ConnectionManager — chipId-based reconnect', () => {
     const ws1 = makeMockWs();
     cm.handleConnection(ws1);
     const [clientId1] = cm.clients.keys();
-    cm._handleRegister(clientId1, ws1, { type: 'sensor', playerName: 'OriginalName', chipId: 'CHIP2' });
+    cm._handleRegister(clientId1, ws1, { type: 'sensor', playerName: 'OriginalName', chipId: 'C01D0002' });
 
     gameState.start();
     cm._handleDisconnect(clientId1);
@@ -389,7 +389,7 @@ describe('ConnectionManager — chipId-based reconnect', () => {
     const ws2 = makeMockWs();
     cm.handleConnection(ws2);
     const clientId2 = [...cm.clients.keys()].find(k => k !== clientId1);
-    cm._handleRegister(clientId2, ws2, { type: 'sensor', chipId: 'CHIP2' });
+    cm._handleRegister(clientId2, ws2, { type: 'sensor', chipId: 'C01D0002' });
 
     // Name should be preserved (not re-assigned)
     const playerId = cm.clients.get(clientId2).playerId;
@@ -404,7 +404,7 @@ describe('ConnectionManager — chipId-based reconnect', () => {
     const ws1 = makeMockWs();
     cm.handleConnection(ws1);
     const [clientId1] = cm.clients.keys();
-    cm._handleRegister(clientId1, ws1, { type: 'sensor', playerName: 'Temp', chipId: 'CHIP3' });
+    cm._handleRegister(clientId1, ws1, { type: 'sensor', playerName: 'Temp', chipId: 'C01D0003' });
     // In idle, disconnect deletes the player
     cm._handleDisconnect(clientId1);
     assert.equal(gameState.players.size, 0);
@@ -413,7 +413,7 @@ describe('ConnectionManager — chipId-based reconnect', () => {
     const ws2 = makeMockWs();
     cm.handleConnection(ws2);
     const clientId2 = [...cm.clients.keys()].find(k => k !== clientId1);
-    cm._handleRegister(clientId2, ws2, { type: 'sensor', chipId: 'CHIP3' });
+    cm._handleRegister(clientId2, ws2, { type: 'sensor', chipId: 'C01D0003' });
 
     assert.equal(gameState.players.size, 1);
     // It's a new player, so playerId should be the new clientId
@@ -439,48 +439,85 @@ describe('ConnectionManager — chipId-based reconnect', () => {
     // Should create a second player (no chipId to reconnect)
     assert.equal(gameState.players.size, 2);
   });
-});
 
-// ─── Disconnect race condition ────────────────────────────────────────────────
-
-describe('ConnectionManager — disconnect race condition', () => {
-  test('stale WS close does not disconnect player after chipId-based reconnect', () => {
+  test('web client with chipId does NOT trigger chipId-based reconnect', () => {
     const gameState = new GameState();
     const cm = new ConnectionManager(gameState);
 
-    // First connection
+    // Hardware device registers with chipId
     const ws1 = makeMockWs();
     cm.handleConnection(ws1);
     const [clientId1] = cm.clients.keys();
-    cm._handleRegister(clientId1, ws1, { type: 'sensor', playerName: 'Rider', chipId: 'RACEFIX' });
+    cm._handleRegister(clientId1, ws1, { type: 'sensor', playerName: 'Sensor', chipId: 'ABCD1234' });
+    const sensorPlayerId = cm.clients.get(clientId1).playerId;
+
+    gameState.start();
+    cm._handleDisconnect(clientId1);
+
+    // Web client tries to register with the same chipId
+    const ws2 = makeMockWs();
+    cm.handleConnection(ws2);
+    const clientId2 = [...cm.clients.keys()].find(k => k !== clientId1);
+    cm._handleRegister(clientId2, ws2, { type: 'web', playerName: 'Hacker', chipId: 'ABCD1234' });
+
+    // Should NOT have reconnected to the sensor's player — new player created
+    assert.notEqual(cm.clients.get(clientId2).playerId, sensorPlayerId);
+    assert.equal(gameState.players.size, 2);
+  });
+
+  test('chipId with invalid format is ignored', () => {
+    const gameState = new GameState();
+    const cm = new ConnectionManager(gameState);
+
+    const ws = makeMockWs();
+    cm.handleConnection(ws);
+    const [clientId] = cm.clients.keys();
+    cm._handleRegister(clientId, ws, { type: 'sensor', playerName: 'Test', chipId: '<script>alert(1)</script>' });
+
+    // chipId should not be stored in mapping
+    assert.equal(cm._chipIdToPlayerId.size, 0);
+    // Client should not have chipId set
+    assert.equal(cm.clients.get(clientId).chipId, undefined);
+  });
+});
+
+// ─── Stale socket cleanup on reconnect ────────────────────────────────────────
+
+describe('ConnectionManager — stale socket cleanup', () => {
+  test('reconnect via chipId closes stale client socket', () => {
+    const gameState = new GameState();
+    const cm = new ConnectionManager(gameState);
+
+    const ws1 = makeMockWs();
+    let ws1Closed = false;
+    ws1.close = () => { ws1Closed = true; };
+    cm.handleConnection(ws1);
+    const [clientId1] = cm.clients.keys();
+    cm._handleRegister(clientId1, ws1, { type: 'sensor', playerName: 'Rider', chipId: 'ABCD1234' });
     const playerId = cm.clients.get(clientId1).playerId;
 
     gameState.start();
 
-    // New connection arrives BEFORE old one disconnects
+    // New connection arrives while old one is still in clients map
     const ws2 = makeMockWs();
     cm.handleConnection(ws2);
     const clientId2 = [...cm.clients.keys()].find(k => k !== clientId1);
-    cm._handleRegister(clientId2, ws2, { type: 'sensor', chipId: 'RACEFIX' });
+    cm._handleRegister(clientId2, ws2, { type: 'sensor', chipId: 'ABCD1234' });
 
-    // Player should be reconnected via chipId
-    assert.equal(gameState.players.get(playerId).connected, true);
+    // Old socket should have been closed and removed
+    assert.equal(ws1Closed, true);
+    assert.equal(cm.clients.has(clientId1), false);
+    // New client owns the player
     assert.equal(cm.clients.get(clientId2).playerId, playerId);
-
-    // Now the OLD WebSocket fires its close event
-    cm._handleDisconnect(clientId1);
-
-    // Player should STILL be connected (new client owns it)
-    assert.equal(gameState.players.get(playerId).connected, true);
-    assert.equal(gameState.players.size, 1);
   });
 
-  test('stale WS close does not disconnect player after playerId-based reconnect', () => {
+  test('reconnect via playerId closes stale client socket', () => {
     const gameState = new GameState();
     const cm = new ConnectionManager(gameState);
 
-    // First connection
     const ws1 = makeMockWs();
+    let ws1Closed = false;
+    ws1.close = () => { ws1Closed = true; };
     cm.handleConnection(ws1);
     const [clientId1] = cm.clients.keys();
     cm._handleRegister(clientId1, ws1, { type: 'sensor', playerName: 'Rider' });
@@ -488,19 +525,15 @@ describe('ConnectionManager — disconnect race condition', () => {
 
     gameState.start();
 
-    // New connection arrives with playerId (device kept it in RAM)
+    // New connection arrives with playerId
     const ws2 = makeMockWs();
     cm.handleConnection(ws2);
     const clientId2 = [...cm.clients.keys()].find(k => k !== clientId1);
     cm._handleRegister(clientId2, ws2, { type: 'sensor', playerId: playerId });
 
-    // Player should be reconnected
-    assert.equal(gameState.players.get(playerId).connected, true);
-
-    // Old WS closes
-    cm._handleDisconnect(clientId1);
-
-    // Player should STILL be connected
-    assert.equal(gameState.players.get(playerId).connected, true);
+    // Old socket should have been closed and removed
+    assert.equal(ws1Closed, true);
+    assert.equal(cm.clients.has(clientId1), false);
+    assert.equal(cm.clients.get(clientId2).playerId, playerId);
   });
 });

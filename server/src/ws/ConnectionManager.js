@@ -2,8 +2,10 @@
 
 const { randomUUID } = require('crypto');
 
-const VALID_TYPES = new Set(['sensor', 'web', 'motor', 'display']);
+const VALID_TYPES    = new Set(['sensor', 'web', 'motor', 'display']);
+const HARDWARE_TYPES = new Set(['sensor', 'motor']);
 const HTML_TAG_PATTERN = /<[^>]*>/g;
+const CHIPID_PATTERN   = /^[A-Fa-f0-9]{4,16}$/;
 
 const AUTO_RESET_DELAY_MS = 15_000;
 const COUNTDOWN_TICK_MS   = 1_000;
@@ -342,14 +344,24 @@ class ConnectionManager {
 
     client.playerId = playerId;
 
-    // Track chipId → playerId for future reconnects
-    if (chipId) {
+    // Close / remove any stale client entries that still reference this player.
+    // This prevents duplicate score messages from lingering sockets.
+    for (const [cid, c] of this.clients.entries()) {
+      if (cid !== client.id && c.playerId === playerId) {
+        c.playerId = null;            // detach so _handleDisconnect won't touch the player
+        try { c.ws.close(); } catch (_) { /* ignore */ }
+        this.clients.delete(cid);
+      }
+    }
+
+    // Track chipId → playerId for future reconnects (hardware types only)
+    if (chipId && HARDWARE_TYPES.has(type)) {
       this._chipIdToPlayerId.set(chipId, playerId);
     }
 
     // Assign / restore device color
     if (this.ledConfigManager) {
-      const isHardwareDevice = type === 'sensor' || type === 'motor';
+      const isHardwareDevice = HARDWARE_TYPES.has(type);
 
       if (!isHardwareDevice) {
         existing.colorIndex = this.ledConfigManager.assignColor(null);
@@ -444,8 +456,12 @@ class ConnectionManager {
     if (typeof chipType === 'string') {
       client.chipType = chipType;
     }
-    if (typeof chipId === 'string') {
-      client.chipId = chipId;
+    // Only accept chipId from hardware device types and validate its format.
+    const validatedChipId = (typeof chipId === 'string' && HARDWARE_TYPES.has(type) && CHIPID_PATTERN.test(chipId))
+      ? chipId
+      : undefined;
+    if (validatedChipId) {
+      client.chipId = validatedChipId;
     }
 
     // Sanitize name
@@ -460,20 +476,20 @@ class ConnectionManager {
     if (reconnectId && type !== 'display') {
       const existing = this.gameState.reconnectPlayer(reconnectId);
       if (existing) {
-        this._finalizeReconnect(ws, client, existing, reconnectId, { type, chipId, sanitized, ledCount, chipType });
+        this._finalizeReconnect(ws, client, existing, reconnectId, { type, chipId: validatedChipId, sanitized, ledCount, chipType });
         return;
       }
     }
 
     // Check whether this physical device was previously associated with a player
-    // (via chipId).  If so, and that player still exists (disconnected during an
-    // active game), reconnect to it instead of creating a duplicate.
-    if (chipId && type !== 'display') {
-      const previousPlayerId = this._chipIdToPlayerId.get(chipId);
+    // (via chipId).  Only hardware types (sensor/motor) participate in chipId
+    // reconnect to prevent non-hardware clients from hijacking device identities.
+    if (validatedChipId) {
+      const previousPlayerId = this._chipIdToPlayerId.get(validatedChipId);
       if (previousPlayerId) {
         const existing = this.gameState.reconnectPlayer(previousPlayerId);
         if (existing) {
-          this._finalizeReconnect(ws, client, existing, previousPlayerId, { type, chipId, sanitized, ledCount, chipType });
+          this._finalizeReconnect(ws, client, existing, previousPlayerId, { type, chipId: validatedChipId, sanitized, ledCount, chipType });
           return;
         }
       }
@@ -481,7 +497,7 @@ class ConnectionManager {
 
     // First-time registration — restore persisted name if known device,
     // otherwise auto-assign one and persist it for future sessions.
-    const deviceChipIdForName = (type === 'sensor' || type === 'motor') ? (chipId || null) : null;
+    const deviceChipIdForName = validatedChipId || null;
     let name;
     if (sanitized.length > 0) {
       name = sanitized;
@@ -512,8 +528,8 @@ class ConnectionManager {
       this.gameState.addPlayer(clientId, name, type, colorIndex);
       client.playerId = clientId;
       // Record chipId → playerId so the device can reconnect after a reboot
-      if (chipId) {
-        this._chipIdToPlayerId.set(chipId, clientId);
+      if (validatedChipId) {
+        this._chipIdToPlayerId.set(validatedChipId, clientId);
       }
     } else {
       client.playerId = null;
