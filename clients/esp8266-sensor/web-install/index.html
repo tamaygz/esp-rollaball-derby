@@ -595,13 +595,40 @@ async function checkBundledAndSet() {
   const manifestUrl = MANIFESTS_BUNDLED[currentBoard];
   setStatus('Checking bundled firmware…');
   try {
-    const r = await fetch(manifestUrl, { method: 'HEAD' });
-    if (r.ok) {
-      ewib.manifest = manifestUrl;
-      setStatus('');
-    } else {
-      setStatus('Bundled firmware not found on this server', 'err');
+    // Fetch and parse the manifest to find the .bin paths
+    const mRes = await fetch(manifestUrl);
+    if (!mRes.ok) {
+      setStatus('Bundled firmware manifest not found on this server', 'err');
+      return;
     }
+    let manifest;
+    try {
+      manifest = await mRes.json();
+    } catch (_) {
+      setStatus('Bundled firmware manifest is invalid', 'err');
+      return;
+    }
+
+    // Resolve parts relative to the manifest URL
+    const base = manifestUrl.substring(0, manifestUrl.lastIndexOf('/') + 1);
+    const parts = manifest?.builds?.[0]?.parts ?? [];
+    if (parts.length === 0) {
+      setStatus('Bundled firmware manifest has no parts', 'err');
+      return;
+    }
+
+    // HEAD-check each firmware .bin file
+    for (const part of parts) {
+      const binUrl = part.path.startsWith('http') ? part.path : base + part.path.replace(/^\.\//, '');
+      const binRes = await fetch(binUrl, { method: 'HEAD' });
+      if (!binRes.ok) {
+        setStatus(`Bundled firmware binary not found: ${part.path}`, 'err');
+        return;
+      }
+    }
+
+    ewib.manifest = manifestUrl;
+    setStatus('');
   } catch (_) {
     setStatus('Bundled firmware not found on this server', 'err');
   }
