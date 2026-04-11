@@ -376,9 +376,9 @@ static void handleBtStatus() {
     httpServer.send(200, "application/json", out);
 }
 
-// GET /api/bt/scan   (blocking: may take ~10 s)
+// GET /api/bt/scan   (blocking: ~7 s; proxy timeout is 12 s)
 static void handleBtScan() {
-    uint8_t count = btAudio.scan(10);
+    uint8_t count = btAudio.scan(7);
     JsonDocument doc;
     JsonArray devices = doc["devices"].to<JsonArray>();
     for (uint8_t i = 0; i < count; i++) {
@@ -654,11 +654,13 @@ void loop() {
     // ── LED test effect ───────────────────────────────────────────────────────
     LedTestEffectMessage pendingEffect;
     if (wsClient.pollTestEffect(pendingEffect)) {
-        // Test effect: fill the matrix with the specified color
-        if (strcmp(pendingEffect.effectName, "solid") == 0) {
+        if (strcmp(pendingEffect.effectName, "rainbow") == 0) {
+            // Rainbow: use the ambient idle animation built into MatrixDisplay
+            matrixDisplay.showIdle();
+        } else {
+            // solid / blink / pulse / chase / sparkle: all fill with the chosen color
             matrixDisplay.fillColor(pendingEffect.r, pendingEffect.g, pendingEffect.b);
         }
-        // Other effects deferred to future enhancement
     }
 
     // ── Position updates from state broadcast ─────────────────────────────────
