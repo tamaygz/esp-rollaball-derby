@@ -14,6 +14,7 @@ class ConnectionManager {
     this.gameState       = gameState;
     this.ledConfigManager = ledConfigManager;
     this.clients         = new Map(); // id → { ws, type, playerId, id, chipType, reportedLedCount }
+    this._chipIdToPlayerId = new Map(); // chipId → playerId  (survives WS disconnects)
     this._botManager     = null;
     this._autoResetTimer = null;
     this._countingDown   = false;
@@ -405,6 +406,12 @@ class ConnectionManager {
         }
         client.playerId = reconnectId;
 
+        // Track chipId → playerId so future reconnects (after device reboot)
+        // can find the player even without a stored playerId.
+        if (chipId) {
+          this._chipIdToPlayerId.set(chipId, reconnectId);
+        }
+
         // Assign / restore device color
         if (this.ledConfigManager) {
           const deviceChipId = (type === 'sensor' || type === 'motor') ? (chipId || null) : null;
@@ -449,7 +456,69 @@ class ConnectionManager {
       }
     }
 
-    // Normal (first-time) registration — restore persisted name if known device,
+    // Normal (first-time) registration — but first check whether this physical
+    // device was previously associated with a player (via chipId).  If so, and
+    // that player still exists (disconnected during an active game), reconnect
+    // to it instead of creating a duplicate.
+    if (chipId && type !== 'display') {
+      const previousPlayerId = this._chipIdToPlayerId.get(chipId);
+      if (previousPlayerId) {
+        const existing = this.gameState.reconnectPlayer(previousPlayerId);
+        if (existing) {
+          // Restore / update name
+          if (sanitized.length > 0) {
+            existing.name = sanitized;
+            if (this.ledConfigManager) {
+              this.ledConfigManager.setDeviceName(chipId, sanitized);
+            }
+          } else if (this.ledConfigManager) {
+            const persisted = this.ledConfigManager.getDeviceName(chipId);
+            if (persisted) existing.name = persisted;
+          }
+          client.playerId = previousPlayerId;
+
+          // Assign / restore device color
+          if (this.ledConfigManager) {
+            existing.colorIndex = this.ledConfigManager.assignColor(chipId);
+          }
+
+          const response = {
+            type: 'registered',
+            payload: { id: previousPlayerId, name: existing.name, playerType: type, colorIndex: existing.colorIndex }
+          };
+
+          if (this.ledConfigManager && typeof ledCount === 'number' && chipType) {
+            const validation = this.ledConfigManager.validateDeviceLedCount(type, ledCount, chipType);
+            if (!validation.valid && validation.warning) {
+              response.payload.warning = validation.warning;
+            }
+            console.log(`[ConnectionManager] Device ${previousPlayerId} reconnected via chipId ${chipId}: ${chipType}, ${ledCount} LEDs detected`);
+          }
+
+          this._send(ws, response);
+          this.broadcastState();
+
+          if (this.ledConfigManager && type !== 'display') {
+            const ledConfig = this.ledConfigManager.getConfigForDeviceType(type);
+            if (ledConfig && ledConfig.ledCount > 0) {
+              const configPayload = { ...ledConfig };
+              if (existing.colorIndex !== undefined) {
+                configPayload.deviceColor = this.ledConfigManager.getColorHex(existing.colorIndex);
+              }
+              this._send(ws, {
+                type: 'led_config',
+                timestamp: Date.now(),
+                payload: configPayload
+              });
+            }
+          }
+
+          return;
+        }
+      }
+    }
+
+    // First-time registration — restore persisted name if known device,
     // otherwise auto-assign one and persist it for future sessions.
     const deviceChipIdForName = (type === 'sensor' || type === 'motor') ? (chipId || null) : null;
     let name;
@@ -481,6 +550,10 @@ class ConnectionManager {
     if (type !== 'display') {
       this.gameState.addPlayer(clientId, name, type, colorIndex);
       client.playerId = clientId;
+      // Record chipId → playerId so the device can reconnect after a reboot
+      if (chipId) {
+        this._chipIdToPlayerId.set(chipId, clientId);
+      }
     } else {
       client.playerId = null;
     }
@@ -553,7 +626,19 @@ class ConnectionManager {
     const client = this.clients.get(clientId);
     const playerId = client ? client.playerId : null;
     this.clients.delete(clientId);
-    if (playerId) this.gameState.disconnectPlayer(playerId);
+
+    // Only disconnect the player if no other active client is now responsible for
+    // it.  This prevents a stale WS close from marking a player disconnected after
+    // the device already reconnected on a new socket.
+    if (playerId) {
+      let takenOver = false;
+      for (const c of this.clients.values()) {
+        if (c.playerId === playerId) { takenOver = true; break; }
+      }
+      if (!takenOver) {
+        this.gameState.disconnectPlayer(playerId);
+      }
+    }
     this.broadcastState();
   }
 }
