@@ -92,11 +92,40 @@ static void saveConfig() {
 // separate file so the device boots with the correct identity and LED setup.
 // Uses atomic write (temp → rename) to prevent corruption on power loss.
 
+static bool isValidStateFile(const char* path) {
+    File f = LittleFS.open(path, "r");
+    if (!f) {
+        return false;
+    }
+
+    JsonDocument doc;
+    DeserializationError err = deserializeJson(doc, f);
+    f.close();
+
+    return !err;
+}
+
 static void loadState() {
-    // If a temp file exists from a previous interrupted write, promote it.
-    if (!LittleFS.exists(STATE_FILE) && LittleFS.exists(STATE_TMP)) {
-        Serial.println("[STATE] Recovering from interrupted write (temp → state)");
-        LittleFS.rename(STATE_TMP, STATE_FILE);
+    const bool hasState = LittleFS.exists(STATE_FILE);
+    const bool hasTemp  = LittleFS.exists(STATE_TMP);
+
+    if (hasTemp) {
+        if (!hasState) {
+            Serial.println("[STATE] Recovering from interrupted write (temp → state)");
+            LittleFS.rename(STATE_TMP, STATE_FILE);
+        } else {
+            const bool stateValid = isValidStateFile(STATE_FILE);
+            const bool tempValid  = isValidStateFile(STATE_TMP);
+
+            if (!stateValid && tempValid) {
+                Serial.println("[STATE] Main state invalid; recovering from temp file");
+                LittleFS.remove(STATE_FILE);
+                LittleFS.rename(STATE_TMP, STATE_FILE);
+            } else {
+                Serial.println("[STATE] Removing stale temp state file");
+                LittleFS.remove(STATE_TMP);
+            }
+        }
     }
 
     if (!LittleFS.exists(STATE_FILE)) {
