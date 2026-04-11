@@ -93,6 +93,12 @@ static void saveConfig() {
 // Uses atomic write (temp → rename) to prevent corruption on power loss.
 
 static void loadState() {
+    // If a temp file exists from a previous interrupted write, promote it.
+    if (!LittleFS.exists(STATE_FILE) && LittleFS.exists(STATE_TMP)) {
+        Serial.println("[STATE] Recovering from interrupted write (temp → state)");
+        LittleFS.rename(STATE_TMP, STATE_FILE);
+    }
+
     if (!LittleFS.exists(STATE_FILE)) {
         Serial.println("[STATE] No state file — using defaults");
         return;
@@ -118,9 +124,13 @@ static void loadState() {
     }
 
     if (doc["led_count"].is<int>()) {
-        g_savedLedConfig.ledCount   = static_cast<uint16_t>(doc["led_count"] | LED_DEFAULT_COUNT);
-        g_savedLedConfig.pin        = static_cast<uint8_t>(doc["led_pin"] | LED_DEFAULT_PIN);
-        g_savedLedConfig.brightness = static_cast<uint8_t>(doc["led_brightness"] | LED_DEFAULT_BRIGHTNESS);
+        g_savedLedConfig.ledCount   = static_cast<uint16_t>(doc["led_count"].as<int>());
+        g_savedLedConfig.pin        = doc["led_pin"].is<int>()
+            ? static_cast<uint8_t>(doc["led_pin"].as<int>())
+            : LED_DEFAULT_PIN;
+        g_savedLedConfig.brightness = doc["led_brightness"].is<int>()
+            ? static_cast<uint8_t>(doc["led_brightness"].as<int>())
+            : LED_DEFAULT_BRIGHTNESS;
         g_savedLedConfig.topology   = LedTopology::STRIP;
         g_savedLedConfig.matrixRows = 8;
         g_savedLedConfig.matrixCols = 8;
@@ -183,8 +193,12 @@ static void saveState() {
     serializeJson(doc, f);
     f.close();
 
+    // Remove old state file (ignore failure — it may not exist on first write).
     LittleFS.remove(STATE_FILE);
-    LittleFS.rename(STATE_TMP, STATE_FILE);
+    if (!LittleFS.rename(STATE_TMP, STATE_FILE)) {
+        Serial.println("[STATE] WARNING: rename failed — temp file remains");
+        return;
+    }
 
     g_stateDirty     = false;
     g_stateLastSave  = millis();
