@@ -32,9 +32,14 @@
   var winnerOverlay   = null;
   var countdownEffect = null;
 
+  var CONCRETE_THEMES = ['horse', 'camel'];
+
   // Initialise scene once we receive the first state message
   async function _initScene(theme) {
-    await ThemeManager.load(theme || 'horse');
+    var resolvedTheme = (!theme || theme === 'auto')
+      ? CONCRETE_THEMES[Math.floor(Math.random() * CONCRETE_THEMES.length)]
+      : theme;
+    await ThemeManager.load(resolvedTheme);
 
     raceTrack = new RaceTrack(app);
     app.stage.addChild(raceTrack);
