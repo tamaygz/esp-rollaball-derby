@@ -538,6 +538,7 @@ input:disabled, select:disabled {
 .page-nav a           { color: var(--muted); }
 .page-nav a:hover     { color: var(--text); border-bottom-color: var(--border); }
 .page-nav .nav-active { color: var(--accent); border-bottom-color: var(--accent); cursor: default; }
+.page-nav .nav-right  { margin-left: auto; }
 
 /* ─── Devices page ──────────────────────────────────────────────────────────── */
 .devices-header-row {
