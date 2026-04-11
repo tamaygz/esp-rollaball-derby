@@ -363,6 +363,17 @@
         .then(function () { _showMotorMsg('bt-status-msg', 'Unpaired.'); _refreshBtStatus(); })
         .catch(function (e) { _showMotorMsg('bt-status-msg', '❌ ' + e.message); });
     });
+
+    var btnPlay  = _el('btn-bt-play');
+    var selSound = _el('bt-sound-event');
+    if (btnPlay) btnPlay.addEventListener('click', function () {
+      var ev = selSound ? selSound.value : 'winner';
+      btnPlay.disabled = true;
+      _motorPost('/bt/play', { event: ev })
+        .then(function () { _showMotorMsg('bt-status-msg', '🔊 Playing: ' + _esc(ev.replace(/_/g, ' '))); })
+        .catch(function (e) { _showMotorMsg('bt-status-msg', '❌ ' + e.message); })
+        .finally(function () { btnPlay.disabled = false; });
+    });
   }
 
   function _openMotorControl(clientId, clientName) {

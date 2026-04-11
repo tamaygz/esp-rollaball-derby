@@ -414,6 +414,32 @@ static void handleBtUnpair() {
     httpServer.send(200, "application/json", "{\"ok\":true}");
 }
 
+// POST /api/bt/play   { "event": "winner" }
+static void handleBtPlay() {
+    if (httpServer.method() != HTTP_POST) { httpServer.send(405, "application/json", "{\"error\":\"Method Not Allowed\"}"); return; }
+    JsonDocument req;
+    if (deserializeJson(req, httpServer.arg("plain"))) { httpServer.send(400, "application/json", "{\"error\":\"Invalid JSON\"}"); return; }
+    const char* ev = req["event"] | "winner";
+    SoundEvent event = SoundEvent::WINNER;
+    if      (strcmp(ev, "score_1")        == 0) event = SoundEvent::SCORE_PLUS1;
+    else if (strcmp(ev, "score_2")        == 0) event = SoundEvent::SCORE_PLUS2;
+    else if (strcmp(ev, "score_3")        == 0) event = SoundEvent::SCORE_PLUS3;
+    else if (strcmp(ev, "score_0")        == 0) event = SoundEvent::SCORE_ZERO;
+    else if (strcmp(ev, "game_started")   == 0) event = SoundEvent::GAME_STARTED;
+    else if (strcmp(ev, "game_paused")    == 0) event = SoundEvent::GAME_PAUSED;
+    else if (strcmp(ev, "game_resumed")   == 0) event = SoundEvent::GAME_RESUMED;
+    else if (strcmp(ev, "game_reset")     == 0) event = SoundEvent::GAME_RESET;
+    else if (strcmp(ev, "countdown_tick") == 0) event = SoundEvent::COUNTDOWN_TICK;
+    else if (strcmp(ev, "countdown_go")   == 0) event = SoundEvent::COUNTDOWN_GO;
+    else if (strcmp(ev, "button_click")   == 0) event = SoundEvent::BUTTON_CLICK;
+    else if (strcmp(ev, "took_lead")      == 0) event = SoundEvent::TOOK_LEAD;
+    else if (strcmp(ev, "became_last")    == 0) event = SoundEvent::BECAME_LAST;
+    else if (strcmp(ev, "streak_zero")    == 0) event = SoundEvent::STREAK_ZERO;
+    else if (strcmp(ev, "streak_three")   == 0) event = SoundEvent::STREAK_THREE;
+    soundManager.play(event);
+    httpServer.send(200, "application/json", "{\"ok\":true}");
+}
+
 // POST /config   { "server_ip": "...", "server_port": "3000", "player_name": "..." }
 static void handleHttpConfig() {
     if (httpServer.method() != HTTP_POST) {
@@ -460,6 +486,7 @@ static void setupHttpRoutes() {
     httpServer.on("/api/bt/scan",                HTTP_GET,  handleBtScan);
     httpServer.on("/api/bt/pair",                HTTP_POST, handleBtPair);
     httpServer.on("/api/bt/unpair",              HTTP_DELETE, handleBtUnpair);
+    httpServer.on("/api/bt/play",               HTTP_POST,  handleBtPlay);
     httpServer.on("/config",                     handleHttpConfig);
     httpServer.begin();
     Serial.printf("[HTTP] REST API listening on port %d\n", HTTP_CONFIG_PORT);

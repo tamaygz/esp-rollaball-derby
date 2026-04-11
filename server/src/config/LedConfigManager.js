@@ -334,7 +334,7 @@ class LedConfigManager extends EventEmitter {
     }
     
     // Validate topology
-    const validTopologies = ['strip', 'matrix', 'ring'];
+    const validTopologies = ['strip', 'matrix', 'matrix_zigzag', 'matrix_progressive', 'ring'];
     if (!validTopologies.includes(topology)) {
       throw new Error(`topology must be one of: ${validTopologies.join(', ')}`);
     }

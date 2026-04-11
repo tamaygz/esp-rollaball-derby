@@ -158,6 +158,21 @@
           <button id="btn-bt-unpair" class="btn btn-danger btn-sm" style="display:none">⛔ Unpair</button>
         </div>
         <div id="bt-device-list" class="bt-device-list"></div>
+        <div class="bt-play-row" style="display:flex;align-items:center;gap:0.5em;margin-top:0.5em">
+          <select id="bt-sound-event" class="input-sm">
+            <option value="winner">Winner fanfare</option>
+            <option value="game_started">Game started</option>
+            <option value="countdown_go">Countdown — go!</option>
+            <option value="countdown_tick">Countdown tick</option>
+            <option value="score_1">Score +1</option>
+            <option value="score_2">Score +2</option>
+            <option value="score_3">Score +3</option>
+            <option value="took_lead">Took lead</option>
+            <option value="became_last">Became last</option>
+            <option value="button_click">Button click</option>
+          </select>
+          <button id="btn-bt-play" class="btn btn-secondary btn-sm">🔊 Play</button>
+        </div>
         <p id="bt-status-msg" class="text-sm muted" style="margin-top:0.4em"></p>
       </div>
     </section>

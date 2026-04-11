@@ -340,13 +340,13 @@ Derby.LED = (function () {
     if (!pinEl) return;
 
     if (deviceType === 'sensor') {
-      if (esp8266Group) esp8266Group.removeAttribute('disabled');
-      if (esp32Group)   esp32Group.setAttribute('disabled', '');
+      if (esp8266Group) esp8266Group.style.display = '';
+      if (esp32Group)   esp32Group.style.display   = 'none';
       if (hintEl) hintEl.textContent = 'ESP8266: GPIO2 = UART1 (leaves Serial free); GPIO3 = DMA (uses RX pin).';
     } else {
       // motor = ESP32
-      if (esp8266Group) esp8266Group.setAttribute('disabled', '');
-      if (esp32Group)   esp32Group.removeAttribute('disabled');
+      if (esp8266Group) esp8266Group.style.display = 'none';
+      if (esp32Group)   esp32Group.style.display   = '';
       if (hintEl) hintEl.textContent = 'ESP32: GPIO4 is the default matrix pin (RMT ch0, hardware-timed).';
     }
 

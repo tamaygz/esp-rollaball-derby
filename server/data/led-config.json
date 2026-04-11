@@ -9,11 +9,11 @@
   "motor": {
     "ledCount": 64,
     "gpioPin": 4,
-    "topology": "matrix_zigzag",
+    "topology": "matrix_progressive",
+    "brightness": 29,
+    "defaultEffect": "blink",
     "matrixRows": 8,
-    "matrixCols": 8,
-    "brightness": 25,
-    "defaultEffect": "chase"
+    "matrixCols": 8
   },
   "display": {
     "ledCount": 0,
