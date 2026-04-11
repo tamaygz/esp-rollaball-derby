@@ -349,8 +349,13 @@ class ConnectionManager {
 
     // Assign / restore device color
     if (this.ledConfigManager) {
-      const deviceChipId = (type === 'sensor' || type === 'motor') ? (chipId || null) : null;
-      existing.colorIndex = this.ledConfigManager.assignColor(deviceChipId);
+      const isHardwareDevice = type === 'sensor' || type === 'motor';
+
+      if (!isHardwareDevice) {
+        existing.colorIndex = this.ledConfigManager.assignColor(null);
+      } else if (chipId) {
+        existing.colorIndex = this.ledConfigManager.assignColor(chipId);
+      }
     }
 
     const response = {
