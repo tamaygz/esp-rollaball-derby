@@ -23,6 +23,8 @@
 
 // ─── LittleFS ─────────────────────────────────────────────────────────────────
 #define CONFIG_FILE  "/config.json"
+#define STATE_FILE   "/state.json"   // Runtime state persisted across reboots
+#define STATE_TMP    "/state.tmp"    // Temp file for atomic write
 
 // ─── Serial ───────────────────────────────────────────────────────────────────
 #define SERIAL_BAUD  115200

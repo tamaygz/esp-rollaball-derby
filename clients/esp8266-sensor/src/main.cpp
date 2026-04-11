@@ -25,6 +25,14 @@ static char g_serverIp  [40] = "192.168.1.200";
 static char g_serverPort[ 6] = "3000";
 static char g_playerName[21] = "";
 
+// ─── Persisted Runtime State (survives reboots) ──────────────────────────────
+static char     g_playerId[48]     = "";    // UUID from server registration
+static LedConfig g_savedLedConfig  = {};    // Last LED config from server
+static bool     g_hasLedConfig     = false; // true once a server LED config has been saved
+static bool     g_stateDirty       = false; // true when state needs to be flushed to flash
+static unsigned long g_stateLastSave = 0;   // millis() of last state save
+static const unsigned long STATE_SAVE_DEBOUNCE_MS = 2000; // Min interval between flash writes
+
 // ─── WiFiManager ──────────────────────────────────────────────────────────────
 static WiFiManager          wifiManager;
 static WiFiManagerParameter* param_ip;
@@ -77,6 +85,124 @@ static void saveConfig() {
     serializeJson(doc, f);
     f.close();
     Serial.println("[CFG] Config saved");
+}
+
+// ─── Runtime State Persistence ────────────────────────────────────────────────
+// Persists server-assigned state (playerId, LED config, device color) to a
+// separate file so the device boots with the correct identity and LED setup.
+// Uses atomic write (temp → rename) to prevent corruption on power loss.
+
+static void loadState() {
+    if (!LittleFS.exists(STATE_FILE)) {
+        Serial.println("[STATE] No state file — using defaults");
+        return;
+    }
+
+    File f = LittleFS.open(STATE_FILE, "r");
+    if (!f) {
+        Serial.println("[STATE] Failed to open state file");
+        return;
+    }
+
+    JsonDocument doc;
+    DeserializationError err = deserializeJson(doc, f);
+    f.close();
+
+    if (err) {
+        Serial.printf("[STATE] Parse error (%s) — using defaults\n", err.c_str());
+        return;
+    }
+
+    if (doc["player_id"].is<const char*>()) {
+        strlcpy(g_playerId, doc["player_id"], sizeof(g_playerId));
+    }
+
+    if (doc["led_count"].is<int>()) {
+        g_savedLedConfig.ledCount   = static_cast<uint16_t>(doc["led_count"] | LED_DEFAULT_COUNT);
+        g_savedLedConfig.pin        = static_cast<uint8_t>(doc["led_pin"] | LED_DEFAULT_PIN);
+        g_savedLedConfig.brightness = static_cast<uint8_t>(doc["led_brightness"] | LED_DEFAULT_BRIGHTNESS);
+        g_savedLedConfig.topology   = LedTopology::STRIP;
+        g_savedLedConfig.matrixRows = 8;
+        g_savedLedConfig.matrixCols = 8;
+
+        const char* topo = doc["led_topology"] | "strip";
+        if      (strcmp(topo, "ring")               == 0) g_savedLedConfig.topology = LedTopology::RING;
+        else if (strcmp(topo, "matrix_zigzag")      == 0) g_savedLedConfig.topology = LedTopology::MATRIX_ZIGZAG;
+        else if (strcmp(topo, "matrix_progressive") == 0) g_savedLedConfig.topology = LedTopology::MATRIX_PROGRESSIVE;
+
+        g_hasLedConfig = true;
+    }
+
+    if (doc["device_color_r"].is<int>()) {
+        g_savedLedConfig.deviceColorR   = static_cast<uint8_t>(doc["device_color_r"] | 0);
+        g_savedLedConfig.deviceColorG   = static_cast<uint8_t>(doc["device_color_g"] | 0);
+        g_savedLedConfig.deviceColorB   = static_cast<uint8_t>(doc["device_color_b"] | 0);
+        g_savedLedConfig.hasDeviceColor = true;
+    }
+
+    Serial.printf("[STATE] Loaded: playerId=%s ledCount=%u hasColor=%d\n",
+                  g_playerId,
+                  g_hasLedConfig ? g_savedLedConfig.ledCount : 0,
+                  g_savedLedConfig.hasDeviceColor ? 1 : 0);
+}
+
+static void saveState() {
+    JsonDocument doc;
+
+    if (strlen(g_playerId) > 0) {
+        doc["player_id"] = g_playerId;
+    }
+
+    if (g_hasLedConfig) {
+        doc["led_count"]      = g_savedLedConfig.ledCount;
+        doc["led_pin"]        = g_savedLedConfig.pin;
+        doc["led_brightness"] = g_savedLedConfig.brightness;
+
+        const char* topo = "strip";
+        switch (g_savedLedConfig.topology) {
+            case LedTopology::RING:               topo = "ring"; break;
+            case LedTopology::MATRIX_ZIGZAG:      topo = "matrix_zigzag"; break;
+            case LedTopology::MATRIX_PROGRESSIVE:  topo = "matrix_progressive"; break;
+            default: break;
+        }
+        doc["led_topology"] = topo;
+    }
+
+    if (g_savedLedConfig.hasDeviceColor) {
+        doc["device_color_r"] = g_savedLedConfig.deviceColorR;
+        doc["device_color_g"] = g_savedLedConfig.deviceColorG;
+        doc["device_color_b"] = g_savedLedConfig.deviceColorB;
+    }
+
+    // Atomic write: write to temp file, then rename to avoid corruption.
+    File f = LittleFS.open(STATE_TMP, "w");
+    if (!f) {
+        Serial.println("[STATE] Failed to write temp state file");
+        return;
+    }
+    serializeJson(doc, f);
+    f.close();
+
+    LittleFS.remove(STATE_FILE);
+    LittleFS.rename(STATE_TMP, STATE_FILE);
+
+    g_stateDirty     = false;
+    g_stateLastSave  = millis();
+    Serial.println("[STATE] State saved");
+}
+
+// Mark state as dirty; actual write is debounced in loop().
+static void markStateDirty() {
+    g_stateDirty = true;
+}
+
+// Flush state to flash if dirty and debounce period has elapsed.
+static void flushStateIfNeeded() {
+    if (!g_stateDirty) return;
+    unsigned long now = millis();
+    if (now - g_stateLastSave >= STATE_SAVE_DEBOUNCE_MS) {
+        saveState();
+    }
 }
 
 // ─── WiFiManager Save Callback ────────────────────────────────────────────────
@@ -148,9 +274,6 @@ void setup() {
     delay(100);
     Serial.println("\n[BOOT] Roll-a-Ball Derby — Sensor Client");
 
-    ledManager.begin(ledConfigDefaults());
-    wsClient.setLedMetadata(LED_DEFAULT_COUNT);
-
     sensors.begin();
 
     // Mount LittleFS; format if mount fails (first boot or corruption).
@@ -162,6 +285,17 @@ void setup() {
         }
     }
     loadConfig();
+    loadState();
+
+    // Initialise LEDs with saved config (from previous server session) or defaults.
+    if (g_hasLedConfig) {
+        ledManager.begin(g_savedLedConfig);
+        wsClient.setLedMetadata(g_savedLedConfig.ledCount);
+        Serial.println("[BOOT] Using saved LED config from previous session");
+    } else {
+        ledManager.begin(ledConfigDefaults());
+        wsClient.setLedMetadata(LED_DEFAULT_COUNT);
+    }
 
     // ─── Serial Pre-Configure Window ──────────────────────────────────────────
     // The web flasher sends DERBY_CFG:{json}\n within 3 s of boot to pre-populate
@@ -238,7 +372,7 @@ void setup() {
     ledManager.setState(LedState::WIFI_ONLY);
 
     uint16_t port = static_cast<uint16_t>(atoi(g_serverPort));
-    wsClient.begin(g_serverIp, port, g_playerName);
+    wsClient.begin(g_serverIp, port, g_playerName, g_playerId);
 
     // HTTP config server — lets the Node.js admin push new config without
     // needing to re-open the WiFiManager captive portal.
@@ -275,17 +409,33 @@ void loop() {
 
     // Reboot after the HTTP response has been flushed (flagged by handleHttpConfig).
     if (g_pendingRestart) {
+        // Flush any pending state before restarting.
+        if (g_stateDirty) saveState();
         delay(200);
         ESP.restart();
     }
 
     wsClient.loop();
 
+    // ── Persist playerId when assigned/changed ───────────────────────────────
+    {
+        const String& currentId = wsClient.getPlayerId();
+        if (currentId.length() > 0 && strcmp(g_playerId, currentId.c_str()) != 0) {
+            strlcpy(g_playerId, currentId.c_str(), sizeof(g_playerId));
+            markStateDirty();
+            Serial.printf("[STATE] playerId changed: %s\n", g_playerId);
+        }
+    }
+
     // ── LED config hot-reload ────────────────────────────────────────────────
     LedConfig pendingCfg;
     if (wsClient.pollLedConfig(pendingCfg)) {
         ledManager.applyConfig(pendingCfg);
         wsClient.setLedMetadata(pendingCfg.ledCount);
+        // Persist the LED config so next boot starts with the correct setup.
+        g_savedLedConfig = pendingCfg;
+        g_hasLedConfig   = true;
+        markStateDirty();
     }
 
     // ── LED test effect ──────────────────────────────────────────────────────
@@ -345,4 +495,7 @@ void loop() {
             Serial.printf("[SENSOR] Dropped offline trigger: +%d\n", points);
         }
     }
+
+    // ── Debounced state flush to LittleFS ────────────────────────────────────
+    flushStateIfNeeded();
 }

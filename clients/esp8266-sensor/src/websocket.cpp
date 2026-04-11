@@ -1,9 +1,14 @@
 #include "websocket.h"
 
-void WSClient::begin(const char* host, uint16_t port, const char* playerName) {
+void WSClient::begin(const char* host, uint16_t port, const char* playerName,
+                     const char* persistedPlayerId) {
     _host       = host;
     _port       = port;
     _playerName = playerName;
+    if (persistedPlayerId && strlen(persistedPlayerId) > 0) {
+        _playerId = String(persistedPlayerId);
+        Serial.printf("[WS] Restored persisted playerId: %s\n", _playerId.c_str());
+    }
     _lastAttempt = 0;  // trigger immediate connect on first loop()
 
     _client.onMessage([this](WebsocketsMessage msg)         { _onMessage(msg); });
