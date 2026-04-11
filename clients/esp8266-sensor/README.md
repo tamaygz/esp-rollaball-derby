@@ -7,8 +7,8 @@ PlatformIO firmware for the **Wemos D1 Mini** (ESP8266) sensor node. Reads three
 | Signal | D1 Mini pin | GPIO | Notes |
 |--------|-------------|------|-------|
 | +1 sensor | D1 | GPIO5 | Active-LOW (INPUT_PULLUP) |
-| +2 sensor | D2 | GPIO4 | Active-LOW (INPUT_PULLUP) |
-| +3 sensor | D5 | GPIO14 | Active-LOW (INPUT_PULLUP) |
+| +2 sensor | D5 | GPIO14 | Active-LOW (INPUT_PULLUP) |
+| +3 sensor | D2 | GPIO4 | Active-LOW (INPUT_PULLUP) |
 | Status LED | LED_BUILTIN | GPIO2 | Active-LOW (built-in) |
 
 Connect the collector/output of each IR break-beam receiver to the pin, and GND to the sensor GND. The emitter side is powered from 3.3 V. All three sensor pins are configured as `INPUT_PULLUP` so **no external pull-up resistors are required** — the ESP8266 internal pull-ups (~47 kΩ) hold the line HIGH; the sensor pulls it LOW when the beam is broken.
