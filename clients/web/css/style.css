@@ -812,9 +812,11 @@ input:disabled, select:disabled {
   flex-shrink: 0;
 }
 
-.led-status-badge.led-connected    { background: #68d391; box-shadow: 0 0 6px rgba(72,187,120,0.6); }
-.led-status-badge.led-disconnected { background: #718096; }
-.led-status-badge.led-error        { background: #fc8181; }
+.led-status-badge.led-connected,
+.led-status-badge.led-status-connected    { background: #68d391; box-shadow: 0 0 6px rgba(72,187,120,0.6); }
+.led-status-badge.led-disconnected,
+.led-status-badge.led-status-disconnected { background: #718096; }
+.led-status-badge.led-error               { background: #fc8181; }
 
 .led-mini-preview {
   width: 100%;
@@ -853,6 +855,32 @@ input:disabled, select:disabled {
   background: var(--surface);
   color: var(--text);
   border: 1px solid var(--border);
+}
+
+.led-device-caps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.led-cap-pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  background: rgba(99,179,237,0.15);
+  color: #90cdf4;
+  border: 1px solid rgba(99,179,237,0.25);
+  white-space: nowrap;
+}
+
+.led-pin-hint {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin-top: 3px;
+  line-height: 1.4;
 }
 
 /* ─── Configuration Form ────────────────────────────────────────────────────── */

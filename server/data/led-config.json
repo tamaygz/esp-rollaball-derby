@@ -7,10 +7,12 @@
     "defaultEffect": "sparkle"
   },
   "motor": {
-    "ledCount": 10,
-    "topology": "strip",
+    "ledCount": 64,
     "gpioPin": 4,
-    "brightness": 128,
+    "topology": "matrix_zigzag",
+    "matrixRows": 8,
+    "matrixCols": 8,
+    "brightness": 25,
     "defaultEffect": "chase"
   },
   "display": {
@@ -21,9 +23,11 @@
     "defaultEffect": "solid"
   },
   "deviceColorMap": {
-    "00B7F33C": 15
+    "00B7F33C": 15,
+    "701C34FE8CE0": 7
   },
   "deviceNameMap": {
-    "00B7F33C": "Gallop Poll"
+    "00B7F33C": "Gallop Poll",
+    "701C34FE8CE0": "Thunderhooves"
   }
 }

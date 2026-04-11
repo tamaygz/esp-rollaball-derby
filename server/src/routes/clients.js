@@ -62,7 +62,7 @@ function createClientsRouter(gameState, connectionManager) {
     return null;
   }
 
-  function _proxyToEsp32(req, res, clientId, esp32Path) {
+  function _proxyToEsp32(req, res, clientId, esp32Path, timeoutMs = 8000) {
     const ip = _resolveEsp32Ip(clientId);
     if (!ip) {
       return res.status(404).json({ error: 'Motor client not found or IP unavailable' });
@@ -75,7 +75,7 @@ function createClientsRouter(gameState, connectionManager) {
       path: esp32Path,
       method: req.method,
       headers: { 'Content-Type': 'application/json' },
-      timeout: 8000,
+      timeout: timeoutMs,
     };
     if (body) {
       options.headers['Content-Length'] = Buffer.byteLength(body);
@@ -115,9 +115,11 @@ function createClientsRouter(gameState, connectionManager) {
   });
 
   // Bluetooth management proxy: /api/clients/:id/bt/*  → ESP32 /api/bt/*
+  // bt/scan blocks the ESP32 for ~7 s, so we allow up to 12 s.
   router.all('/:id/bt/*', (req, res) => {
     const subPath = '/api/bt/' + req.params[0];
-    _proxyToEsp32(req, res, req.params.id, subPath);
+    const isScan  = req.params[0] === 'scan';
+    _proxyToEsp32(req, res, req.params.id, subPath, isScan ? 12000 : 8000);
   });
 
   return router;

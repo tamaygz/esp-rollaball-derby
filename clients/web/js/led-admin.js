@@ -16,6 +16,7 @@ Derby.LED = (function () {
   var _devices = [];
   var _playerColors = [];
   var _simulator = null;
+  var _allConfigs = {};   // { sensor: {...}, motor: {...} } cached from server
 
   function _el(id) { return document.getElementById(id); }
   function _esc(str) {
@@ -24,13 +25,20 @@ Derby.LED = (function () {
     return div.innerHTML;
   }
 
+  // ── Platform constants ──────────────────────────────────────────────────────
+
+  var PLATFORM = {
+    sensor: { chipName: 'ESP8266', maxLeds: 300, defaultPin: 2, defaultTopology: 'strip' },
+    motor:  { chipName: 'ESP32',   maxLeds: 1000, defaultPin: 4, defaultTopology: 'matrix_zigzag' },
+  };
+
   // ── Initialization ──────────────────────────────────────────────────────────
 
   function init() {
     _loadPlayerColors();
     _initSimulator();
     _attachEventListeners();
-    _fetchCurrentConfig();
+    _fetchAllConfigs();
   }
 
   function _initSimulator() {
@@ -38,19 +46,15 @@ Derby.LED = (function () {
       console.warn('[LED] LEDSimulator not loaded');
       return;
     }
-    // LEDSimulator is a singleton, not a constructor
     _simulator = Derby.LEDSimulator;
     _simulator.init('led-simulator');
     _simulator.setConfig({ ledCount: 60, topology: 'strip' });
     _simulator.start();
-    
-    // Start with a default rainbow effect
     setTimeout(function () {
       if (Derby.LEDEffects) {
         _simulator.playEffect('rainbow', { speed: 1000 });
       }
     }, 100);
-    
     console.log('[LED] Simulator initialized');
   }
 
@@ -61,42 +65,37 @@ Derby.LED = (function () {
         _playerColors = data.colors;
         _populateColorPicker();
       })
-      .catch(function (err) {
-        console.error('[LED] Failed to load player colors:', err);
-      });
+      .catch(function (err) { console.error('[LED] Failed to load player colors:', err); });
+  }
+
+  function _fetchAllConfigs() {
+    fetch('/api/leds/config')
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        _allConfigs = data || {};
+        console.log('[LED] Server configs loaded:', _allConfigs);
+      })
+      .catch(function (err) { console.error('[LED] Failed to fetch config:', err); });
   }
 
   function _attachEventListeners() {
     var saveBtn = _el('led-save-config');
-    if (saveBtn) {
-      saveBtn.addEventListener('click', _handleSaveConfig);
-    }
+    if (saveBtn) saveBtn.addEventListener('click', _handleSaveConfig);
 
     var testBtn = _el('led-test-effect');
-    if (testBtn) {
-      testBtn.addEventListener('click', _handleTestEffect);
-    }
+    if (testBtn) testBtn.addEventListener('click', _handleTestEffect);
 
     var topologySelect = _el('led-topology');
-    if (topologySelect) {
-      topologySelect.addEventListener('change', _handleTopologyChange);
-    }
+    if (topologySelect) topologySelect.addEventListener('change', _handleTopologyChange);
 
     var syncAllBtn = _el('led-sync-all');
-    if (syncAllBtn) {
-      syncAllBtn.addEventListener('click', _handleSyncAll);
-    }
+    if (syncAllBtn) syncAllBtn.addEventListener('click', _handleSyncAll);
 
-    // Effect preview controls
     var effectSelect = _el('led-effect-select');
-    if (effectSelect) {
-      effectSelect.addEventListener('change', _handleEffectChange);
-    }
+    if (effectSelect) effectSelect.addEventListener('change', _handleEffectChange);
 
     var colorInput = _el('led-color');
-    if (colorInput) {
-      colorInput.addEventListener('input', _handleEffectChange);
-    }
+    if (colorInput) colorInput.addEventListener('input', _handleEffectChange);
 
     var speedSlider = _el('led-speed');
     if (speedSlider) {
@@ -111,13 +110,9 @@ Derby.LED = (function () {
     if (brightnessSlider) {
       brightnessSlider.addEventListener('input', function () {
         var valueEl = _el('led-brightness-value');
-        var percentValue = parseInt(brightnessSlider.value, 10);
-        if (valueEl) valueEl.textContent = percentValue + '%';
-        if (_simulator) {
-          // Convert 0-100 to 0-255
-          var byteValue = Math.round((percentValue / 100) * 255);
-          _simulator.setBrightness(byteValue);
-        }
+        var pct = parseInt(brightnessSlider.value, 10);
+        if (valueEl) valueEl.textContent = pct + '%';
+        if (_simulator) _simulator.setBrightness(Math.round((pct / 100) * 255));
       });
     }
 
@@ -131,17 +126,6 @@ Derby.LED = (function () {
         }
       });
     }
-  }
-
-  function _fetchCurrentConfig() {
-    fetch('/api/leds/config')
-      .then(function (res) { return res.json(); })
-      .then(function (data) {
-        console.log('[LED] Current config:', data);
-      })
-      .catch(function (err) {
-        console.error('[LED] Failed to fetch config:', err);
-      });
   }
 
   // ── Device List Management ──────────────────────────────────────────────────
@@ -159,11 +143,22 @@ Derby.LED = (function () {
       return;
     }
 
+    // Preserve selection across re-renders
+    var prevSelected = _selectedDevice ? _selectedDevice.id : null;
     listEl.innerHTML = '';
     _devices.forEach(function (device) {
       var card = _createDeviceCard(device);
       listEl.appendChild(card);
     });
+
+    if (prevSelected) {
+      var stillHere = _devices.find(function (d) { return d.id === prevSelected; });
+      if (stillHere) {
+        var card = listEl.querySelector('[data-device-id="' + prevSelected + '"]');
+        if (card) card.classList.add('led-device-selected');
+        _selectedDevice = stillHere;
+      }
+    }
   }
 
   function _createDeviceCard(device) {
@@ -171,28 +166,47 @@ Derby.LED = (function () {
     card.className = 'led-device-card';
     card.dataset.deviceId = device.id;
 
-    var typeIcon = device.type === 'sensor' ? '📡' : '🎛️';
+    var typeIcon   = device.type === 'sensor' ? '📡' : '🎛️';
+    var connected  = device.connected ? 'connected' : 'disconnected';
     var detectedLEDs = device.ledCount || 0;
-    var connected = device.connected ? 'connected' : 'disconnected';
 
-    // Resolve device color from palette
-    var colorHex = '#888888';
+    var colorHex  = '#888888';
     var colorName = 'Unassigned';
     if (typeof device.colorIndex === 'number' && _playerColors[device.colorIndex]) {
-      colorHex = _playerColors[device.colorIndex].hex;
+      colorHex  = _playerColors[device.colorIndex].hex;
       colorName = _playerColors[device.colorIndex].name;
     }
 
-    card.innerHTML = 
+    // Build capability pills for motor devices
+    var capsHtml = '';
+    if (device.type === 'motor') {
+      var caps = device.capabilities || {};
+      var pills = [];
+      var motorCount = device.motorCount || 0;
+      if (motorCount > 0) pills.push(motorCount + ' motor' + (motorCount !== 1 ? 's' : ''));
+      if (caps.sound) pills.push('🔊 sound');
+      if (caps.bt)    pills.push('🔵 BT');
+      if (caps.buttons) pills.push('🔘 buttons');
+      if (pills.length > 0) {
+        capsHtml = '<div class="led-device-caps">' +
+          pills.map(function (p) { return '<span class="led-cap-pill">' + _esc(p) + '</span>'; }).join('') +
+          '</div>';
+      }
+    }
+
+    card.innerHTML =
       '<div class="led-device-header">' +
         '<span class="led-device-color-swatch" style="background:' + _esc(colorHex) + '"></span>' +
         '<span class="led-device-icon">' + typeIcon + '</span>' +
         '<div class="led-device-info">' +
           '<div class="led-device-name">' + _esc(device.name || 'Unknown') + '</div>' +
-          '<div class="led-device-meta">' + device.type + ' • ' + detectedLEDs + ' LEDs • ' + _esc(colorName) + '</div>' +
+          '<div class="led-device-meta">' +
+            _esc(device.type) + ' · ' + detectedLEDs + ' LEDs · ' + _esc(colorName) +
+          '</div>' +
         '</div>' +
         '<span class="led-status-badge led-status-' + connected + '"></span>' +
       '</div>' +
+      capsHtml +
       (device.chipId
         ? '<div class="led-device-color-picker">' +
             '<label>Device Color:</label>' +
@@ -204,12 +218,10 @@ Derby.LED = (function () {
       '<canvas class="led-mini-preview" width="100" height="20"></canvas>';
 
     card.addEventListener('click', function (e) {
-      // Don't select device when interacting with color dropdown
       if (e.target.classList.contains('led-device-color-select')) return;
       selectDevice(device.id);
     });
 
-    // Attach color change handler
     var colorSelect = card.querySelector('.led-device-color-select');
     if (colorSelect) {
       colorSelect.addEventListener('change', function (e) {
@@ -239,28 +251,19 @@ Derby.LED = (function () {
     })
       .then(function (res) { return res.json(); })
       .then(function (data) {
-        if (data.error) {
-          _showError(data.error);
-        } else {
-          _showSuccess('Device color updated');
-        }
+        if (data.error) { _showError(data.error); }
+        else { _showSuccess('Device color updated'); }
       })
-      .catch(function (err) {
-        _showError('Color update failed: ' + err.message);
-      });
+      .catch(function (err) { _showError('Color update failed: ' + err.message); });
   }
 
   function selectDevice(deviceId) {
-    // Clear previous selection
     document.querySelectorAll('.led-device-card').forEach(function (card) {
       card.classList.remove('led-device-selected');
     });
 
-    // Highlight selected
     var card = document.querySelector('[data-device-id="' + deviceId + '"]');
-    if (card) {
-      card.classList.add('led-device-selected');
-    }
+    if (card) card.classList.add('led-device-selected');
 
     _selectedDevice = _devices.find(function (d) { return d.id === deviceId; });
     if (_selectedDevice) {
@@ -270,25 +273,90 @@ Derby.LED = (function () {
 
   // ── Configuration Form ──────────────────────────────────────────────────────
 
+  /**
+   * Populate the config form from the stored server config for this device type.
+   * Falls back to platform defaults if the server config hasn't loaded yet.
+   */
   function _populateConfigForm(device) {
-    var ledCount = _el('led-count');
-    var pin = _el('led-pin');
-    var topology = _el('led-topology');
-    var brightness = _el('led-brightness');
+    var platform = PLATFORM[device.type] || PLATFORM.sensor;
+    var stored   = _allConfigs[device.type] || {};
 
-    if (ledCount) ledCount.value = device.ledCount || 50;
-    if (pin) pin.value = device.ledPin || 'D4';
-    if (topology) topology.value = device.ledTopology || 'strip';
-    if (brightness) brightness.value = device.ledBrightness || 80;
+    var gpioPin    = stored.gpioPin    || platform.defaultPin;
+    var topology   = stored.topology   || platform.defaultTopology;
+    var brightness = stored.brightness !== undefined ? stored.brightness : 80;
+    var matrixRows = stored.matrixRows || 8;
+    var matrixCols = stored.matrixCols || 8;
+    var defEffect  = stored.defaultEffect;
+
+    // ── LED count ──
+    var ledCountEl = _el('led-count');
+    if (ledCountEl) {
+      ledCountEl.max   = platform.maxLeds;
+      ledCountEl.value = stored.ledCount || device.ledCount || (device.type === 'motor' ? 64 : 30);
+    }
+    var hintEl = _el('led-count-hint');
+    if (hintEl) hintEl.textContent = platform.chipName + ' · max ' + platform.maxLeds + ' LEDs';
+
+    // ── GPIO pin ── show only the relevant platform's optgroup, select the right pin
+    _updatePinSelector(device.type, gpioPin);
+
+    // ── Topology ──
+    var topologyEl = _el('led-topology');
+    if (topologyEl) topologyEl.value = topology;
+
+    // ── Matrix dims ──
+    var rowsEl = _el('led-matrix-rows');
+    var colsEl = _el('led-matrix-cols');
+    if (rowsEl) rowsEl.value = matrixRows;
+    if (colsEl) colsEl.value = matrixCols;
+
+    // ── Brightness (0-100%) ──
+    var brightnessEl = _el('led-brightness');
+    if (brightnessEl) {
+      brightnessEl.value = brightness;
+      var bValEl = _el('led-brightness-value');
+      if (bValEl) bValEl.textContent = brightness + '%';
+    }
+
+    // ── Default effect ──
+    if (defEffect) {
+      var effectEl = _el('led-effect-select');
+      if (effectEl) effectEl.value = defEffect;
+    }
 
     _handleTopologyChange();
     _updateSimulator();
   }
 
-  function _handleTopologyChange() {
-    var topology = _el('led-topology');
-    var matrixDims = _el('led-matrix-dims');
+  /**
+   * Show only the GPIO optgroup relevant to the device type and select the right pin.
+   */
+  function _updatePinSelector(deviceType, pinValue) {
+    var esp8266Group = _el('led-pin-esp8266');
+    var esp32Group   = _el('led-pin-esp32');
+    var hintEl       = _el('led-pin-hint');
+    var pinEl        = _el('led-pin');
 
+    if (!pinEl) return;
+
+    if (deviceType === 'sensor') {
+      if (esp8266Group) esp8266Group.removeAttribute('disabled');
+      if (esp32Group)   esp32Group.setAttribute('disabled', '');
+      if (hintEl) hintEl.textContent = 'ESP8266: GPIO2 = UART1 (leaves Serial free); GPIO3 = DMA (uses RX pin).';
+    } else {
+      // motor = ESP32
+      if (esp8266Group) esp8266Group.setAttribute('disabled', '');
+      if (esp32Group)   esp32Group.removeAttribute('disabled');
+      if (hintEl) hintEl.textContent = 'ESP32: GPIO4 is the default matrix pin (RMT ch0, hardware-timed).';
+    }
+
+    // Select the right option; if nothing matches, browser stays on first enabled option
+    pinEl.value = String(pinValue);
+  }
+
+  function _handleTopologyChange() {
+    var topology  = _el('led-topology');
+    var matrixDims = _el('led-matrix-dims');
     if (!topology || !matrixDims) return;
 
     if (topology.value.startsWith('matrix')) {
@@ -296,36 +364,34 @@ Derby.LED = (function () {
     } else {
       matrixDims.classList.add('hidden');
     }
-
     _updateSimulator();
   }
 
   function _updateSimulator() {
     if (!_simulator) return;
 
-    var ledCount = parseInt(_el('led-count').value, 10) || 60;
-    var topology = _el('led-topology').value || 'strip';
-    var brightnessPercent = parseInt(_el('led-brightness').value, 10) || 80;
-    var brightnessByte = Math.round((brightnessPercent / 100) * 255);
+    var ledCount       = parseInt((_el('led-count') || {}).value, 10) || 60;
+    var topology       = (_el('led-topology') || {}).value || 'strip';
+    var brightnessPercent = parseInt((_el('led-brightness') || {}).value, 10) || 80;
 
     _simulator.setConfig({ ledCount: ledCount, topology: topology });
-    _simulator.setBrightness(brightnessByte);
+    _simulator.setBrightness(Math.round((brightnessPercent / 100) * 255));
     _handleEffectChange();
   }
 
   function _handleEffectChange() {
     if (!_simulator || typeof Derby.LEDEffects === 'undefined') return;
 
-    var effectName = _el('led-effect-select').value;
+    var effectName = (_el('led-effect-select') || {}).value;
     if (!effectName) return;
 
-    var colorVal = _el('led-color').value || '#FFFFFF';
-    if (colorVal === 'device' && _selectedDevice && typeof _selectedDevice.colorIndex === 'number' && _playerColors[_selectedDevice.colorIndex]) {
-      colorVal = _playerColors[_selectedDevice.colorIndex].hex;
-    } else if (colorVal === 'device') {
-      colorVal = '#FFFFFF';
+    var colorVal = (_el('led-color') || {}).value || '#FFFFFF';
+    if (colorVal === 'device') {
+      colorVal = (_selectedDevice && typeof _selectedDevice.colorIndex === 'number' && _playerColors[_selectedDevice.colorIndex])
+        ? _playerColors[_selectedDevice.colorIndex].hex
+        : '#FFFFFF';
     }
-    var speed = parseInt(_el('led-speed').value, 10) || 50;
+    var speed = parseInt((_el('led-speed') || {}).value, 10) || 50;
 
     _simulator.playEffect(effectName, { color: colorVal, speed: speed });
   }
@@ -335,17 +401,15 @@ Derby.LED = (function () {
     if (!select) return;
 
     select.innerHTML = '';
-
-    // "Device Color" as first/default option — uses the selected device's assigned color
     var deviceOption = document.createElement('option');
-    deviceOption.value = 'device';
+    deviceOption.value       = 'device';
     deviceOption.textContent = '🎨 Device Color';
-    deviceOption.selected = true;
+    deviceOption.selected    = true;
     select.appendChild(deviceOption);
 
     _playerColors.forEach(function (color) {
-      var option = document.createElement('option');
-      option.value = color.hex;
+      var option      = document.createElement('option');
+      option.value    = color.hex;
       option.textContent = color.name;
       option.style.color = color.hex;
       select.appendChild(option);
@@ -355,16 +419,13 @@ Derby.LED = (function () {
   // ── Save Configuration ──────────────────────────────────────────────────────
 
   function _handleSaveConfig() {
-    if (!_selectedDevice) {
-      _showError('No device selected');
-      return;
-    }
+    if (!_selectedDevice) { _showError('No device selected'); return; }
 
     var config = {
-      ledCount: parseInt(_el('led-count').value, 10),
-      gpioPin: parseInt(_el('led-pin').value, 10),
-      topology: _el('led-topology').value,
-      brightness: parseInt(_el('led-brightness').value, 10),
+      ledCount:      parseInt(_el('led-count').value, 10),
+      gpioPin:       parseInt(_el('led-pin').value, 10),
+      topology:      _el('led-topology').value,
+      brightness:    parseInt(_el('led-brightness').value, 10),
       defaultEffect: _el('led-effect-select').value || 'solid',
     };
 
@@ -384,82 +445,65 @@ Derby.LED = (function () {
         if (data.error) {
           _showError(data.error);
         } else {
+          // Update local cache so a re-select shows the new values
+          _allConfigs[deviceType] = config;
           _showSuccess('Configuration saved and broadcast to devices');
         }
       })
-      .catch(function (err) {
-        _showError('Save failed: ' + err.message);
-      });
+      .catch(function (err) { _showError('Save failed: ' + err.message); });
   }
 
   // ── Test Effect ─────────────────────────────────────────────────────────────
 
   function _handleTestEffect() {
-    if (!_selectedDevice) {
-      _showError('No device selected');
-      return;
-    }
+    if (!_selectedDevice) { _showError('No device selected'); return; }
 
     var effectName = _el('led-effect-select').value;
-    if (!effectName) {
-      _showError('No effect selected');
-      return;
-    }
+    if (!effectName) { _showError('No effect selected'); return; }
 
     var testBtn = _el('led-test-effect');
-    testBtn.disabled = true;
-    testBtn.textContent = 'Testing...';
-
-    var payload = {
-      effectName: effectName,
-      params: _getEffectParams(effectName),
-    };
+    testBtn.disabled    = true;
+    testBtn.textContent = 'Testing…';
 
     fetch('/api/leds/effects/test', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        deviceId: _selectedDevice.id,
+        deviceId:   _selectedDevice.id,
         effectName: effectName,
-        params: _getEffectParams(effectName),
+        params:     _getEffectParams(),
       }),
     })
       .then(function (res) { return res.json(); })
       .then(function (data) {
-        if (data.error) {
-          _showError(data.error);
-        } else {
-          _showSuccess('Test effect sent to device');
-        }
+        if (data.error) { _showError(data.error); }
+        else { _showSuccess('Test effect sent to ' + (_selectedDevice.name || 'device')); }
       })
-      .catch(function (err) {
-        _showError('Test failed: ' + err.message);
-      })
+      .catch(function (err) { _showError('Test failed: ' + err.message); })
       .finally(function () {
         setTimeout(function () {
-          testBtn.disabled = false;
+          testBtn.disabled    = false;
           testBtn.textContent = 'Test on Device';
         }, 1000);
       });
   }
 
-  function _getEffectParams(effectName) {
-    var params = {};
-    var colorEl = _el('led-color');
-    var speedEl = _el('led-speed');
+  function _getEffectParams() {
+    var params   = {};
+    var colorEl  = _el('led-color');
+    var speedEl  = _el('led-speed');
 
     if (colorEl) {
       var colorVal = colorEl.value;
-      if (colorVal === 'device' && _selectedDevice && typeof _selectedDevice.colorIndex === 'number' && _playerColors[_selectedDevice.colorIndex]) {
-        params.color = _playerColors[_selectedDevice.colorIndex].hex;
-      } else if (colorVal !== 'device') {
-        params.color = colorVal;
+      if (colorVal === 'device') {
+        params.color = (_selectedDevice && typeof _selectedDevice.colorIndex === 'number' && _playerColors[_selectedDevice.colorIndex])
+          ? _playerColors[_selectedDevice.colorIndex].hex
+          : '#FFFFFF';
       } else {
-        params.color = '#FFFFFF';
+        params.color = colorVal;
       }
     }
     if (speedEl) params.speed = parseInt(speedEl.value, 10);
-
     return params;
   }
 
@@ -471,36 +515,26 @@ Derby.LED = (function () {
       headers: { 'Content-Type': 'application/json' },
     })
       .then(function (res) { return res.json(); })
-      .then(function (data) {
-        _showSuccess('Configuration synced to all devices');
-      })
-      .catch(function (err) {
-        _showError('Sync failed: ' + err.message);
-      });
+      .then(function () { _showSuccess('Configuration synced to all devices'); })
+      .catch(function (err) { _showError('Sync failed: ' + err.message); });
   }
 
   // ── UI Helpers ──────────────────────────────────────────────────────────────
 
   function _showError(msg) {
-    var errorEl = _el('led-error');
-    if (!errorEl) return;
-    errorEl.textContent = msg;
-    errorEl.classList.remove('hidden');
-    setTimeout(function () { errorEl.classList.add('hidden'); }, 5000);
+    var el = _el('led-error');
+    if (!el) return;
+    el.textContent = msg;
+    el.classList.remove('hidden');
+    setTimeout(function () { el.classList.add('hidden'); }, 5000);
   }
 
   function _showSuccess(msg) {
-    var successEl = _el('led-success');
-    if (!successEl) return;
-    successEl.textContent = msg;
-    successEl.classList.remove('hidden');
-    setTimeout(function () { successEl.classList.add('hidden'); }, 3000);
-  }
-
-  function _esc(str) {
-    var div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
+    var el = _el('led-success');
+    if (!el) return;
+    el.textContent = msg;
+    el.classList.remove('hidden');
+    setTimeout(function () { el.classList.add('hidden'); }, 3000);
   }
 
   // ── Public API ──────────────────────────────────────────────────────────────
@@ -511,3 +545,4 @@ Derby.LED = (function () {
     selectDevice: selectDevice,
   };
 })();
+

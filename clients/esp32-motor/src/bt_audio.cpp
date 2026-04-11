@@ -4,6 +4,7 @@
 
 #include <Preferences.h>
 #include <Arduino.h>
+#include <esp_gap_bt_api.h>
 
 BtAudio* BtAudio::_instance = nullptr;
 
@@ -65,11 +66,18 @@ uint8_t BtAudio::scan(uint8_t timeoutSec) {
         return false;  // keep scanning, don't connect
     });
 
+    // Explicitly (re-)start a GAP inquiry so we're not relying on one already
+    // being in progress from begin(). Duration is in 1.28-second units.
+    uint8_t inquiryDuration = (uint8_t)((timeoutSec * 100) / 128);
+    if (inquiryDuration < 1) inquiryDuration = 1;
+    esp_bt_gap_start_discovery(ESP_BT_INQ_MODE_GENERAL_INQUIRY, inquiryDuration, 0);
+
     unsigned long deadline = millis() + (unsigned long)timeoutSec * 1000UL;
     while (millis() < deadline) {
         delay(100);
     }
 
+    esp_bt_gap_cancel_discovery();
     _a2dp.set_ssid_callback(nullptr);
 
     Serial.printf("[BT] Scan found %u device(s)\n", (unsigned)_scanCount);
