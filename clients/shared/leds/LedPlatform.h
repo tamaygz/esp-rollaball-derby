@@ -4,6 +4,7 @@
 // This header abstracts platform-specific LED control methods.
 
 #include <NeoPixelBus.h>
+#include <NeoPixelBrightnessBus.h>
 
 // ─── Platform Detection ───────────────────────────────────────────────────────
 #if defined(ESP8266)
@@ -36,8 +37,9 @@
     
     // Use RMT channel 0 for rock-solid timing with WiFi active.
     // ESP32 has 8 RMT channels; channel 0 is safe for most applications.
+    // NeoPixelBrightnessBus is a drop-in superset of NeoPixelBus that adds SetBrightness().
     using LedMethod = NeoEsp32Rmt0Ws2812xMethod;
-    using LedStrip  = NeoPixelBus<NeoGrbFeature, LedMethod>;
+    using LedStrip  = NeoPixelBrightnessBus<NeoGrbFeature, LedMethod>;
 
 #else
     #error "Unsupported platform. This code requires ESP8266 or ESP32."
