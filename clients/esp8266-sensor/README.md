@@ -115,7 +115,7 @@ The `id` is stored as `playerId` for subsequent score messages.
 ```json
 { "type": "score", "payload": { "playerId": "<uuid>", "points": 1 } }
 ```
-`points` is `1` (D1 sensor) or `3` (D2 sensor).
+`points` is `1` (D1 / +1 sensor), `2` (D2 / +2 sensor), or `3` (D5 / +3 sensor).
 
 ## Reconnect Behaviour
 
