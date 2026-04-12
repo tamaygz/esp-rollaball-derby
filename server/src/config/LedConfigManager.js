@@ -41,6 +41,8 @@ class LedConfigManager extends EventEmitter {
         brightness: 25,
         matrixRows: 8,
         matrixCols: 8,
+        mirrorH: false,
+        mirrorV: false,
         defaultEffect: 'chase'
       },
       display: {

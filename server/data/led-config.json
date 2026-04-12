@@ -7,13 +7,15 @@
     "defaultEffect": "sparkle"
   },
   "motor": {
-    "ledCount": 64,
+    "ledCount": 256,
     "gpioPin": 13,
     "topology": "matrix_zigzag",
-    "brightness": 10,
-    "defaultEffect": "solid",
-    "matrixRows": 8,
-    "matrixCols": 8
+    "brightness": 59,
+    "defaultEffect": "chase",
+    "matrixRows": 16,
+    "matrixCols": 16,
+    "mirrorH": true,
+    "mirrorV": false
   },
   "display": {
     "ledCount": 0,
@@ -24,7 +26,7 @@
   },
   "deviceColorMap": {
     "00B7F33C": 15,
-    "701C34FE8CE0": 8
+    "701C34FE8CE0": 9
   },
   "deviceNameMap": {
     "00B7F33C": "Gallop Poll",

@@ -30,6 +30,8 @@ struct LedConfig {
     uint8_t     deviceColorG;
     uint8_t     deviceColorB;
     bool        hasDeviceColor; // true once server has assigned a colour
+    bool        mirrorH;        // Flip column axis (physical wiring starts at right)
+    bool        mirrorV;        // Flip row axis (physical wiring starts at bottom)
 };
 
 // ─── Default factory ──────────────────────────────────────────────────────────
@@ -58,6 +60,8 @@ inline LedConfig ledConfigDefaults() {
     cfg.deviceColorG   = 0;
     cfg.deviceColorB   = 0;
     cfg.hasDeviceColor = false;
+    cfg.mirrorH        = false;
+    cfg.mirrorV        = false;
     return cfg;
 }
 #endif  // LEDCONFIG_DEFAULTS_OVERRIDE

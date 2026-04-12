@@ -363,6 +363,8 @@ Derby.LED = (function () {
     var brightness = stored.brightness !== undefined ? stored.brightness : 80;
     var matrixRows = stored.matrixRows || 8;
     var matrixCols = stored.matrixCols || 8;
+    var mirrorH    = stored.mirrorH    || false;
+    var mirrorV    = stored.mirrorV    || false;
     var defEffect  = stored.defaultEffect;
 
     // ── LED count ──
@@ -386,6 +388,10 @@ Derby.LED = (function () {
     var colsEl = _el('led-matrix-cols');
     if (rowsEl) rowsEl.value = matrixRows;
     if (colsEl) colsEl.value = matrixCols;
+    var mirrorHEl = _el('led-mirror-h');
+    var mirrorVEl = _el('led-mirror-v');
+    if (mirrorHEl) mirrorHEl.checked = mirrorH;
+    if (mirrorVEl) mirrorVEl.checked = mirrorV;
 
     // ── Brightness (0-100%) ──
     var brightnessEl = _el('led-brightness');
@@ -511,6 +517,8 @@ Derby.LED = (function () {
     if (config.topology.startsWith('matrix')) {
       config.matrixRows = parseInt(_el('led-matrix-rows').value, 10);
       config.matrixCols = parseInt(_el('led-matrix-cols').value, 10);
+      config.mirrorH    = !!(_el('led-mirror-h') && _el('led-mirror-h').checked);
+      config.mirrorV    = !!(_el('led-mirror-v') && _el('led-mirror-v').checked);
     }
 
     var deviceType = _selectedDevice.type;
@@ -540,9 +548,19 @@ Derby.LED = (function () {
     var effectName = _el('led-effect-select').value;
     if (!effectName) { _showError('No effect selected'); return; }
 
+    var extraParams = {};
+    if (effectName === 'text') {
+      var text = window.prompt('Enter text to display on the device:');
+      if (text === null) return; // User cancelled
+      if (text.trim() === '') { _showError('Text cannot be empty'); return; }
+      extraParams.text = text.trim();
+    }
+
     var testBtn = _el('led-test-effect');
     testBtn.disabled    = true;
     testBtn.textContent = 'Testing…';
+
+    var params = Object.assign(_getEffectParams(), extraParams);
 
     fetch('/api/leds/effects/test', {
       method: 'POST',
@@ -550,7 +568,7 @@ Derby.LED = (function () {
       body: JSON.stringify({
         deviceId:   _selectedDevice.id,
         effectName: effectName,
-        params:     _getEffectParams(),
+        params:     params,
       }),
     })
       .then(function (res) { return res.json(); })

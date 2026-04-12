@@ -633,7 +633,8 @@ void loop() {
         if (strcmp(pendingEffect.effectName, "countdown") == 0) {
             matrixDisplay.showCountdown(3);
         } else if (strcmp(pendingEffect.effectName, "text") == 0) {
-            matrixDisplay.showText("DERBY", pendingEffect.r, pendingEffect.g, pendingEffect.b,
+            const char* displayText = pendingEffect.text[0] != '\0' ? pendingEffect.text : "DERBY";
+            matrixDisplay.showText(displayText, pendingEffect.r, pendingEffect.g, pendingEffect.b,
                                    pendingEffect.speedMs > 0 ? pendingEffect.speedMs : 80);
         } else if (strcmp(pendingEffect.effectName, "winner") == 0) {
             matrixDisplay.showWinner("WINNER");

@@ -208,6 +208,8 @@ void WSClient::_onMessage(WebsocketsMessage msg) {
 
         cfg.matrixRows = (uint8_t)(doc["payload"]["matrixRows"] | 8);
         cfg.matrixCols = (uint8_t)(doc["payload"]["matrixCols"] | 8);
+        cfg.mirrorH    = doc["payload"]["mirrorH"] | false;
+        cfg.mirrorV    = doc["payload"]["mirrorV"] | false;
 
         const char* devColor = doc["payload"]["deviceColor"] | "";
         cfg.hasDeviceColor = false;
@@ -242,6 +244,8 @@ void WSClient::_onMessage(WebsocketsMessage msg) {
         }
         msg.speedMs    = (uint16_t)(doc["payload"]["params"]["speed"]      | 1000);
         msg.brightness = (uint8_t) (doc["payload"]["params"]["brightness"] | 255);
+        const char* text = doc["payload"]["params"]["text"] | "";
+        strlcpy(msg.text, text, sizeof(msg.text));
         _pendingTestEffect    = msg;
         _hasPendingTestEffect = true;
         return;

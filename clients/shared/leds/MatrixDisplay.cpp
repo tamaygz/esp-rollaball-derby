@@ -559,6 +559,8 @@ void MatrixDisplay::_stepCamelChew() {
 
 void MatrixDisplay::_setPixel(uint8_t row, uint8_t col, uint8_t r, uint8_t g, uint8_t b) {
     if (row >= _rows || col >= _cols || !_strip) return;
+    if (_cfg.mirrorH) col = _cols - 1 - col;
+    if (_cfg.mirrorV) row = _rows - 1 - row;
     uint16_t idx;
     bool zigzag = (_cfg.topology == LedTopology::MATRIX_ZIGZAG);
     if (zigzag && (row % 2 == 1)) {

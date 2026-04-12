@@ -201,6 +201,8 @@ void WSClient::_onMessage(WebsocketsMessage msg) {
         cfg.topology   = LedTopology::STRIP; // default
         cfg.matrixRows = 8;
         cfg.matrixCols = 8;
+        cfg.mirrorH    = doc["payload"]["mirrorH"] | false;
+        cfg.mirrorV    = doc["payload"]["mirrorV"] | false;
 
         const char* topStr = doc["payload"]["topology"] | "strip";
         if      (strcmp(topStr, "ring")               == 0) cfg.topology = LedTopology::RING;
@@ -254,6 +256,8 @@ void WSClient::_onMessage(WebsocketsMessage msg) {
 
         msg.speedMs   = static_cast<uint16_t>(doc["payload"]["params"]["speed"]      | 1000);
         msg.brightness = static_cast<uint8_t>(doc["payload"]["params"]["brightness"] | 255);
+        const char* text = doc["payload"]["params"]["text"] | "";
+        strlcpy(msg.text, text, sizeof(msg.text));
 
         _pendingTestEffect    = msg;
         _hasPendingTestEffect = true;
