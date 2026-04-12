@@ -247,6 +247,7 @@ static void handleMotorStatus() {
         lane["calibrated"] = motorManager.isLaneCalibrated(i);
         lane["homed"]      = motorManager.isLaneHomed(i);
         lane["moving"]     = motorManager.isLaneMoving(i);
+        lane["colorIndex"] = g_motorColors[i];
     }
     doc["motorCount"] = motorManager.laneCount();
     String out;
@@ -357,6 +358,22 @@ static void handleMotorConfigGet() {
     httpServer.send(200, "application/json", out);
 }
 
+// POST /api/motor/colors  { "colors": [0, 1, 2, 3] }  — assign colorIndex per lane
+static void handleMotorColorsPost() {
+    if (httpServer.method() != HTTP_POST) { httpServer.send(405, "application/json", "{\"error\":\"Method Not Allowed\"}"); return; }
+    JsonDocument req;
+    if (deserializeJson(req, httpServer.arg("plain"))) { httpServer.send(400, "application/json", "{\"error\":\"Invalid JSON\"}"); return; }
+    if (req["colors"].is<JsonArrayConst>()) {
+        uint8_t i = 0;
+        for (JsonVariantConst v : req["colors"].as<JsonArrayConst>()) {
+            if (i >= MOTOR_MAX_LANES) break;
+            g_motorColors[i++] = v.as<uint8_t>();
+        }
+        markStateDirty();
+    }
+    httpServer.send(200, "application/json", "{\"ok\":true}");
+}
+
 // POST /api/motor/config   { "lanes": [ { "id": 0, "maxSpeed": 800, ... } ] }
 static void handleMotorConfigPost() {
     if (httpServer.method() != HTTP_POST) { httpServer.send(405, "application/json", "{\"error\":\"Method Not Allowed\"}"); return; }
@@ -415,6 +432,7 @@ static void setupHttpRoutes() {
     httpServer.on("/api/motor/calibrate/reset",     HTTP_POST, handleCalibrateReset);
     httpServer.on("/api/motor/config",           HTTP_GET,  handleMotorConfigGet);
     httpServer.on("/api/motor/config",           HTTP_POST, handleMotorConfigPost);
+    httpServer.on("/api/motor/colors",           HTTP_POST, handleMotorColorsPost);
     httpServer.on("/config",                     handleHttpConfig);
     httpServer.begin();
     Serial.printf("[HTTP] REST API listening on port %d\n", HTTP_CONFIG_PORT);

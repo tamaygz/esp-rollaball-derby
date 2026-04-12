@@ -19,13 +19,21 @@ function createClientsRouter(gameState, connectionManager) {
     const raw = connectionManager.getClientsList();
     const enriched = raw.map((c) => {
       const player = c.playerId ? gameState.players.get(c.playerId) : null;
-      return {
+      const result = {
         id: c.id,
         type: c.type,
         playerId: c.playerId,
         playerName: player ? player.name : null,
         playerPosition: player != null ? player.position : null,
       };
+      if (c.type === 'motor') {
+        const device = connectionManager.getDeviceById(c.id);
+        if (device) {
+          result.motorCount  = device.motorCount  || 0;
+          result.motorColors = device.motorColors || [];
+        }
+      }
+      return result;
     });
     res.json(enriched);
   });
@@ -109,6 +117,22 @@ function createClientsRouter(gameState, connectionManager) {
   }
 
   // Motor calibration proxy: /api/clients/:id/motor/*  → ESP32 /api/motor/*
+
+  // POST /:id/motor/colors — update server-side motorColors then persist to ESP32
+  router.post('/:id/motor/colors', (req, res) => {
+    const { colors } = req.body || {};
+    if (!Array.isArray(colors)) {
+      return res.status(400).json({ error: 'colors must be an array' });
+    }
+    // Update server in-memory state so the UI reflects the change immediately
+    const client = connectionManager.getDeviceById(req.params.id);
+    if (client && client.type === 'motor') {
+      client.motorColors = colors.map(Number).filter((n) => Number.isFinite(n) && n >= 0);
+    }
+    // Proxy to ESP32 to persist across reboots
+    _proxyToEsp32(req, res, req.params.id, '/api/motor/colors');
+  });
+
   router.all('/:id/motor/*', (req, res) => {
     const subPath = '/api/motor/' + req.params[0];
     _proxyToEsp32(req, res, req.params.id, subPath);

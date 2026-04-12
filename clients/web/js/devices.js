@@ -9,6 +9,46 @@
   var POLL_INTERVAL = 3000;
   var _pollTimer = null;
 
+  // 16-color shared palette (mirrors clients/assets/themes/shared/player-colors.json)
+  var PLAYER_COLORS = [
+    { index: 0,  hex: '#E53E3E', name: 'Scarlet'       },
+    { index: 1,  hex: '#3182CE', name: 'Royal Blue'    },
+    { index: 2,  hex: '#38A169', name: 'Emerald'       },
+    { index: 3,  hex: '#D69E2E', name: 'Gold'          },
+    { index: 4,  hex: '#805AD5', name: 'Amethyst'      },
+    { index: 5,  hex: '#D53F8C', name: 'Rose'          },
+    { index: 6,  hex: '#00B5D8', name: 'Cyan'          },
+    { index: 7,  hex: '#68D391', name: 'Mint'          },
+    { index: 8,  hex: '#FF6B35', name: 'Tangerine'     },
+    { index: 9,  hex: '#B7791F', name: 'Amber'         },
+    { index: 10, hex: '#9B2C2C', name: 'Crimson'       },
+    { index: 11, hex: '#2C7A7B', name: 'Teal'          },
+    { index: 12, hex: '#744210', name: 'Sienna'        },
+    { index: 13, hex: '#553C9A', name: 'Indigo'        },
+    { index: 14, hex: '#C05621', name: 'Burnt Sienna'  },
+    { index: 15, hex: '#276749', name: 'Forest'        },
+  ];
+
+  // 16-color shared palette (mirrors clients/assets/themes/shared/player-colors.json)
+  var PLAYER_COLORS = [
+    { index: 0,  hex: '#E53E3E', name: 'Scarlet'       },
+    { index: 1,  hex: '#3182CE', name: 'Royal Blue'    },
+    { index: 2,  hex: '#38A169', name: 'Emerald'       },
+    { index: 3,  hex: '#D69E2E', name: 'Gold'          },
+    { index: 4,  hex: '#805AD5', name: 'Amethyst'      },
+    { index: 5,  hex: '#D53F8C', name: 'Rose'          },
+    { index: 6,  hex: '#00B5D8', name: 'Cyan'          },
+    { index: 7,  hex: '#68D391', name: 'Mint'          },
+    { index: 8,  hex: '#FF6B35', name: 'Tangerine'     },
+    { index: 9,  hex: '#B7791F', name: 'Amber'         },
+    { index: 10, hex: '#9B2C2C', name: 'Crimson'       },
+    { index: 11, hex: '#2C7A7B', name: 'Teal'          },
+    { index: 12, hex: '#744210', name: 'Sienna'        },
+    { index: 13, hex: '#553C9A', name: 'Indigo'        },
+    { index: 14, hex: '#C05621', name: 'Burnt Sienna'  },
+    { index: 15, hex: '#276749', name: 'Forest'        },
+  ];
+
   function _el(id) { return document.getElementById(id); }
 
   function _esc(str) {
@@ -382,14 +422,15 @@
         .catch(function (e) { _showMotorMsg('bt-status-msg', '❌ Scan failed: ' + e.message); })
         .finally(function () { btnScan.disabled = false; });
     });
+, motorCount, motorColors) {
+    _motorCtrlId   = clientId;
+    _motorCtrlName = clientName;
+    var panel = _el('card-motor-control');
+    var label = _el('motor-ctrl-device-label');
+    if (panel)  panel.style.display  = '';
+    if (label)  label.textContent    = clientName;
 
-    if (btnUnpair) btnUnpair.addEventListener('click', function () {
-      if (!window.confirm('Unpair this Bluetooth device?')) return;
-      _motorDelete('/bt/unpair')
-        .then(function () { _showMotorMsg('bt-status-msg', 'Unpaired.'); _refreshBtStatus(); })
-        .catch(function (e) { _showMotorMsg('bt-status-msg', '❌ ' + e.message); });
-    });
-
+    _renderTrackColors(motorCount || 0, motorColors || []);
     var btnPlay  = _el('btn-bt-play');
     var selSound = _el('bt-sound-event');
     if (btnPlay) btnPlay.addEventListener('click', function () {
@@ -402,14 +443,85 @@
     });
   }
 
-  function _openMotorControl(clientId, clientName) {
+  function _openMotorControl(clientId, clientName, motorCount, motorColors) {
     _motorCtrlId   = clientId;
     _motorCtrlName = clientName;
+  // ── Track Colors ──────────────────────────────────────────────────────────────
+
+  function _colorSelectHtml(laneIndex, currentColorIndex) {
+    var opts = PLAYER_COLORS.map(function (c) {
+      var selected = (c.index === currentColorIndex) ? ' selected' : '';
+      return '<option value="' + c.index + '"' + selected + '>Track ' + (c.index + 1) + ' — ' + _esc(c.name) + '</option>';
+    }).join('');
+    return '<select class="input-sm track-color-select" data-lane="' + laneIndex + '">' + opts + '</select>';
+  }
+
+  function _renderTrackColors(motorCount, motorColors) {
+    var container = _el('motor-track-colors');
+    if (!container) return;
+    if (!motorCount || motorCount === 0) {
+      container.innerHTML = '<p class="empty-msg muted">No lane data — refresh after connecting.</p>';
+      return;
+    }
+    var rows = '';
+    for (var i = 0; i < motorCount; i++) {
+      var colorIdx = (motorColors && motorColors[i] != null) ? motorColors[i] : i;
+      var hex = (PLAYER_COLORS[colorIdx] || PLAYER_COLORS[0]).hex;
+      rows +=
+        '<div class="track-color-row">' +
+          '<span class="track-color-label">Lane ' + i + '</span>' +
+          '<span class="track-color-swatch" id="swatch-lane-' + i + '" style="background:' + _esc(hex) + '"></span>' +
+          _colorSelectHtml(i, colorIdx) +
+        '</div>';
+    }
+    container.innerHTML = rows;
+
+    // Live swatch update on change
+    container.querySelectorAll('.track-color-select').forEach(function (sel) {
+      sel.addEventListener('change', function () {
+        var idx = parseInt(sel.value, 10);
+        var swatch = _el('swatch-lane-' + sel.dataset.lane);
+        if (swatch) swatch.style.background = (PLAYER_COLORS[idx] || PLAYER_COLORS[0]).hex;
+      });
+    });
+  }
+
+  function _initTrackColorsSave() {
+    var btn = _el('btn-track-colors-save');
+    var status = _el('track-colors-status');
+    if (!btn) return;
+    btn.addEventListener('click', function () {
+      if (!_motorCtrlId) return;
+      var selects = document.querySelectorAll('.track-color-select');
+      var colors = [];
+      selects.forEach(function (sel) {
+        colors[parseInt(sel.dataset.lane, 10)] = parseInt(sel.value, 10);
+      });
+      btn.disabled = true;
+      if (status) status.textContent = 'Saving…';
+      fetch('/api/clients/' + encodeURIComponent(_motorCtrlId) + '/motor/colors', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ colors: colors }),
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (status) status.textContent = data.error ? ('❌ ' + _esc(data.error)) : '✅ Colors saved.';
+        })
+        .catch(function (e) {
+          if (status) status.textContent = '❌ ' + _esc(e.message);
+        })
+        .finally(function () { btn.disabled = false; });
+    });
+  }
+
     var panel = _el('card-motor-control');
     var label = _el('motor-ctrl-device-label');
     if (panel)  panel.style.display  = '';
     if (label)  label.textContent    = clientName;
 
+    _renderTrackColors(motorCount || 0, motorColors || []);
+    _initTrackColorsSave();
     _refreshMotorStatus(false);
     _refreshBtStatus();
 
@@ -424,6 +536,82 @@
     var panel = _el('card-motor-control');
     if (panel) panel.style.display = 'none';
   }
+var colors = [];
+        try { colors = JSON.parse(btn.dataset.motorColors || '[]'); } catch (_) {}
+        _openMotorControl(
+          btn.dataset.id,
+          btn.dataset.name,
+          parseInt(btn.dataset.motorCount || '0', 10),
+          colors
+        
+  // ── Track Colors ──────────────────────────────────────────────────────────────
+
+  function _colorSelectHtml(laneIndex, currentColorIndex) {
+    var opts = PLAYER_COLORS.map(function (c) {
+      var selected = (c.index === currentColorIndex) ? ' selected' : '';
+      return '<option value="' + c.index + '"' + selected + '>Track ' + (c.index + 1) + ' — ' + _esc(c.name) + '</option>';
+    }).join('');
+    return '<select class="input-sm track-color-select" data-lane="' + laneIndex + '">' + opts + '</select>';
+  }
+
+  function _renderTrackColors(motorCount, motorColors) {
+    var container = _el('motor-track-colors');
+    if (!container) return;
+    if (!motorCount || motorCount === 0) {
+      container.innerHTML = '<p class="empty-msg muted">No lane data — refresh after connecting.</p>';
+      return;
+    }
+    var rows = '';
+    for (var i = 0; i < motorCount; i++) {
+      var colorIdx = (motorColors && motorColors[i] != null) ? motorColors[i] : i;
+      var hex = (PLAYER_COLORS[colorIdx] || PLAYER_COLORS[0]).hex;
+      rows +=
+        '<div class="track-color-row">' +
+          '<span class="track-color-label">Lane ' + i + '</span>' +
+          '<span class="track-color-swatch" id="swatch-lane-' + i + '" style="background:' + _esc(hex) + '"></span>' +
+          _colorSelectHtml(i, colorIdx) +
+        '</div>';
+    }
+    container.innerHTML = rows;
+
+    // Live swatch update on change
+    container.querySelectorAll('.track-color-select').forEach(function (sel) {
+      sel.addEventListener('change', function () {
+        var idx = parseInt(sel.value, 10);
+        var swatch = _el('swatch-lane-' + sel.dataset.lane);
+        if (swatch) swatch.style.background = (PLAYER_COLORS[idx] || PLAYER_COLORS[0]).hex;
+      });
+    });
+  }
+
+  function _initTrackColorsSave() {
+    var btn = _el('btn-track-colors-save');
+    var status = _el('track-colors-status');
+    if (!btn) return;
+    btn.addEventListener('click', function () {
+      if (!_motorCtrlId) return;
+      var selects = document.querySelectorAll('.track-color-select');
+      var colors = [];
+      selects.forEach(function (sel) {
+        colors[parseInt(sel.dataset.lane, 10)] = parseInt(sel.value, 10);
+      });
+      btn.disabled = true;
+      if (status) status.textContent = 'Saving…';
+      fetch('/api/clients/' + encodeURIComponent(_motorCtrlId) + '/motor/colors', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ colors: colors }),
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (status) status.textContent = data.error ? ('❌ ' + _esc(data.error)) : '✅ Colors saved.';
+        })
+        .catch(function (e) {
+          if (status) status.textContent = '❌ ' + _esc(e.message);
+        })
+        .finally(function () { btn.disabled = false; });
+    });
+  }
 
   function _initMotorControlPanel() {
     var btnClose = _el('btn-motor-ctrl-close');
@@ -431,6 +619,7 @@
     _initMotorJogButtons();
     _initCalibButtons();
     _initBtButtons();
+    _initTrackColorsSave();
   }
 
   // ── Render (override motor list) ─────────────────────────────────────────────
@@ -445,7 +634,14 @@
     el.innerHTML = clients.map(_renderMotorDeviceRow).join('');
     el.querySelectorAll('.btn-motor-ctrl').forEach(function (btn) {
       btn.addEventListener('click', function () {
-        _openMotorControl(btn.dataset.id, btn.dataset.name);
+        var colors = [];
+        try { colors = JSON.parse(btn.dataset.motorColors || '[]'); } catch (_) {}
+        _openMotorControl(
+          btn.dataset.id,
+          btn.dataset.name,
+          parseInt(btn.dataset.motorCount || '0', 10),
+          colors
+        );
       });
     });
     el.querySelectorAll('.btn-kick').forEach(function (btn) {
