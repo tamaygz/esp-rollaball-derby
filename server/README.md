@@ -44,6 +44,7 @@ On startup the server publishes `_derby._tcp` via mDNS (DNS-SD). ESP8266 sensors
 | GET | `/api/leds/config` | Get all LED configurations |
 | GET | `/api/leds/config/:deviceType` | Get LED config for device type (sensor/motor/display) |
 | PUT | `/api/leds/config/:deviceType` | Update LED config (triggers broadcast) |
+| GET | `/api/leds/effects` | Get the effects manifest (all available effects with params schema) |
 | POST | `/api/leds/effects/test` | Send test effect to a specific device (rate-limited) |
 
 Static mounts:

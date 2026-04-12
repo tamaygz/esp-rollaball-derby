@@ -17,6 +17,7 @@ Derby.LED = (function () {
   var _playerColors = [];
   var _simulator = null;
   var _allConfigs = {};   // { sensor: {...}, motor: {...} } cached from server
+  var _manifest = null;  // populated from /api/leds/effects (single source of truth)
 
   function _el(id) { return document.getElementById(id); }
   function _esc(str) {
@@ -36,6 +37,7 @@ Derby.LED = (function () {
 
   function init() {
     _loadPlayerColors();
+    _fetchEffectsManifest();
     _initSimulator();
     _attachEventListeners();
     _fetchAllConfigs();
@@ -64,8 +66,25 @@ Derby.LED = (function () {
       .then(function (data) {
         _playerColors = data.colors;
         _populateColorPicker();
+        // Re-render current effect now that we have real colors
+        _handleEffectChange();
       })
       .catch(function (err) { console.error('[LED] Failed to load player colors:', err); });
+  }
+
+  function _fetchEffectsManifest() {
+    fetch('/api/leds/effects')
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        _manifest = data;
+        // Repopulate dropdown if a device is already selected
+        if (_selectedDevice) {
+          _populateEffectDropdown(_selectedDevice.type);
+        } else {
+          _populateEffectDropdown('sensor'); // default: show strip effects
+        }
+      })
+      .catch(function (err) { console.error('[LED] Failed to fetch effects manifest:', err); });
   }
 
   function _fetchAllConfigs() {
@@ -157,7 +176,7 @@ Derby.LED = (function () {
         var card = listEl.querySelector('[data-device-id="' + prevSelected + '"]');
         if (card) card.classList.add('led-device-selected');
         _selectedDevice = stillHere;
-        _updateMatrixEffectsGroup();
+        _populateEffectDropdown(_selectedDevice.type);
       }
     }
   }
@@ -269,33 +288,63 @@ Derby.LED = (function () {
     _selectedDevice = _devices.find(function (d) { return d.id === deviceId; });
     if (_selectedDevice) {
       _populateConfigForm(_selectedDevice);
-      _updateMatrixEffectsGroup();
+      _populateEffectDropdown(_selectedDevice.type);
     }
   }
 
-  function _updateMatrixEffectsGroup() {
+  /**
+   * Populate the effect dropdown from the shared manifest.
+   * Shows all effects whose platforms array includes the given deviceType.
+   * Replaces all options — no hardcoded lists anywhere else.
+   */
+  function _populateEffectDropdown(deviceType) {
     var select = _el('led-effect-select');
     if (!select) return;
 
-    var isMotor = _selectedDevice && _selectedDevice.type === 'motor';
+    // Preserve current selection if still valid after repopulation
+    var prevValue = select.value;
 
-    // Remove any previously injected matrix options
-    select.querySelectorAll('option[data-matrix]').forEach(function (o) { o.remove(); });
+    select.innerHTML = '';
+    var placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = '\u2014 Select Effect \u2014';
+    select.appendChild(placeholder);
 
-    if (isMotor) {
-      var matrixOptions = [
-        { value: 'countdown', label: '[Matrix] Countdown (3→GO)' },
-        { value: 'text',      label: '[Matrix] Scroll Text' },
-        { value: 'winner',    label: '[Matrix] Winner Animation' },
-        { value: 'clear',     label: '[Matrix] Clear (all off)' },
-      ];
-      matrixOptions.forEach(function (item) {
+    if (!_manifest || !_manifest.effects) {
+      // Manifest not loaded yet — show a loading note and bail
+      var loading = document.createElement('option');
+      loading.disabled = true;
+      loading.textContent = 'Loading effects\u2026';
+      select.appendChild(loading);
+      return;
+    }
+
+    // Group by category so matrix effects appear below strip effects
+    var categories = {};
+    _manifest.effects.forEach(function (effect) {
+      if (effect.platforms.indexOf(deviceType) === -1) return;
+      var cat = effect.category || 'strip';
+      if (!categories[cat]) categories[cat] = [];
+      categories[cat].push(effect);
+    });
+
+    var catOrder = ['strip', 'matrix'];
+    catOrder.forEach(function (cat) {
+      if (!categories[cat] || categories[cat].length === 0) return;
+      var group = document.createElement('optgroup');
+      group.label = cat === 'matrix' ? 'Matrix' : 'Strip';
+      categories[cat].forEach(function (effect) {
         var opt = document.createElement('option');
-        opt.value = item.value;
-        opt.textContent = item.label;
-        opt.dataset.matrix = '1';
-        select.appendChild(opt);
+        opt.value       = effect.name;
+        opt.textContent = effect.label;
+        group.appendChild(opt);
       });
+      select.appendChild(group);
+    });
+
+    // Restore selection if still available
+    if (prevValue && select.querySelector('option[value="' + prevValue + '"]')) {
+      select.value = prevValue;
     }
   }
 
@@ -402,7 +451,9 @@ Derby.LED = (function () {
     var topology       = (_el('led-topology') || {}).value || 'strip';
     var brightnessPercent = parseInt((_el('led-brightness') || {}).value, 10) || 80;
 
-    _simulator.setConfig({ ledCount: ledCount, topology: topology });
+    var matrixRows = parseInt((_el('led-matrix-rows') || {}).value, 10) || 8;
+    var matrixCols = parseInt((_el('led-matrix-cols') || {}).value, 10) || 8;
+    _simulator.setConfig({ ledCount: ledCount, topology: topology, matrixRows: matrixRows, matrixCols: matrixCols });
     _simulator.setBrightness(Math.round((brightnessPercent / 100) * 255));
     _handleEffectChange();
   }
@@ -417,7 +468,7 @@ Derby.LED = (function () {
     if (colorVal === 'device') {
       colorVal = (_selectedDevice && typeof _selectedDevice.colorIndex === 'number' && _playerColors[_selectedDevice.colorIndex])
         ? _playerColors[_selectedDevice.colorIndex].hex
-        : '#FFFFFF';
+        : (_playerColors.length > 0 ? _playerColors[0].hex : '#FF4400');
     }
     var speed = parseInt((_el('led-speed') || {}).value, 10) || 50;
 

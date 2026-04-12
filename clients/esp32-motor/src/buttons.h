@@ -1,6 +1,6 @@
 #pragma once
 // Moved to shared — include the canonical version.
-#include <io/ButtonManager.h>
+#include <ButtonManager.h>
 
 using Buttons = ButtonManager;
 

@@ -59,8 +59,8 @@
 #define WS_BACKOFF_MIN_MS  1000UL
 #define WS_BACKOFF_MAX_MS  30000UL
 
-// ─── HTTP Config Server ───────────────────────────────────────────────────────
-#define HTTP_CONFIG_PORT  80
+// HTTP Config Server
+#define HTTP_CONFIG_PORT 80
 
 // ─── WiFiManager AP ───────────────────────────────────────────────────────────
 #define WIFIMANAGER_AP_PREFIX  "Derby-Motor-"
@@ -85,7 +85,7 @@
 // LED_DEFAULT_* are defined above so the shared header picks them up.
 // Define override guard BEFORE including to suppress the shared default.
 #define LEDCONFIG_DEFAULTS_OVERRIDE
-#include <leds/LedConfig.h>
+#include <LedConfig.h>
 
 // ESP32 motor default topology is MATRIX_ZIGZAG — override the shared default.
 inline LedConfig ledConfigDefaults() {

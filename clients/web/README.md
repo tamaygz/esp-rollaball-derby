@@ -19,15 +19,23 @@ No build step. The game server serves this directory statically at `/admin`.
 
 1. Start the server: `cd server && npm start`
 2. Open `http://localhost:3000/admin` in a browser
-3. Open `http://localhost:3000/admin/devices.html` for the devices debug page
+3. Open `http://localhost:3000/admin/devices` for the devices debug page
 
 Player name is remembered in `localStorage` (key: `derby-player-name`).
 
 ## File Structure
 
+All pages are EJS templates served by Express from `server/views/admin/`:
+
+| Route | Template |
+|-------|----------|
+| `/admin` | `admin/index.ejs` |
+| `/admin/devices` | `admin/devices.ejs` |
+| `/admin/leds` | `admin/leds.ejs` |
+| `/admin/debug-player` | `admin/debug-player.ejs` |
+
 ```
 clients/web/
-├── index.html          — SPA shell, 9 card sections (added LED Configuration)
 ├── css/
 │   └── style.css       — dark theme, CSS custom properties, responsive grid, LED UI
 └── js/

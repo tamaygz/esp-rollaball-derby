@@ -609,6 +609,30 @@ void loop() {
             matrixDisplay.showWinner("WINNER");
         } else if (strcmp(pendingEffect.effectName, "clear") == 0) {
             matrixDisplay.clear();
+        } else if (strcmp(pendingEffect.effectName, "ballroll") == 0) {
+            matrixDisplay.showBallRoll(pendingEffect.r, pendingEffect.g, pendingEffect.b,
+                                       pendingEffect.speedMs > 0 ? pendingEffect.speedMs : 2000);
+        } else if (strcmp(pendingEffect.effectName, "camelchew") == 0) {
+            matrixDisplay.showCamelChew(pendingEffect.r, pendingEffect.g, pendingEffect.b,
+                                        pendingEffect.speedMs > 0 ? pendingEffect.speedMs : 2400);
+        } else if (strcmp(pendingEffect.effectName, "camelspeedup") == 0) {
+            matrixDisplay.showCamelSpeedup(pendingEffect.r, pendingEffect.g, pendingEffect.b,
+                                           pendingEffect.speedMs > 0 ? pendingEffect.speedMs : 1500);
+        } else if (strcmp(pendingEffect.effectName, "scorehigh") == 0) {
+            matrixDisplay.showScoreHigh(pendingEffect.r, pendingEffect.g, pendingEffect.b,
+                                        pendingEffect.speedMs > 0 ? pendingEffect.speedMs : 1200);
+        } else if (strcmp(pendingEffect.effectName, "tolead") == 0) {
+            matrixDisplay.showToLead(pendingEffect.r, pendingEffect.g, pendingEffect.b,
+                                     pendingEffect.speedMs > 0 ? pendingEffect.speedMs : 1000);
+        } else if (strcmp(pendingEffect.effectName, "farbehind") == 0) {
+            matrixDisplay.showFarBehind(pendingEffect.r, pendingEffect.g, pendingEffect.b,
+                                        pendingEffect.speedMs > 0 ? pendingEffect.speedMs : 1800);
+        } else if (strcmp(pendingEffect.effectName, "gamestart") == 0) {
+            matrixDisplay.showGameStart();
+        } else if (strcmp(pendingEffect.effectName, "gameend") == 0) {
+            matrixDisplay.showGameEnd();
+        } else if (strcmp(pendingEffect.effectName, "someonewon") == 0) {
+            matrixDisplay.showSomeoneWon(pendingEffect.r, pendingEffect.g, pendingEffect.b);
         } else {
             // solid, blink, pulse, chase, sparkle, rainbow
             matrixDisplay.showEffect(pendingEffect.effectName, pendingEffect.r, pendingEffect.g, pendingEffect.b, spd);

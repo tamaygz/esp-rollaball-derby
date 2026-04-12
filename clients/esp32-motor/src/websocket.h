@@ -3,7 +3,7 @@
 #include <ArduinoJson.h>
 #include <Arduino.h>
 #include "config.h"
-#include <leds/GameEvents.h>
+#include <GameEvents.h>
 
 // Maximum number of players whose positions we track simultaneously.
 #define WS_MAX_PLAYERS 8
