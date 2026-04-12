@@ -1,0 +1,19 @@
+{
+  "name": "io",
+  "version": "1.0.0",
+  "description": "Shared IO helpers: StatusLed and ButtonManager for Derby firmware clients",
+  "keywords": "statusled, button, debounce, derby",
+  "authors": {
+    "name": "Derby"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/derby/esp-rollaball-derby"
+  },
+  "license": "MIT",
+  "frameworks": "arduino",
+  "platforms": ["espressif8266", "espressif32"],
+  "build": {
+    "includeDir": "."
+  }
+}

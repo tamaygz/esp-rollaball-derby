@@ -10,6 +10,7 @@ Vanilla JS SPA served by the game server at `/admin`. Dual purpose: game host ad
 - **Score simulator** — send +1 / +2 / +3 via WebSocket to test sensor flow
 - **Server-side bots** — add/remove autonomous bot players via REST API
 - **LED Configuration** — configure LED strips, preview effects in real-time, test on devices
+- **Motor Control** — configure track colors, jog motors, calibrate positions for ESP32 devices
 - **Event log** — real-time feed of all game events
 - **Auto-reconnect** — exponential backoff (1s → 30s) on WS disconnect
 
@@ -19,15 +20,23 @@ No build step. The game server serves this directory statically at `/admin`.
 
 1. Start the server: `cd server && npm start`
 2. Open `http://localhost:3000/admin` in a browser
-3. Open `http://localhost:3000/admin/devices.html` for the devices debug page
+3. Open `http://localhost:3000/admin/devices` for the devices debug page
 
 Player name is remembered in `localStorage` (key: `derby-player-name`).
 
 ## File Structure
 
+All pages are EJS templates served by Express from `server/views/admin/`:
+
+| Route | Template |
+|-------|----------|
+| `/admin` | `admin/index.ejs` |
+| `/admin/devices` | `admin/devices.ejs` |
+| `/admin/leds` | `admin/leds.ejs` |
+| `/admin/debug-player` | `admin/debug-player.ejs` |
+
 ```
 clients/web/
-├── index.html          — SPA shell, 9 card sections (added LED Configuration)
 ├── css/
 │   └── style.css       — dark theme, CSS custom properties, responsive grid, LED UI
 └── js/
@@ -180,3 +189,96 @@ sim.playEffect('rainbow', { speed: 1000 });
 - For matrix topologies, ensure rows × cols ≤ 300
 - Verify GPIO pin format matches device expectations
 - Review server response for validation errors
+
+## Motor Control & Track Colors
+
+The Devices page (`/admin/devices`) provides motor control and track color configuration for ESP32 motor devices.
+
+### Features
+
+1. **Motor Device List** — Shows all connected ESP32 motor devices
+   - Device name, ID, and connection status
+   - Motor count badge (number of stepper lanes)
+   - "Motor Control" button to open configuration panel
+
+2. **Track Colors Configuration**
+   - Visual color picker for each physical track/lane
+   - Live swatch preview showing selected colors
+   - Color palette from `clients/assets/themes/shared/player-colors.json` (16 distinct colors)
+   - Save button persists configuration to ESP32 and server
+
+3. **Motor Jog Controls**
+   - Individual lane jog buttons (forward/backward)
+   - Configurable step size (1–100 steps)
+   - Real-time status display
+
+4. **Motor Calibration**
+   - Per-lane calibration workflows
+   - Position tracking and verification
+   - Reset to default positions
+
+### Track Color Mapping
+
+Each physical lane is assigned a color index (0–15). During gameplay, the ESP32 matches player positions to lanes based on `g_motorColors[]`:
+
+```cpp
+// Example: Lane 0 is assigned Red (index 0)
+for (int lane = 0; lane < motorCount; lane++) {
+  for (int p = 0; p < positions[p].count; p++) {
+    if (g_motorColors[lane] == positions[p].colorIndex) {
+      // Move lane to match player position
+      motorManager.moveLaneToNormalized(lane, positions[p].position);
+    }
+  }
+}
+```
+
+### Usage
+
+1. Navigate to `/admin/devices`
+2. Find ESP32 motor device in "Motor Devices" section
+3. Click "Motor Control" button
+4. In "Track Colors" section:
+   - Select color for each lane from dropdown
+   - Preview changes with color swatches
+   - Click "Save Track Colors" to persist
+5. Server validates colors (clamps to 0–15 range)
+6. On success, ESP32 saves to `/state.json` for persistence across reboots
+
+### API Integration
+
+Track colors use the following endpoints:
+
+- `GET /api/clients` — Returns `motorCount` and `motorColors` for motor devices
+- `POST /api/clients/:id/motor/colors` — Update track colors (proxies to ESP32 `/api/motor/colors`)
+
+### Configuration Persistence
+
+- **ESP32:** Saved in `/state.json` via atomic write (STATE_TMP → STATE_FILE rename)
+- **Server:** Updated in-memory on successful ESP32 save only (no optimistic updates)
+- **Validation:** All layers clamp color indices to 0–15 range
+
+### Troubleshooting
+
+**"Motor client not found" error:**
+- Verify device type is `'motor'` (check GET /api/clients response)
+- Ensure device completed WebSocket registration
+- Check device ID matches URL parameter
+
+**Colors not saving:**
+- Check browser console for fetch errors
+- Verify ESP32 is reachable on local network
+- Review server logs for proxy failures
+- Confirm ESP32 firmware has POST /api/motor/colors endpoint
+
+**Device shows old colors after restart:**
+- Check ESP32 logs for state file load errors
+- Verify `/state.json` exists on ESP32 filesystem
+- Re-save colors to force new write
+- Check file system not full (ESP32 has ~3MB SPIFFS)
+
+**Color swatches not previewing:**
+- Verify `PLAYER_COLORS` array loaded from JSON
+- Check browser console for player-colors.json fetch errors
+- Ensure color indices are 0–15 (validation logs in console)
+

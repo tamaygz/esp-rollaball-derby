@@ -12,9 +12,10 @@ const COUNTDOWN_TICK_MS   = 1_000;
 const COUNTDOWN_GO_HOLD_MS = 600;
 
 class ConnectionManager {
-  constructor(gameState, ledConfigManager = null) {
+  constructor(gameState, ledConfigManager = null, soundManager = null) {
     this.gameState       = gameState;
     this.ledConfigManager = ledConfigManager;
+    this._soundManager   = soundManager;
     this.clients         = new Map(); // id → { ws, type, playerId, id, chipId, chipType, reportedLedCount }
     this._chipIdToPlayerId = new Map(); // chipId → playerId  (survives WS disconnects)
     this._botManager     = null;
@@ -74,10 +75,12 @@ class ConnectionManager {
       for (let i = countdown; i >= 1; i--) {
         if (this._countdownGen !== gen) return;
         this.broadcastAll({ type: 'countdown', payload: { count: i } });
+        this._soundManager?.play('countdown_tick');
         await wait(COUNTDOWN_TICK_MS);
       }
       if (this._countdownGen !== gen) return;
       this.broadcastAll({ type: 'countdown', payload: { count: 0 } });
+      this._soundManager?.play('countdown_go');
       await wait(COUNTDOWN_GO_HOLD_MS);
       if (this._countdownGen !== gen) return;
 
@@ -129,7 +132,7 @@ class ConnectionManager {
       const player = client.playerId
         ? this.gameState.players.get(client.playerId)
         : null;
-      devices.push({
+      const entry = {
         id: client.id,
         type: client.type,
         name: player ? player.name : (client.chipType || 'Unknown'),
@@ -137,7 +140,13 @@ class ConnectionManager {
         colorIndex: player ? player.colorIndex : null,
         ledCount: client.reportedLedCount || 0,
         connected: client.ws.readyState === 1,
-      });
+      };
+      if (client.type === 'motor') {
+        entry.motorCount   = client.motorCount   || 0;
+        entry.motorColors  = client.motorColors  || [];
+        entry.capabilities = client.capabilities || {};
+      }
+      devices.push(entry);
     }
     return devices;
   }
@@ -204,6 +213,11 @@ class ConnectionManager {
   }
 
   broadcastScored(player, points, events) {
+    // Play the most significant sound: lead/last/streak events take priority over score.
+    const PRIORITY_EVENTS = ['took_lead', 'became_last', 'streak_three', 'streak_zero'];
+    const soundEvent = (events || []).find((e) => PRIORITY_EVENTS.includes(e)) || `score_${points}`;
+    this._soundManager?.play(soundEvent);
+
     this.broadcastAll({
       type: 'scored',
       payload: {
@@ -222,10 +236,12 @@ class ConnectionManager {
    * @param {'game_started'|'game_paused'|'game_resumed'|'game_reset'} event
    */
   broadcastGameEvent(event) {
+    this._soundManager?.play(event);
     this.broadcastAll({ type: 'game_event', payload: { event } });
   }
 
   broadcastWinner(player) {
+    this._soundManager?.play('winner');
     this.broadcastAll({
       type: 'winner',
       payload: { playerId: player.id, name: player.name },
@@ -386,6 +402,11 @@ class ConnectionManager {
     this._send(ws, response);
     this.broadcastState();
 
+    // Motor color sync on reconnect: re-apply physical lane colors
+    if (type === 'motor' && Array.isArray(client.motorColors) && client.motorColors.length > 0) {
+      this._applyMotorColorSync(client);
+    }
+
     // Send LED config to reconnected device (with device color)
     if (this.ledConfigManager && type !== 'display') {
       const ledConfig = this.ledConfigManager.getConfigForDeviceType(type);
@@ -427,6 +448,9 @@ class ConnectionManager {
         case 'score':
           this._handleScore(clientId, ws, payload || {});
           break;
+        case 'button':
+          this._handleButton(clientId, ws, payload || {});
+          break;
         default:
           this._send(ws, { type: 'error', payload: { message: 'Unknown message type' } });
       }
@@ -436,7 +460,7 @@ class ConnectionManager {
   }
 
   _handleRegister(clientId, ws, payload) {
-    const { type, playerName, playerId: reconnectId, ledCount, chipType, chipId } = payload;
+    const { type, playerName, playerId: reconnectId, ledCount, chipType, chipId, motorCount, motorColors, capabilities } = payload;
 
     if (!VALID_TYPES.has(type)) {
       this._send(ws, {
@@ -455,6 +479,18 @@ class ConnectionManager {
     }
     if (typeof chipType === 'string') {
       client.chipType = chipType;
+    }
+    // Store motor-client metadata
+    if (type === 'motor') {
+      if (typeof motorCount === 'number') {
+        client.motorCount = motorCount;
+      }
+      if (Array.isArray(motorColors)) {
+        client.motorColors = motorColors.map(Number).filter((n) => Number.isFinite(n));
+      }
+      if (capabilities && typeof capabilities === 'object') {
+        client.capabilities = capabilities;
+      }
     }
     // Only accept chipId from hardware device types and validate its format.
     const validatedChipId = (typeof chipId === 'string' && HARDWARE_TYPES.has(type) && CHIPID_PATTERN.test(chipId))
@@ -531,6 +567,12 @@ class ConnectionManager {
       if (validatedChipId) {
         this._chipIdToPlayerId.set(validatedChipId, clientId);
       }
+      // Motor color sync: if the motor client reports physical lane colors, override
+      // the auto-assigned color with the first available motor lane color.
+      if (type === 'motor' && Array.isArray(client.motorColors) && client.motorColors.length > 0) {
+        this._applyMotorColorSync(client);
+        colorIndex = this.gameState.players.get(clientId)?.colorIndex ?? colorIndex;
+      }
     } else {
       client.playerId = null;
     }
@@ -595,6 +637,68 @@ class ConnectionManager {
     } catch (err) {
       this._send(ws, { type: 'error', payload: { message: err.message } });
     }
+  }
+
+  _handleButton(clientId, ws, payload) {
+    const client = this.clients.get(clientId);
+    if (!client || client.type !== 'motor') {
+      this._send(ws, { type: 'error', payload: { message: 'button messages only accepted from motor clients' } });
+      return;
+    }
+
+    const VALID_ACTIONS = new Set(['start', 'reset', 'pause', 'resume']);
+    const { action } = payload;
+
+    if (!VALID_ACTIONS.has(action)) {
+      this._send(ws, { type: 'error', payload: { message: `Invalid button action. Must be one of: ${[...VALID_ACTIONS].join(', ')}` } });
+      return;
+    }
+
+    try {
+      switch (action) {
+        case 'start':
+          this.startWithCountdown(this._botManager);
+          break;
+        case 'reset':
+          this.cancelCountdown();
+          this.cancelAutoReset();
+          if (this._botManager) this._botManager.onGameReset();
+          this.gameState.reset();
+          this.broadcastGameEvent('game_reset');
+          this.broadcastState();
+          this.broadcastPositions();
+          break;
+        case 'pause':
+        case 'resume': {
+          const newStatus = this.gameState.pause(); // toggle: running↔paused
+          this.broadcastGameEvent(newStatus === 'paused' ? 'game_paused' : 'game_resumed');
+          this.broadcastState();
+          break;
+        }
+      }
+    } catch (err) {
+      this._send(ws, { type: 'error', payload: { message: err.message } });
+    }
+  }
+
+  /**
+   * Apply motor color sync: override each newly registered motor-client player's
+   * colorIndex to match the physical lane color reported in motorColors.
+   * Only called for the motor player itself; subsequent player join auto-assigns
+   * from the motor lane color pool when available.
+   * @param {object} client - The motor client record
+   */
+  _applyMotorColorSync(client) {
+    if (!client.playerId || !Array.isArray(client.motorColors) || client.motorColors.length === 0) return;
+    // Use the first lane's color as the motor controller's own identity color.
+    const firstLaneColor = client.motorColors[0];
+    if (typeof firstLaneColor !== 'number') return;
+    try {
+      this.gameState.setPlayerColorIndex(client.playerId, firstLaneColor);
+      if (this.ledConfigManager && client.chipId) {
+        this.ledConfigManager.assignColor(client.chipId, firstLaneColor);
+      }
+    } catch (_) { /* player may not exist yet — ignore */ }
   }
 
   _handleDisconnect(clientId) {

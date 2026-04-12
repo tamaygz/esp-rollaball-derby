@@ -543,9 +543,9 @@ void loop() {
         ledManager.playTestEffect(pendingEffect);
     }
 
-    int points      = sensors.check();
-    LocalEvent  lev = wsClient.pollLocalEvent();
-    GlobalEvent gev = wsClient.pollGlobalEvent();
+    int points          = sensors.check();
+    LocalEventType  lev = wsClient.pollLocalEvent();
+    GlobalEventType gev = wsClient.pollGlobalEvent();
 
     if (wsClient.isConnected()) {
         ledManager.setState(LedState::WS_CONNECTED);
@@ -553,29 +553,29 @@ void loop() {
         // Global events: all devices react (countdown, lifecycle, winner).
         bool winnerEvent = false;
         switch (gev) {
-            case GlobalEvent::COUNTDOWN_TICK: ledManager.onGlobalEvent(GlobalEventType::COUNTDOWN_TICK); break;
-            case GlobalEvent::GAME_STARTED:   ledManager.onGlobalEvent(GlobalEventType::GAME_STARTED);   break;
-            case GlobalEvent::GAME_PAUSED:    ledManager.onGlobalEvent(GlobalEventType::GAME_PAUSED);    break;
-            case GlobalEvent::GAME_RESUMED:   ledManager.onGlobalEvent(GlobalEventType::GAME_RESUMED);   break;
-            case GlobalEvent::GAME_RESET:     ledManager.onGlobalEvent(GlobalEventType::GAME_RESET);     break;
-            case GlobalEvent::WINNER_SELF:    ledManager.onGlobalEvent(GlobalEventType::WINNER_SELF);    winnerEvent = true; break;
-            case GlobalEvent::WINNER_OTHER:   ledManager.onGlobalEvent(GlobalEventType::WINNER_OTHER);   winnerEvent = true; break;
+            case GlobalEventType::COUNTDOWN_TICK: ledManager.onGlobalEvent(gev); break;
+            case GlobalEventType::GAME_STARTED:   ledManager.onGlobalEvent(gev); break;
+            case GlobalEventType::GAME_PAUSED:    ledManager.onGlobalEvent(gev); break;
+            case GlobalEventType::GAME_RESUMED:   ledManager.onGlobalEvent(gev); break;
+            case GlobalEventType::GAME_RESET:     ledManager.onGlobalEvent(gev); break;
+            case GlobalEventType::WINNER_SELF:    ledManager.onGlobalEvent(gev); winnerEvent = true; break;
+            case GlobalEventType::WINNER_OTHER:   ledManager.onGlobalEvent(gev); winnerEvent = true; break;
             default: break;
         }
 
         // Device-local events: only the owning device reacts (scoring, rank, streaks).
         // Skip when a winner event fired — the winning score arrives in the same
         // WS batch and would immediately overwrite the rainbow/pulse effect.
-        if (winnerEvent) lev = LocalEvent::NONE;
+        if (winnerEvent) lev = LocalEventType::NONE;
         switch (lev) {
-            case LocalEvent::SCORE_PLUS1:   ledManager.onLocalEvent(LocalEventType::SCORE_PLUS1);   break;
-            case LocalEvent::SCORE_PLUS2:   ledManager.onLocalEvent(LocalEventType::SCORE_PLUS2);   break;
-            case LocalEvent::SCORE_PLUS3:   ledManager.onLocalEvent(LocalEventType::SCORE_PLUS3);   break;
-            case LocalEvent::ZERO_ROLL:     ledManager.onLocalEvent(LocalEventType::ZERO_ROLL);     break;
-            case LocalEvent::TOOK_LEAD:     ledManager.onLocalEvent(LocalEventType::TOOK_LEAD);     break;
-            case LocalEvent::BECAME_LAST:   ledManager.onLocalEvent(LocalEventType::BECAME_LAST);   break;
-            case LocalEvent::STREAK_ZERO:   ledManager.onLocalEvent(LocalEventType::STREAK_ZERO);   break;
-            case LocalEvent::STREAK_THREE:  ledManager.onLocalEvent(LocalEventType::STREAK_THREE);  break;
+            case LocalEventType::SCORE_PLUS1:   ledManager.onLocalEvent(lev); break;
+            case LocalEventType::SCORE_PLUS2:   ledManager.onLocalEvent(lev); break;
+            case LocalEventType::SCORE_PLUS3:   ledManager.onLocalEvent(lev); break;
+            case LocalEventType::ZERO_ROLL:     ledManager.onLocalEvent(lev); break;
+            case LocalEventType::TOOK_LEAD:     ledManager.onLocalEvent(lev); break;
+            case LocalEventType::BECAME_LAST:   ledManager.onLocalEvent(lev); break;
+            case LocalEventType::STREAK_ZERO:   ledManager.onLocalEvent(lev); break;
+            case LocalEventType::STREAK_THREE:  ledManager.onLocalEvent(lev); break;
             default: break;
         }
 

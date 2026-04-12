@@ -1,0 +1,15 @@
+{
+  "name": "Derby Motor (ESP32 Dev Module)",
+  "new_install_prompt_erase": true,
+  "builds": [
+    {
+      "chipFamily": "ESP32",
+      "parts": [
+        {
+          "path": "https://github.com/tamaygz/esp-rollaball-derby/releases/latest/download/firmware-motor.bin",
+          "offset": 0
+        }
+      ]
+    }
+  ]
+}

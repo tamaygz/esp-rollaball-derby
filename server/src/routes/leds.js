@@ -1,14 +1,31 @@
 const express = require('express');
+const path = require('path');
 const rateLimit = require('express-rate-limit');
 
 /**
  * LED Configuration and Control Routes
- * Provides REST API for LED configuration management and effect testing
- * 
+ * Provides REST API for LED configuration management and effect testing.
+ *
+ * Effect names are validated against the shared manifest at
+ * clients/shared/led-effects-manifest.json — single source of truth.
+ *
  * @module routes/leds
  * @requires express
  * @requires express-rate-limit
  */
+
+// Load the shared manifest once at startup. Hard-coded lists must not exist here.
+const MANIFEST_PATH = path.resolve(__dirname, '..', '..', '..', 'clients', 'shared', 'led-effects-manifest.json');
+let _validEffects;
+try {
+  const manifest = require(MANIFEST_PATH);
+  _validEffects = manifest.effects.map((e) => e.name);
+} catch (err) {
+  // Fallback so server still boots if manifest is missing; log prominently.
+  console.error('[LED Routes] WARN: could not load led-effects-manifest.json —', err.message);
+  _validEffects = ['solid', 'blink', 'pulse', 'rainbow', 'chase', 'sparkle',
+    'countdown', 'text', 'winner', 'ballroll', 'clear'];
+}
 
 // Rate limiter for effect test endpoint: 1 request per second per device
 const effectTestLimiter = rateLimit({
@@ -255,12 +272,11 @@ function createLedRoutes(ledConfigManager, connectionManager) {
         });
       }
       
-      // Validate effect name
-      const validEffects = ['solid', 'blink', 'pulse', 'rainbow', 'chase', 'sparkle'];
-      if (!validEffects.includes(effectName)) {
+      // Validate effect name against shared manifest
+      if (!_validEffects.includes(effectName)) {
         return res.status(400).json({
           error: 'Bad request',
-          message: `Invalid effectName. Must be one of: ${validEffects.join(', ')}`
+          message: `Invalid effectName. Must be one of: ${_validEffects.join(', ')}`
         });
       }
       
@@ -295,6 +311,20 @@ function createLedRoutes(ledConfigManager, connectionManager) {
         error: 'Internal server error',
         message: error.message
       });
+    }
+  });
+
+  /**
+   * GET /api/leds/effects
+   * Return the full effects manifest so clients can build dropdowns and
+   * run validation without duplicating the list.
+   */
+  router.get('/effects', (req, res) => {
+    try {
+      const manifest = require(MANIFEST_PATH);
+      res.json(manifest);
+    } catch (err) {
+      res.status(500).json({ error: 'Could not load effects manifest', message: err.message });
     }
   });
 

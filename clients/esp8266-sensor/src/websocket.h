@@ -3,45 +3,9 @@
 #include <ArduinoJson.h>
 #include <Arduino.h>
 #include "config.h"
+#include <leds/GameEvents.h>
 
 using namespace websockets;
-
-// Device-local events: only the owning device reacts (from 'scored' messages).
-// Ordered by priority (higher enum value = higher priority for event selection).
-enum class LocalEvent {
-    NONE,
-    BECAME_LAST,       // this player dropped to last place
-    ZERO_ROLL,         // this player scored 0
-    STREAK_ZERO,       // 3 consecutive zero rolls
-    SCORE_PLUS1,       // this player scored +1
-    SCORE_PLUS2,       // this player scored +2
-    SCORE_PLUS3,       // this player scored +3
-    STREAK_THREE,      // 2 consecutive +3 rolls
-    TOOK_LEAD,         // this player just took the lead
-};
-
-// Game-global events: all devices react (from 'game_event', 'countdown', 'winner').
-enum class GlobalEvent {
-    NONE,
-    COUNTDOWN_TICK,    // countdown tick (count >= 1)
-    GAME_STARTED,      // game transitioned to running
-    GAME_PAUSED,       // game paused
-    GAME_RESUMED,      // game resumed from pause
-    GAME_RESET,        // game reset to idle
-    WINNER_SELF,       // this sensor's player won
-    WINNER_OTHER,      // another player won
-};
-
-// LED test-effect command received from the server via the admin web UI.
-// Color is stored as raw RGB bytes to avoid a NeoPixelBus dependency in this header.
-struct LedTestEffectMessage {
-    char    effectName[16]; // "solid", "blink", "pulse", "rainbow", "chase", "sparkle"
-    uint8_t r;
-    uint8_t g;
-    uint8_t b;
-    uint16_t speedMs;       // Period / cycle speed in milliseconds
-    uint8_t  brightness;    // 0–255
-};
 
 // WebSocket client wrapper for the Derby sensor firmware.
 // Handles:
@@ -65,10 +29,10 @@ public:
     void sendScore(int points);
 
     // Return and clear the pending device-local event (NONE if nothing queued).
-    LocalEvent pollLocalEvent();
+    LocalEventType pollLocalEvent();
 
     // Return and clear the pending game-global event (NONE if nothing queued).
-    GlobalEvent pollGlobalEvent();
+    GlobalEventType pollGlobalEvent();
 
     // Poll for a pending led_config message. Returns true and fills `out` if one
     // has arrived since the last call; false otherwise.
@@ -101,8 +65,8 @@ private:
     unsigned long    _lastAttempt  = 0;
     unsigned long    _backoffMs    = WS_BACKOFF_MIN_MS;
 
-    LocalEvent       _pendingLocalEvent  = LocalEvent::NONE;
-    GlobalEvent      _pendingGlobalEvent = GlobalEvent::NONE;
+    LocalEventType   _pendingLocalEvent  = LocalEventType::NONE;
+    GlobalEventType  _pendingGlobalEvent = GlobalEventType::NONE;
 
     // Pending LED config message (from server led_config broadcast)
     LedConfig        _pendingLedConfig      = {};

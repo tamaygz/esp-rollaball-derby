@@ -1,1 +1,5 @@
 test-results/
+**/.pio/**
+**/.pio/
+.playwright-mcp/**
+**/.playwright

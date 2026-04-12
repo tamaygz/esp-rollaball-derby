@@ -12,6 +12,7 @@ const GameState = require('./game/GameState');
 const BotManager = require('./game/BotManager');
 const ConnectionManager = require('./ws/ConnectionManager');
 const LedConfigManager = require('./config/LedConfigManager');
+const SoundManager = require('./sound/SoundManager');
 const healthRouter = require('./routes/health');
 const adminRouter = require('./routes/admin');
 const createGameRouter = require('./routes/game');
@@ -29,6 +30,7 @@ const HOST = process.env.HOST || '0.0.0.0';
 const app = express();
 const gameState = new GameState();
 const ledConfigManager = new LedConfigManager();
+const soundManager = new SoundManager(path.join(__dirname, '..', 'sounds'));
 
 // Load LED configuration on startup
 ledConfigManager.loadConfig().catch(error => {
@@ -63,6 +65,12 @@ app.use('/assets', express.static(path.join(__dirname, '..', '..', 'clients', 'a
 // No toolchain needed — works from Chrome/Edge via Web Serial.
 app.use('/flash-sensor', express.static(path.join(__dirname, '..', '..', 'clients', 'esp8266-sensor', 'web-install')));
 
+// ESP Web Tools vendor bundle shared by both flasher pages (avoids duplication).
+app.use('/flash-vendor', express.static(path.join(__dirname, '..', '..', 'clients', 'esp8266-sensor', 'web-install', 'vendor')));
+
+// ESP32 motor controller browser flasher served at /flash-motor/
+app.use('/flash-motor', express.static(path.join(__dirname, '..', '..', 'clients', 'esp32-motor', 'web-install')));
+
 // ─── Routes ───────────────────────────────────────────────────────────────────
 
 // Placeholder — connectionManager created after HTTP server; routes mounted later.
@@ -91,7 +99,7 @@ app.use((err, req, res, next) => {
 const server = http.createServer(app);
 
 const wss = new WebSocketServer({ server });
-connectionManager = new ConnectionManager(gameState, ledConfigManager);
+connectionManager = new ConnectionManager(gameState, ledConfigManager, soundManager);
 botManager = new BotManager(gameState, connectionManager);
 connectionManager.setBotManager(botManager);
 
@@ -117,7 +125,28 @@ server.listen(PORT, HOST, () => {
   // ─── mDNS / DNS-SD advertisement ─────────────────────────────────────────
   // Publishes _derby._tcp.local so ESP8266 sensors (and browsers on macOS/iOS)
   // can auto-discover the server without manual IP configuration.
-  const bonjour = new Bonjour();
+  // On Windows hosts running WSL2 / Hyper-V, os.networkInterfaces() contains
+  // multiple IPv4 addresses (e.g. 172.x for virtual adapters). We pick the
+  // first non-internal, non-link-local, non-virtual address — the physical LAN
+  // IP — so the ESP32 clients can reach us.
+  const lanIp = (() => {
+    const ifaces = os.networkInterfaces();
+    for (const name of Object.keys(ifaces)) {
+      // Skip known virtual adapter name prefixes (Hyper-V, WSL2, VirtualBox)
+      if (/vethernet|wsl|loopback|vmware|virtualbox/i.test(name)) continue;
+      for (const iface of ifaces[name]) {
+        if (iface.family !== 'IPv4' || iface.internal) continue;
+        // Skip link-local (169.254.x.x) and known virtual ranges (172.16–31.x)
+        const [a, b] = iface.address.split('.').map(Number);
+        if (a === 169 && b === 254) continue;
+        if (a === 172 && b >= 16 && b <= 31) continue;
+        return iface.address;
+      }
+    }
+    return undefined; // let bonjour choose
+  })();
+
+  const bonjour = new Bonjour(lanIp ? { interface: lanIp } : {});
   const hostname = os.hostname();
   bonjour.publish({
     name: 'derby-server',
@@ -125,7 +154,7 @@ server.listen(PORT, HOST, () => {
     port: Number(PORT),
     txt: { version: '1', hostname }
   });
-  console.log(`[Derby Server] mDNS: advertising _derby._tcp on port ${PORT}`);
+  console.log(`[Derby Server] mDNS: advertising _derby._tcp on port ${PORT}${lanIp ? ` (${lanIp})` : ''}`);
 });
 
 module.exports = { app, server, gameState, connectionManager: () => connectionManager, botManager: () => botManager };

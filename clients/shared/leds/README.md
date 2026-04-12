@@ -573,8 +573,77 @@ Ensure PlatformIO correctly detects ESP8266 or ESP32 board in `platformio.ini`.
 ## Files
 
 - `LedPlatform.h` — Platform detection and NeoPixelBus method selection
-- `LedController.h` — Main API declaration
+- `LedController.h` — Main LED strip API (sensor and motor strip effects)
 - `LedController.cpp` — Implementation
+- `MatrixDisplay.h` — WS2812B matrix renderer (ESP32 motor client)
+- `MatrixDisplay.cpp` — Non-blocking matrix animations
+
+---
+
+## MatrixDisplay (ESP32 Motor Client)
+
+`MatrixDisplay` drives the WS2812B LED matrix on the ESP32 motor node. It is
+configured via `LedConfig` received from the server and animated by calling
+`loop()` every iteration of `main()`.
+
+### Effects
+
+Available effects are defined in `clients/shared/led-effects-manifest.json` —
+the single source of truth consumed by the server (validation), admin UI
+(dropdown), JS simulator (preview), and C++ firmware (dispatch).
+
+#### Strip effects (platforms: sensor, motor)
+
+| Name | Description | Params |
+|------|-------------|--------|
+| `solid` | Static fill colour | `color`, `brightness` |
+| `blink` | On/off toggle | `color`, `speed` |
+| `pulse` | Breathing brightness sine | `color`, `speed` |
+| `rainbow` | Shifting HSV spectrum | `speed` |
+| `chase` | Single pixel sweep | `color`, `speed` |
+| `sparkle` | Random bright pixels | `color`, `speed` |
+
+#### Matrix effects (platform: motor only)
+
+| Name | Description | Params |
+|------|-------------|--------|
+| `countdown` | Displays 3 → 2 → 1 → GO | — |
+| `text` | Scrolling text banner (default: `DERBY`) | `color`, `speed` |
+| `winner` | Scrolling gold winner banner (loops) | — |
+| `ballroll` | Ball rolls to random hole, ring celebration, loops | `color`, `speed` |
+| `clear` | All LEDs off (one-shot) | — |
+
+### Key API
+
+```cpp
+// Initialise from server-supplied LedConfig
+bool begin(const LedConfig& cfg);
+
+// Must be called every loop() — advances all non-blocking animations
+void loop();
+
+// Strip effects (solid, blink, pulse, chase, sparkle, rainbow)
+void showEffect(const char* name, uint8_t r, uint8_t g, uint8_t b, uint16_t speedMs);
+
+// Matrix-specific effects
+void showCountdown(int n);           // n>0 = white digit, n==0 = green GO
+void showText(const char* text, uint8_t r, uint8_t g, uint8_t b, uint16_t speedMs = 80);
+void showWinner(const char* name);   // gold scroll, loops
+void showBallRoll(uint8_t r, uint8_t g, uint8_t b, uint16_t speedMs = 2000); // loops
+void clear();
+void showIdle();                     // ambient rainbow wave
+```
+
+### BallRoll animation
+
+The `ballroll` effect runs four phases continuously:
+
+1. **ROLLING** — ball travels from top-centre to a randomly chosen hole (ease-in, `speedMs`).
+2. **DROPPING** — three quick flashes at the hole (~360 ms).
+3. **CELEBRATING** — expanding ring from hole position, fades as it grows (~600 ms).
+4. **PAUSE** — all off for 400 ms, then restarts with a different hole.
+
+
 
 ## Examples
 

@@ -1,0 +1,177 @@
+{
+  "_comment": "Single source of truth for all LED effects. Consumed by server (validation), web admin (dropdown/simulator), and C++ firmware (dispatch). Add new effects here first, then implement in each platform.",
+  "effects": [
+    {
+      "name": "solid",
+      "label": "Solid",
+      "category": "strip",
+      "platforms": ["sensor", "motor"],
+      "params": {
+        "color": { "type": "color", "default": "#FFFFFF" }
+      }
+    },
+    {
+      "name": "blink",
+      "label": "Blink",
+      "category": "strip",
+      "platforms": ["sensor", "motor"],
+      "params": {
+        "color": { "type": "color", "default": "#FFFFFF" },
+        "speed": { "type": "ms", "default": 500, "min": 50, "max": 5000 }
+      }
+    },
+    {
+      "name": "pulse",
+      "label": "Pulse",
+      "category": "strip",
+      "platforms": ["sensor", "motor"],
+      "params": {
+        "color": { "type": "color", "default": "#FFFFFF" },
+        "speed": { "type": "ms", "default": 1000, "min": 100, "max": 5000 }
+      }
+    },
+    {
+      "name": "rainbow",
+      "label": "Rainbow",
+      "category": "strip",
+      "platforms": ["sensor", "motor"],
+      "params": {
+        "speed": { "type": "ms", "default": 2000, "min": 200, "max": 10000 }
+      }
+    },
+    {
+      "name": "chase",
+      "label": "Chase",
+      "category": "strip",
+      "platforms": ["sensor", "motor"],
+      "params": {
+        "color": { "type": "color", "default": "#FFFFFF" },
+        "speed": { "type": "ms", "default": 100, "min": 10, "max": 1000 }
+      }
+    },
+    {
+      "name": "sparkle",
+      "label": "Sparkle",
+      "category": "strip",
+      "platforms": ["sensor", "motor"],
+      "params": {
+        "color": { "type": "color", "default": "#FFFFFF" },
+        "speed": { "type": "ms", "default": 50, "min": 10, "max": 500 }
+      }
+    },
+    {
+      "name": "countdown",
+      "label": "Countdown",
+      "category": "matrix",
+      "platforms": ["motor"],
+      "params": {}
+    },
+    {
+      "name": "text",
+      "label": "Scroll Text",
+      "category": "matrix",
+      "platforms": ["motor"],
+      "params": {
+        "color": { "type": "color", "default": "#FFFFFF" },
+        "speed": { "type": "ms", "default": 80, "min": 20, "max": 500 }
+      }
+    },
+    {
+      "name": "winner",
+      "label": "Winner",
+      "category": "matrix",
+      "platforms": ["motor"],
+      "params": {}
+    },
+    {
+      "name": "ballroll",
+      "label": "Ball Roll",
+      "category": "matrix",
+      "platforms": ["motor"],
+      "params": {
+        "color": { "type": "color", "default": "#00FF88" },
+        "speed": { "type": "ms", "default": 2000, "min": 500, "max": 5000 }
+      }
+    },
+    {
+      "name": "clear",
+      "label": "Clear",
+      "category": "matrix",
+      "platforms": ["motor"],
+      "params": {}
+    },
+    {
+      "name": "camelchew",
+      "label": "Camel Chew",
+      "category": "matrix",
+      "platforms": ["motor"],
+      "params": {
+        "color": { "type": "color", "default": "#7AC520" },
+        "speed": { "type": "ms", "default": 2400, "min": 800, "max": 6000 }
+      }
+    },
+    {
+      "name": "camelspeedup",
+      "label": "Camel Speedup",
+      "category": "matrix",
+      "platforms": ["motor"],
+      "params": {
+        "color": { "type": "color", "default": "#FF6B00" },
+        "speed": { "type": "ms", "default": 1500, "min": 800, "max": 3000 }
+      }
+    },
+    {
+      "name": "scorehigh",
+      "label": "Score High",
+      "category": "matrix",
+      "platforms": ["motor"],
+      "params": {
+        "color": { "type": "color", "default": "#FFD700" },
+        "speed": { "type": "ms", "default": 1200, "min": 500, "max": 3000 }
+      }
+    },
+    {
+      "name": "tolead",
+      "label": "Took Lead",
+      "category": "matrix",
+      "platforms": ["motor"],
+      "params": {
+        "color": { "type": "color", "default": "#FFD700" },
+        "speed": { "type": "ms", "default": 1000, "min": 500, "max": 2500 }
+      }
+    },
+    {
+      "name": "farbehind",
+      "label": "Far Behind",
+      "category": "matrix",
+      "platforms": ["motor"],
+      "params": {
+        "color": { "type": "color", "default": "#4488FF" },
+        "speed": { "type": "ms", "default": 1800, "min": 1000, "max": 4000 }
+      }
+    },
+    {
+      "name": "gamestart",
+      "label": "Game Start",
+      "category": "matrix",
+      "platforms": ["motor"],
+      "params": {}
+    },
+    {
+      "name": "gameend",
+      "label": "Game End",
+      "category": "matrix",
+      "platforms": ["motor"],
+      "params": {}
+    },
+    {
+      "name": "someonewon",
+      "label": "Someone Won",
+      "category": "matrix",
+      "platforms": ["motor"],
+      "params": {
+        "color": { "type": "color", "default": "#FFD700" }
+      }
+    }
+  ]
+}

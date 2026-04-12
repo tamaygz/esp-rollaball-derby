@@ -1,0 +1,752 @@
+Processing esp32dev (board: esp32dev; platform: espressif32; framework: arduino)
+--------------------------------------------------------------------------------
+Verbose mode can be enabled via `-v, --verbose` option
+CONFIGURATION: https://docs.platformio.org/page/boards/espressif32/esp32dev.html
+PLATFORM: Espressif 32 (6.13.0) > Espressif ESP32 Dev Module
+HARDWARE: ESP32 240MHz, 320KB RAM, 4MB Flash
+DEBUG: Current (cmsis-dap) External (cmsis-dap, esp-bridge, esp-prog, iot-bus-jtag, jlink, minimodule, olimex-arm-usb-ocd, olimex-arm-usb-ocd-h, olimex-arm-usb-tiny-h, olimex-jtag-tiny, tumpa)
+PACKAGES: 
+ - framework-arduinoespressif32 @ 3.20017.241212+sha.dcc1105b 
+ - tool-esptoolpy @ 2.41100.0 (4.11.0) 
+ - toolchain-xtensa-esp32 @ 8.4.0+2021r2-patch5
+LDF: Library Dependency Finder -> https://bit.ly/configure-pio-ldf
+LDF Modes: Finder ~ chain, Compatibility ~ soft
+Found 40 compatible libraries
+Scanning dependencies...
+Dependency Graph
+|-- leds @ 1.0.0
+|-- io @ 1.0.0
+|-- ArduinoWebsockets @ 0.5.4
+|-- WiFiManager @ 2.0.17
+|-- ArduinoJson @ 7.4.3
+|-- NeoPixelBus @ 2.8.4
+|-- AccelStepper @ 1.64.0
+|-- ESPmDNS @ 2.0.0
+|-- LittleFS @ 2.0.0
+|-- WebServer @ 2.0.0
+|-- WiFi @ 2.0.0
+Building in release mode
+Compiling .pio\build\esp32dev\src\main.cpp.o
+Compiling .pio\build\esp32dev\libe29\leds\MatrixDisplay.cpp.o
+In file included from C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.h:3,
+                 from src/matrix_display.h:3,
+                 from src/main.cpp:15:
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/LedPlatform.h:43:23: warning: 'template<class T_COLOR_FEATURE, class T_METHOD> class NeoPixelBrightnessBus' is deprecated: Use NeoPixelBusLg instead. [-Wdeprecated-declarations]
+     using LedStrip  = NeoPixelBrightnessBus<NeoGrbFeature, LedMethod>;
+                       ^~~~~~~~~~~~~~~~~~~~~
+In file included from C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/LedPlatform.h:7,
+                 from C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.h:3,
+                 from src/matrix_display.h:3,
+                 from src/main.cpp:15:
+.pio/libdeps/esp32dev/NeoPixelBus/src/NeoPixelBrightnessBus.h:32:106: note: declared here
+ template<typename T_COLOR_FEATURE, typename T_METHOD> class [[deprecated("Use NeoPixelBusLg instead.")]] NeoPixelBrightnessBus :
+                                                                                                          ^~~~~~~~~~~~~~~~~~~~~
+In file included from src/main.cpp:9:
+src/config.h:63:27: error: expected identifier before numeric constant
+ #define HTTP_CONFIG_PORT  80
+                           ^~
+src/main.cpp:23:34: note: in expansion of macro 'HTTP_CONFIG_PORT'
+ static WebServer      httpServer(HTTP_CONFIG_PORT);
+                                  ^~~~~~~~~~~~~~~~
+src/config.h:63:27: error: expected ',' or '...' before numeric constant
+ #define HTTP_CONFIG_PORT  80
+                           ^~
+src/main.cpp:23:34: note: in expansion of macro 'HTTP_CONFIG_PORT'
+ static WebServer      httpServer(HTTP_CONFIG_PORT);
+                                  ^~~~~~~~~~~~~~~~
+src/main.cpp:25:23: error: ISO C++ forbids in-class initialization of non-const static member 'MatrixDisplay::g_pendingRestart'
+ static bool           g_pendingRestart = false;
+                       ^~~~~~~~~~~~~~~~
+src/main.cpp:28:16: error: 'constexpr' needed for in-class initialization of static data member 'char MatrixDisplay::g_serverIp [40]' of non-integral type [-fpermissive]
+ static char    g_serverIp  [40] = "192.168.1.200";
+                ^~~~~~~~~~
+src/main.cpp:29:16: error: 'constexpr' needed for in-class initialization of static data member 'char MatrixDisplay::g_serverPort [6]' of non-integral type [-fpermissive]
+ static char    g_serverPort[ 6] = "3000";
+                ^~~~~~~~~~~~
+src/main.cpp:30:16: error: 'constexpr' needed for in-class initialization of static data member 'char MatrixDisplay::g_playerName [21]' of non-integral type [-fpermissive]
+ static char    g_playerName[21] = "";
+                ^~~~~~~~~~~~
+src/main.cpp:33:18: error: 'constexpr' needed for in-class initialization of static data member 'char MatrixDisplay::g_playerId [48]' of non-integral type [-fpermissive]
+ static char      g_playerId[48]    = "";
+                  ^~~~~~~~~~
+src/main.cpp:34:18: error: 'constexpr' needed for in-class initialization of static data member 'LedConfig MatrixDisplay::g_savedLedConfig' of non-integral type [-fpermissive]
+ static LedConfig g_savedLedConfig  = {};
+                  ^~~~~~~~~~~~~~~~
+src/main.cpp:35:18: error: ISO C++ forbids in-class initialization of non-const static member 'MatrixDisplay::g_hasLedConfig'
+ static bool      g_hasLedConfig    = false;
+                  ^~~~~~~~~~~~~~
+src/main.cpp:36:18: error: ISO C++ forbids in-class initialization of non-const static member 'MatrixDisplay::g_stateDirty'
+ static bool      g_stateDirty      = false;
+                  ^~~~~~~~~~~~
+src/main.cpp:37:22: error: ISO C++ forbids in-class initialization of non-const static member 'MatrixDisplay::g_stateLastSave'
+ static unsigned long g_stateLastSave = 0;
+                      ^~~~~~~~~~~~~~~
+src/main.cpp:40:17: error: 'constexpr' needed for in-class initialization of static data member 'uint8_t MatrixDisplay::g_motorColors [8]' of non-integral type [-fpermissive]
+ static uint8_t  g_motorColors[MOTOR_MAX_LANES] = DEFAULT_MOTOR_COLORS;
+                 ^~~~~~~~~~~~~
+src/main.cpp:61:13: error: 'static void MatrixDisplay::loadConfig()' cannot be overloaded with 'static void MatrixDisplay::loadConfig()'
+ static void loadConfig() {
+             ^~~~~~~~~~
+src/main.cpp:49:13: note: previous declaration 'static void MatrixDisplay::loadConfig()'
+ static void loadConfig();
+             ^~~~~~~~~~
+src/main.cpp:75:13: error: 'static void MatrixDisplay::saveConfig()' cannot be overloaded with 'static void MatrixDisplay::saveConfig()'
+ static void saveConfig() {
+             ^~~~~~~~~~
+src/main.cpp:50:13: note: previous declaration 'static void MatrixDisplay::saveConfig()'
+ static void saveConfig();
+             ^~~~~~~~~~
+src/main.cpp:93:13: error: 'static void MatrixDisplay::loadState()' cannot be overloaded with 'static void MatrixDisplay::loadState()'
+ static void loadState() {
+             ^~~~~~~~~
+src/main.cpp:51:13: note: previous declaration 'static void MatrixDisplay::loadState()'
+ static void loadState();
+             ^~~~~~~~~
+src/main.cpp:150:13: error: 'static void MatrixDisplay::saveState()' cannot be overloaded with 'static void MatrixDisplay::saveState()'
+ static void saveState() {
+             ^~~~~~~~~
+src/main.cpp:52:13: note: previous declaration 'static void MatrixDisplay::saveState()'
+ static void saveState();
+             ^~~~~~~~~
+src/main.cpp:188:13: error: 'static void MatrixDisplay::markStateDirty()' cannot be overloaded with 'static void MatrixDisplay::markStateDirty()'
+ static void markStateDirty() { g_stateDirty = true; }
+             ^~~~~~~~~~~~~~
+src/main.cpp:53:13: note: previous declaration 'static void MatrixDisplay::markStateDirty()'
+ static void markStateDirty();
+             ^~~~~~~~~~~~~~
+src/main.cpp:190:13: error: 'static void MatrixDisplay::flushStateIfNeeded()' cannot be overloaded with 'static void MatrixDisplay::flushStateIfNeeded()'
+ static void flushStateIfNeeded() {
+             ^~~~~~~~~~~~~~~~~~
+src/main.cpp:54:13: note: previous declaration 'static void MatrixDisplay::flushStateIfNeeded()'
+ static void flushStateIfNeeded();
+             ^~~~~~~~~~~~~~~~~~
+src/main.cpp:197:13: error: 'static bool MatrixDisplay::discoverServer(String&, uint16_t&)' cannot be overloaded with 'static bool MatrixDisplay::discoverServer(String&, uint16_t&)'
+ static bool discoverServer(String& host, uint16_t& port) {
+             ^~~~~~~~~~~~~~
+src/main.cpp:55:13: note: previous declaration 'static bool MatrixDisplay::discoverServer(String&, uint16_t&)'
+ static bool discoverServer(String& host, uint16_t& port);
+             ^~~~~~~~~~~~~~
+src/main.cpp:230:13: error: 'static void MatrixDisplay::onSaveParams()' cannot be overloaded with 'static void MatrixDisplay::onSaveParams()'
+ static void onSaveParams() {
+             ^~~~~~~~~~~~
+src/main.cpp:56:13: note: previous declaration 'static void MatrixDisplay::onSaveParams()'
+ static void onSaveParams();
+             ^~~~~~~~~~~~
+src/main.cpp:406:13: error: 'static void MatrixDisplay::setupHttpRoutes()' cannot be overloaded with 'static void MatrixDisplay::setupHttpRoutes()'
+ static void setupHttpRoutes() {
+             ^~~~~~~~~~~~~~~
+src/main.cpp:57:13: note: previous declaration 'static void MatrixDisplay::setupHttpRoutes()'
+ static void setupHttpRoutes();
+             ^~~~~~~~~~~~~~~
+src/main.cpp:539:13: error: ISO C++ forbids in-class initialization of non-const static member 'MatrixDisplay::s_wifiWasConnected'
+ static bool s_wifiWasConnected = false;
+             ^~~~~~~~~~~~~~~~~~
+src/main.cpp:541:6: error: 'void MatrixDisplay::loop()' cannot be overloaded with 'void MatrixDisplay::loop()'
+ void loop() {
+      ^~~~
+In file included from src/matrix_display.h:3,
+                 from src/main.cpp:15:
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.h:32:10: note: previous declaration 'void MatrixDisplay::loop()'
+     void loop();
+          ^~~~
+src/main.cpp:704:1: error: expected '}' at end of input
+ }
+ ^
+In file included from src/matrix_display.h:3,
+                 from src/main.cpp:15:
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.h:22:21: note: to match this '{'
+ class MatrixDisplay {
+                     ^
+src/main.cpp: In static member function 'static void MatrixDisplay::handleMotorStatus()':
+src/main.cpp:254:16: error: request for member 'send' in 'MatrixDisplay::httpServer', which is of non-class type 'WebServer(int)'
+     httpServer.send(200, "application/json", out);
+                ^~~~
+src/main.cpp: In static member function 'static void MatrixDisplay::handleMotorJog()':
+src/main.cpp:259:20: error: request for member 'method' in 'MatrixDisplay::httpServer', which is of non-class type 'WebServer(int)'
+     if (httpServer.method() != HTTP_POST) { httpServer.send(405, "application/json", "{\"error\":\"Method Not Allowed\"}"); return; }
+                    ^~~~~~
+src/main.cpp:259:56: error: request for member 'send' in 'MatrixDisplay::httpServer', which is of non-class type 'WebServer(int)'
+     if (httpServer.method() != HTTP_POST) { httpServer.send(405, "application/json", "{\"error\":\"Method Not Allowed\"}"); return; }
+                                                        ^~~~
+src/main.cpp:261:41: error: request for member 'arg' in 'MatrixDisplay::httpServer', which is of non-class type 'WebServer(int)'
+     if (deserializeJson(req, httpServer.arg("plain"))) { httpServer.send(400, "application/json", "{\"error\":\"Invalid JSON\"}"); return; }
+                                         ^~~
+src/main.cpp:261:69: error: request for member 'send' in 'MatrixDisplay::httpServer', which is of non-class type 'WebServer(int)'
+     if (deserializeJson(req, httpServer.arg("plain"))) { httpServer.send(400, "application/json", "{\"error\":\"Invalid JSON\"}"); return; }
+                                                                     ^~~~
+src/main.cpp:265:16: error: request for member 'send' in 'MatrixDisplay::httpServer', which is of non-class type 'WebServer(int)'
+     httpServer.send(200, "application/json", "{\"ok\":true}");
+                ^~~~
+src/main.cpp: In static member function 'static void MatrixDisplay::handleMotorMoveTo()':
+src/main.cpp:270:20: error: request for member 'method' in 'MatrixDisplay::httpServer', which is of non-class type 'WebServer(int)'
+     if (httpServer.method() != HTTP_POST) { httpServer.send(405, "application/json", "{\"error\":\"Method Not Allowed\"}"); return; }
+                    ^~~~~~
+src/main.cpp:270:56: error: request for member 'send' in 'MatrixDisplay::httpServer', which is of non-class type 'WebServer(int)'
+     if (httpServer.method() != HTTP_POST) { httpServer.send(405, "application/json", "{\"error\":\"Method Not Allowed\"}"); return; }
+                                                        ^~~~
+src/main.cpp:272:41: error: request for member 'arg' in 'MatrixDisplay::httpServer', which is of non-class type 'WebServer(int)'
+     if (deserializeJson(req, httpServer.arg("plain"))) { httpServer.send(400, "application/json", "{\"error\":\"Invalid JSON\"}"); return; }
+                                         ^~~
+src/main.cpp:272:69: error: request for member 'send' in 'MatrixDisplay::httpServer', which is of non-class type 'WebServer(int)'
+     if (deserializeJson(req, httpServer.arg("plain"))) { httpServer.send(400, "application/json", "{\"error\":\"Invalid JSON\"}"); return; }
+                                                                     ^~~~
+src/main.cpp:276:16: error: request for member 'send' in 'MatrixDisplay::httpServer', which is of non-class type 'WebServer(int)'
+     httpServer.send(200, "application/json", "{\"ok\":true}");
+                ^~~~
+src/main.cpp: In static member function 'static void MatrixDisplay::handleMotorHome()':
+src/main.cpp:282:16: error: request for member 'send' in 'MatrixDisplay::httpServer', which is of non-class type 'WebServer(int)'
+     httpServer.send(200, "application/json", "{\"ok\":true}");
+                ^~~~
+src/main.cpp: In static member function 'static void MatrixDisplay::handleCalibrateStart()':
+src/main.cpp:287:20: error: request for member 'method' in 'MatrixDisplay::httpServer', which is of non-class type 'WebServer(int)'
+     if (httpServer.method() != HTTP_POST) { httpServer.send(405, "application/json", "{\"error\":\"Method Not Allowed\"}"); return; }
+                    ^~~~~~
+src/main.cpp:287:56: error: request for member 'send' in 'MatrixDisplay::httpServer', which is of non-class type 'WebServer(int)'
+     if (httpServer.method() != HTTP_POST) { httpServer.send(405, "application/json", "{\"error\":\"Method Not Allowed\"}"); return; }
+                                                        ^~~~
+src/main.cpp:289:41: error: request for member 'arg' in 'MatrixDisplay::httpServer', which is of non-class type 'WebServer(int)'
+     if (deserializeJson(req, httpServer.arg("plain"))) { httpServer.send(400, "application/json", "{\"error\":\"Invalid JSON\"}"); return; }
+                                         ^~~
+src/main.cpp:289:69: error: request for member 'send' in 'MatrixDisplay::httpServer', which is of non-class type 'WebServer(int)'
+     if (deserializeJson(req, httpServer.arg("plain"))) { httpServer.send(400, "application/json", "{\"error\":\"Invalid JSON\"}"); return; }
+                                                                     ^~~~
+src/main.cpp:292:16: error: request for member 'send' in 'MatrixDisplay::httpServer', which is of non-class type 'WebServer(int)'
+     httpServer.send(200, "application/json", "{\"ok\":true}");
+                ^~~~
+src/main.cpp: In static member function 'static void MatrixDisplay::handleCalibrateSetStart()':
+src/main.cpp:297:20: error: request for member 'method' in 'MatrixDisplay::httpServer', which is of non-class type 'WebServer(int)'
+     if (httpServer.method() != HTTP_POST) { httpServer.send(405, "application/json", "{\"error\":\"Method Not Allowed\"}"); return; }
+                    ^~~~~~
+src/main.cpp:297:56: error: request for member 'send' in 'MatrixDisplay::httpServer', which is of non-class type 'WebServer(int)'
+     if (httpServer.method() != HTTP_POST) { httpServer.send(405, "application/json", "{\"error\":\"Method Not Allowed\"}"); return; }
+                                                        ^~~~
+src/main.cpp:299:41: error: request for member 'arg' in 'MatrixDisplay::httpServer', which is of non-class type 'WebServer(int)'
+     if (deserializeJson(req, httpServer.arg("plain"))) { httpServer.send(400, "application/json", "{\"error\":\"Invalid JSON\"}"); return; }
+                                         ^~~
+src/main.cpp:299:69: error: request for member 'send' in 'MatrixDisplay::httpServer', which is of non-class type 'WebServer(int)'
+     if (deserializeJson(req, httpServer.arg("plain"))) { httpServer.send(400, "application/json", "{\"error\":\"Invalid JSON\"}"); return; }
+                                                                     ^~~~
+src/main.cpp:302:16: error: request for member 'send' in 'MatrixDisplay::httpServer', which is of non-class type 'WebServer(int)'
+     httpServer.send(200, "application/json", "{\"ok\":true}");
+                ^~~~
+src/main.cpp: In static member function 'static void MatrixDisplay::handleCalibrateSetEnd()':
+src/main.cpp:307:20: error: request for member 'method' in 'MatrixDisplay::httpServer', which is of non-class type 'WebServer(int)'
+     if (httpServer.method() != HTTP_POST) { httpServer.send(405, "application/json", "{\"error\":\"Method Not Allowed\"}"); return; }
+                    ^~~~~~
+src/main.cpp:307:56: error: request for member 'send' in 'MatrixDisplay::httpServer', which is of non-class type 'WebServer(int)'
+     if (httpServer.method() != HTTP_POST) { httpServer.send(405, "application/json", "{\"error\":\"Method Not Allowed\"}"); return; }
+                                                        ^~~~
+src/main.cpp:309:41: error: request for member 'arg' in 'MatrixDisplay::httpServer', which is of non-class type 'WebServer(int)'
+     if (deserializeJson(req, httpServer.arg("plain"))) { httpServer.send(400, "application/json", "{\"error\":\"Invalid JSON\"}"); return; }
+                                         ^~~
+src/main.cpp:309:69: error: request for member 'send' in 'MatrixDisplay::httpServer', which is of non-class type 'WebServer(int)'
+     if (deserializeJson(req, httpServer.arg("plain"))) { httpServer.send(400, "application/json", "{\"error\":\"Invalid JSON\"}"); return; }
+                                                                     ^~~~
+src/main.cpp:312:16: error: request for member 'send' in 'MatrixDisplay::httpServer', which is of non-class type 'WebServer(int)'
+     httpServer.send(200, "application/json", "{\"ok\":true}");
+                ^~~~
+src/main.cpp: In static member function 'static void MatrixDisplay::handleCalibrateFinish()':
+src/main.cpp:317:20: error: request for member 'method' in 'MatrixDisplay::httpServer', which is of non-class type 'WebServer(int)'
+     if (httpServer.method() != HTTP_POST) { httpServer.send(405, "application/json", "{\"error\":\"Method Not Allowed\"}"); return; }
+                    ^~~~~~
+src/main.cpp:317:56: error: request for member 'send' in 'MatrixDisplay::httpServer', which is of non-class type 'WebServer(int)'
+     if (httpServer.method() != HTTP_POST) { httpServer.send(405, "application/json", "{\"error\":\"Method Not Allowed\"}"); return; }
+                                                        ^~~~
+src/main.cpp:319:41: error: request for member 'arg' in 'MatrixDisplay::httpServer', which is of non-class type 'WebServer(int)'
+     if (deserializeJson(req, httpServer.arg("plain"))) { httpServer.send(400, "application/json", "{\"error\":\"Invalid JSON\"}"); return; }
+                                         ^~~
+src/main.cpp:319:69: error: request for member 'send' in 'MatrixDisplay::httpServer', which is of non-class type 'WebServer(int)'
+     if (deserializeJson(req, httpServer.arg("plain"))) { httpServer.send(400, "application/json", "{\"error\":\"Invalid JSON\"}"); return; }
+                                                                     ^~~~
+src/main.cpp:322:20: error: request for member 'send' in 'MatrixDisplay::httpServer', which is of non-class type 'WebServer(int)'
+         httpServer.send(400, "application/json", "{\"error\":\"Calibration invalid (start==end)\"}" );
+                    ^~~~
+src/main.cpp:325:16: error: request for member 'send' in 'MatrixDisplay::httpServer', which is of non-class type 'WebServer(int)'
+     httpServer.send(200, "application/json", "{\"ok\":true}");
+                ^~~~
+src/main.cpp: In static member function 'static void MatrixDisplay::handleCalibrateReset()':
+src/main.cpp:330:20: error: request for member 'method' in 'MatrixDisplay::httpServer', which is of non-class type 'WebServer(int)'
+     if (httpServer.method() != HTTP_POST) { httpServer.send(405, "application/json", "{\"error\":\"Method Not Allowed\"}"); return; }
+                    ^~~~~~
+src/main.cpp:330:56: error: request for member 'send' in 'MatrixDisplay::httpServer', which is of non-class type 'WebServer(int)'
+     if (httpServer.method() != HTTP_POST) { httpServer.send(405, "application/json", "{\"error\":\"Method Not Allowed\"}"); return; }
+                                                        ^~~~
+src/main.cpp:332:41: error: request for member 'arg' in 'MatrixDisplay::httpServer', which is of non-class type 'WebServer(int)'
+     if (deserializeJson(req, httpServer.arg("plain"))) { httpServer.send(400, "application/json", "{\"error\":\"Invalid JSON\"}"); return; }
+                                         ^~~
+src/main.cpp:332:69: error: request for member 'send' in 'MatrixDisplay::httpServer', which is of non-class type 'WebServer(int)'
+     if (deserializeJson(req, httpServer.arg("plain"))) { httpServer.send(400, "application/json", "{\"error\":\"Invalid JSON\"}"); return; }
+                                                                     ^~~~
+src/main.cpp:335:16: error: request for member 'send' in 'MatrixDisplay::httpServer', which is of non-class type 'WebServer(int)'
+     httpServer.send(200, "application/json", "{\"ok\":true}");
+                ^~~~
+src/main.cpp: In static member function 'static void MatrixDisplay::handleMotorConfigGet()':
+src/main.cpp:357:16: error: request for member 'send' in 'MatrixDisplay::httpServer', which is of non-class type 'WebServer(int)'
+     httpServer.send(200, "application/json", out);
+                ^~~~
+src/main.cpp: In static member function 'static void MatrixDisplay::handleMotorConfigPost()':
+src/main.cpp:362:20: error: request for member 'method' in 'MatrixDisplay::httpServer', which is of non-class type 'WebServer(int)'
+     if (httpServer.method() != HTTP_POST) { httpServer.send(405, "application/json", "{\"error\":\"Method Not Allowed\"}"); return; }
+                    ^~~~~~
+src/main.cpp:362:56: error: request for member 'send' in 'MatrixDisplay::httpServer', which is of non-class type 'WebServer(int)'
+     if (httpServer.method() != HTTP_POST) { httpServer.send(405, "application/json", "{\"error\":\"Method Not Allowed\"}"); return; }
+                                                        ^~~~
+src/main.cpp:364:41: error: request for member 'arg' in 'MatrixDisplay::httpServer', which is of non-class type 'WebServer(int)'
+     if (deserializeJson(req, httpServer.arg("plain"))) { httpServer.send(400, "application/json", "{\"error\":\"Invalid JSON\"}"); return; }
+                                         ^~~
+src/main.cpp:364:69: error: request for member 'send' in 'MatrixDisplay::httpServer', which is of non-class type 'WebServer(int)'
+     if (deserializeJson(req, httpServer.arg("plain"))) { httpServer.send(400, "application/json", "{\"error\":\"Invalid JSON\"}"); return; }
+                                                                     ^~~~
+src/main.cpp:373:16: error: request for member 'send' in 'MatrixDisplay::httpServer', which is of non-class type 'WebServer(int)'
+     httpServer.send(200, "application/json", "{\"ok\":true}");
+                ^~~~
+src/main.cpp: In static member function 'static void MatrixDisplay::handleHttpConfig()':
+src/main.cpp:378:20: error: request for member 'method' in 'MatrixDisplay::httpServer', which is of non-class type 'WebServer(int)'
+     if (httpServer.method() != HTTP_POST) {
+                    ^~~~~~
+src/main.cpp:379:20: error: request for member 'send' in 'MatrixDisplay::httpServer', which is of non-class type 'WebServer(int)'
+         httpServer.send(405, "application/json", "{\"error\":\"Method Not Allowed\"}");
+                    ^~~~
+src/main.cpp:383:41: error: request for member 'arg' in 'MatrixDisplay::httpServer', which is of non-class type 'WebServer(int)'
+     if (deserializeJson(req, httpServer.arg("plain"))) {
+                                         ^~~
+src/main.cpp:384:20: error: request for member 'send' in 'MatrixDisplay::httpServer', which is of non-class type 'WebServer(int)'
+         httpServer.send(400, "application/json", "{\"error\":\"Invalid JSON\"}");
+                    ^~~~
+src/main.cpp:399:20: error: request for member 'send' in 'MatrixDisplay::httpServer', which is of non-class type 'WebServer(int)'
+         httpServer.send(200, "application/json", "{\"ok\":true}");
+                    ^~~~
+src/main.cpp:402:20: error: request for member 'send' in 'MatrixDisplay::httpServer', which is of non-class type 'WebServer(int)'
+         httpServer.send(200, "application/json", "{\"ok\":true,\"changed\":false}");
+                    ^~~~
+src/main.cpp: In static member function 'static void MatrixDisplay::setupHttpRoutes()':
+src/main.cpp:407:16: error: request for member 'on' in 'MatrixDisplay::httpServer', which is of non-class type 'WebServer(int)'
+     httpServer.on("/api/motor/status",           HTTP_GET,  handleMotorStatus);
+                ^~
+src/main.cpp:408:16: error: request for member 'on' in 'MatrixDisplay::httpServer', which is of non-class type 'WebServer(int)'
+     httpServer.on("/api/motor/jog",              HTTP_POST, handleMotorJog);
+                ^~
+src/main.cpp:409:16: error: request for member 'on' in 'MatrixDisplay::httpServer', which is of non-class type 'WebServer(int)'
+     httpServer.on("/api/motor/moveto",           HTTP_POST, handleMotorMoveTo);
+                ^~
+src/main.cpp:410:16: error: request for member 'on' in 'MatrixDisplay::httpServer', which is of non-class type 'WebServer(int)'
+     httpServer.on("/api/motor/home",             HTTP_POST, handleMotorHome);
+                ^~
+src/main.cpp:411:16: error: request for member 'on' in 'MatrixDisplay::httpServer', which is of non-class type 'WebServer(int)'
+     httpServer.on("/api/motor/calibrate/start",     HTTP_POST, handleCalibrateStart);
+                ^~
+src/main.cpp:412:16: error: request for member 'on' in 'MatrixDisplay::httpServer', which is of non-class type 'WebServer(int)'
+     httpServer.on("/api/motor/calibrate/set_start", HTTP_POST, handleCalibrateSetStart);
+                ^~
+src/main.cpp:413:16: error: request for member 'on' in 'MatrixDisplay::httpServer', which is of non-class type 'WebServer(int)'
+     httpServer.on("/api/motor/calibrate/set_end",   HTTP_POST, handleCalibrateSetEnd);
+                ^~
+src/main.cpp:414:16: error: request for member 'on' in 'MatrixDisplay::httpServer', which is of non-class type 'WebServer(int)'
+     httpServer.on("/api/motor/calibrate/finish",    HTTP_POST, handleCalibrateFinish);
+                ^~
+src/main.cpp:415:16: error: request for member 'on' in 'MatrixDisplay::httpServer', which is of non-class type 'WebServer(int)'
+     httpServer.on("/api/motor/calibrate/reset",     HTTP_POST, handleCalibrateReset);
+                ^~
+src/main.cpp:416:16: error: request for member 'on' in 'MatrixDisplay::httpServer', which is of non-class type 'WebServer(int)'
+     httpServer.on("/api/motor/config",           HTTP_GET,  handleMotorConfigGet);
+                ^~
+src/main.cpp:417:16: error: request for member 'on' in 'MatrixDisplay::httpServer', which is of non-class type 'WebServer(int)'
+     httpServer.on("/api/motor/config",           HTTP_POST, handleMotorConfigPost);
+                ^~
+src/main.cpp:418:16: error: request for member 'on' in 'MatrixDisplay::httpServer', which is of non-class type 'WebServer(int)'
+     httpServer.on("/config",                     handleHttpConfig);
+                ^~
+src/main.cpp:419:16: error: request for member 'begin' in 'MatrixDisplay::httpServer', which is of non-class type 'WebServer(int)'
+     httpServer.begin();
+                ^~~~~
+src/main.cpp: In member function 'void MatrixDisplay::loop()':
+src/main.cpp:570:16: error: request for member 'handleClient' in 'MatrixDisplay::httpServer', which is of non-class type 'WebServer(int)'
+     httpServer.handleClient();
+                ^~~~~~~~~~~~
+src/main.cpp: At global scope:
+src/main.cpp:704:1: error: expected unqualified-id at end of input
+ }
+ ^
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:450:6: error: stray '\' in program
+     }\n\n    // Blink state\n    bool blinking = false;\n    if (now >= _ccBlinkTimer) {\n        unsigned long blinkAge = now - _ccBlinkTimer;\n        if (blinkAge < 120) {\n            blinking = true;\n        } else {\n            _ccBlinkTimer = now + 2500 + random(0, 3000);\n        }\n    }\n\n    // Ear flick state\n    uint8_t earFlickSide = 3;\n    if (now >= _ccEarTimer) {\n        unsigned long earAge = now - _ccEarTimer;\n        if (earAge < 220) {\n            earFlickSide = _ccEarSide;\n        } else {\n            _ccEarSide = (uint8_t)(random(0, 3));\n            _ccEarTimer = now + 3500 + random(0, 4000);\n        }\n    }\n\n    // Draw frame\n    _strip->ClearTo(RgbColor(200, 140, 55));\n    uint8_t mid = _cols / 2;\n\n    // Ears (rows 0-1)\n    RgbColor earColL = (earFlickSide != 1) ? RgbColor(235, 175, 70) : RgbColor(255, 210, 110);\n    RgbColor earColR = (earFlickSide != 0) ? RgbColor(235, 175, 70) : RgbColor(255, 210, 110);\n    for (uint8_t er = 0; er <= 1 && er < _rows; ++er) {\n        _setPixel(er, 0, earColL.R, earColL.G, earColL.B);\n        if (_cols > 1) _setPixel(er, 1, earColL.R, earColL.G, earColL.B);\n        if (_cols > 2) _setPixel(er, _cols - 2, earColR.R, earColR.G, earColR.B);\n        if (_cols > 3) _setPixel(er, _cols - 1, earColR.R, earColR.G, earColR.B);\n    }\n\n    // Eyes\n    uint8_t eyeRow = (_rows * 28) / 100;\n    uint8_t eyeColL = (_cols * 25) / 100;\n    uint8_t eyeColR = (_cols * 625) / 1000;\n    RgbColor eyeCol = blinking ? RgbColor(200, 140, 55) : RgbColor(28, 16, 6);\n    if (eyeRow < _rows && eyeColL < _cols) _setPixel(eyeRow, eyeColL, eyeCol.R, eyeCol.G, eyeCol.B);\n    if (eyeRow < _rows && eyeColR < _cols) _setPixel(eyeRow, eyeColR, eyeCol.R, eyeCol.G, eyeCol.B);\n\n    // Nostrils\n    uint8_t nosRow = (_rows * 50) / 100;\n    if (nosRow < _rows && eyeColL < _cols) _setPixel(nosRow, eyeColL, 55, 32, 12);\n    if (nosRow < _rows && eyeColR < _cols) _setPixel(nosRow, eyeColR, 55, 32, 12);\n\n    // Lips\n    uint8_t lipRow = (_rows * 625) / 1000;\n    if (lipRow < _rows) {\n        for (uint8_t lc = 1; lc < _cols - 1; ++lc) {\n            _setPixel(lipRow, lc, 155, 95, 30);\n        }\n    }\n\n    // Jaw\n    uint8_t jawRow = (_rows * 75) / 1000;\n    if (jawRow < _rows) {\n        uint8_t jawR = (mouthOpen < 0.05f)\n            ? 155\n            : (uint8_t)(155.0f + (18.0f - 155.0f) * mouthOpen);\n        uint8_t jawG = (mouthOpen < 0.05f)\n            ? 95\n            : (uint8_t)(95.0f + (10.0f - 95.0f) * mouthOpen);\n        uint8_t jawB = (mouthOpen < 0.05f)\n            ? 30\n            : (uint8_t)(30.0f + (4.0f - 30.0f) * mouthOpen);\n        for (uint8_t jc = 1; jc < _cols - 1; ++jc) {\n            _setPixel(jawRow, jc, jawR, jawG, jawB);\n        }\n    }\n\n    // Hay in mouth\n    if (mouthOpen > 0.3f && jawRow < _rows) {\n        float hayAlpha = (mouthOpen - 0.3f) / 0.4f;\n        if (hayAlpha > 1.0f) hayAlpha = 1.0f;\n        uint8_t hayR = (uint8_t)(_ccHayR * hayAlpha);\n        uint8_t hayG = (uint8_t)(_ccHayG * hayAlpha);\n        uint8_t hayB = (uint8_t)(_ccHayB * hayAlpha);\n\n        if (mid > 0) _setPixel(jawRow, mid - 1, hayR, hayG, hayB);\n        _setPixel(jawRow, mid, hayR, hayG, hayB);\n        if (mid + 1 < _cols) _setPixel(jawRow, mid + 1, hayR, hayG, hayB);\n\n        if (mouthOpen > 0.6f && lipRow < _rows) {\n            uint8_t haySoft_R = (uint8_t)(hayR * 0.5f);\n            uint8_t haySoft_G = (uint8_t)(hayG * 0.5f);\n            uint8_t haySoft_B = (uint8_t)(hayB * 0.5f);\n            if (mid > 0) _setPixel(lipRow, mid - 1, haySoft_R, haySoft_G, haySoft_B);\n            _setPixel(lipRow, mid, haySoft_R, haySoft_G, haySoft_B);\n        }\n    }\n\n    // Chin\n    if (_rows > 0) {\n        uint8_t chinRow = _rows - 1;\n        for (uint8_t cc = 0; cc < _cols; ++cc) {\n            _setPixel(chinRow, cc, 175, 120, 45);\n        }\n    }\n\n    _strip->Show();\n}\n\nvoid MatrixDisplay::_setPixel(uint8_t row, uint8_t col, uint8_t r, uint8_t g, uint8_t b) {
+      ^
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:450:8: error: stray '\' in program
+     }\n\n    // Blink state\n    bool blinking = false;\n    if (now >= _ccBlinkTimer) {\n        unsigned long blinkAge = now - _ccBlinkTimer;\n        if (blinkAge < 120) {\n            blinking = true;\n        } else {\n            _ccBlinkTimer = now + 2500 + random(0, 3000);\n        }\n    }\n\n    // Ear flick state\n    uint8_t earFlickSide = 3;\n    if (now >= _ccEarTimer) {\n        unsigned long earAge = now - _ccEarTimer;\n        if (earAge < 220) {\n            earFlickSide = _ccEarSide;\n        } else {\n            _ccEarSide = (uint8_t)(random(0, 3));\n            _ccEarTimer = now + 3500 + random(0, 4000);\n        }\n    }\n\n    // Draw frame\n    _strip->ClearTo(RgbColor(200, 140, 55));\n    uint8_t mid = _cols / 2;\n\n    // Ears (rows 0-1)\n    RgbColor earColL = (earFlickSide != 1) ? RgbColor(235, 175, 70) : RgbColor(255, 210, 110);\n    RgbColor earColR = (earFlickSide != 0) ? RgbColor(235, 175, 70) : RgbColor(255, 210, 110);\n    for (uint8_t er = 0; er <= 1 && er < _rows; ++er) {\n        _setPixel(er, 0, earColL.R, earColL.G, earColL.B);\n        if (_cols > 1) _setPixel(er, 1, earColL.R, earColL.G, earColL.B);\n        if (_cols > 2) _setPixel(er, _cols - 2, earColR.R, earColR.G, earColR.B);\n        if (_cols > 3) _setPixel(er, _cols - 1, earColR.R, earColR.G, earColR.B);\n    }\n\n    // Eyes\n    uint8_t eyeRow = (_rows * 28) / 100;\n    uint8_t eyeColL = (_cols * 25) / 100;\n    uint8_t eyeColR = (_cols * 625) / 1000;\n    RgbColor eyeCol = blinking ? RgbColor(200, 140, 55) : RgbColor(28, 16, 6);\n    if (eyeRow < _rows && eyeColL < _cols) _setPixel(eyeRow, eyeColL, eyeCol.R, eyeCol.G, eyeCol.B);\n    if (eyeRow < _rows && eyeColR < _cols) _setPixel(eyeRow, eyeColR, eyeCol.R, eyeCol.G, eyeCol.B);\n\n    // Nostrils\n    uint8_t nosRow = (_rows * 50) / 100;\n    if (nosRow < _rows && eyeColL < _cols) _setPixel(nosRow, eyeColL, 55, 32, 12);\n    if (nosRow < _rows && eyeColR < _cols) _setPixel(nosRow, eyeColR, 55, 32, 12);\n\n    // Lips\n    uint8_t lipRow = (_rows * 625) / 1000;\n    if (lipRow < _rows) {\n        for (uint8_t lc = 1; lc < _cols - 1; ++lc) {\n            _setPixel(lipRow, lc, 155, 95, 30);\n        }\n    }\n\n    // Jaw\n    uint8_t jawRow = (_rows * 75) / 1000;\n    if (jawRow < _rows) {\n        uint8_t jawR = (mouthOpen < 0.05f)\n            ? 155\n            : (uint8_t)(155.0f + (18.0f - 155.0f) * mouthOpen);\n        uint8_t jawG = (mouthOpen < 0.05f)\n            ? 95\n            : (uint8_t)(95.0f + (10.0f - 95.0f) * mouthOpen);\n        uint8_t jawB = (mouthOpen < 0.05f)\n            ? 30\n            : (uint8_t)(30.0f + (4.0f - 30.0f) * mouthOpen);\n        for (uint8_t jc = 1; jc < _cols - 1; ++jc) {\n            _setPixel(jawRow, jc, jawR, jawG, jawB);\n        }\n    }\n\n    // Hay in mouth\n    if (mouthOpen > 0.3f && jawRow < _rows) {\n        float hayAlpha = (mouthOpen - 0.3f) / 0.4f;\n        if (hayAlpha > 1.0f) hayAlpha = 1.0f;\n        uint8_t hayR = (uint8_t)(_ccHayR * hayAlpha);\n        uint8_t hayG = (uint8_t)(_ccHayG * hayAlpha);\n        uint8_t hayB = (uint8_t)(_ccHayB * hayAlpha);\n\n        if (mid > 0) _setPixel(jawRow, mid - 1, hayR, hayG, hayB);\n        _setPixel(jawRow, mid, hayR, hayG, hayB);\n        if (mid + 1 < _cols) _setPixel(jawRow, mid + 1, hayR, hayG, hayB);\n\n        if (mouthOpen > 0.6f && lipRow < _rows) {\n            uint8_t haySoft_R = (uint8_t)(hayR * 0.5f);\n            uint8_t haySoft_G = (uint8_t)(hayG * 0.5f);\n            uint8_t haySoft_B = (uint8_t)(hayB * 0.5f);\n            if (mid > 0) _setPixel(lipRow, mid - 1, haySoft_R, haySoft_G, haySoft_B);\n            _setPixel(lipRow, mid, haySoft_R, haySoft_G, haySoft_B);\n        }\n    }\n\n    // Chin\n    if (_rows > 0) {\n        uint8_t chinRow = _rows - 1;\n        for (uint8_t cc = 0; cc < _cols; ++cc) {\n            _setPixel(chinRow, cc, 175, 120, 45);\n        }\n    }\n\n    _strip->Show();\n}\n\nvoid MatrixDisplay::_setPixel(uint8_t row, uint8_t col, uint8_t r, uint8_t g, uint8_t b) {
+        ^
+In file included from C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.h:3,
+                 from C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:1:
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/LedPlatform.h:43:23: warning: 'template<class T_COLOR_FEATURE, class T_METHOD> class NeoPixelBrightnessBus' is deprecated: Use NeoPixelBusLg instead. [-Wdeprecated-declarations]
+     using LedStrip  = NeoPixelBrightnessBus<NeoGrbFeature, LedMethod>;
+                       ^~~~~~~~~~~~~~~~~~~~~
+In file included from C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/LedPlatform.h:7,
+                 from C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.h:3,
+                 from C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:1:
+.pio/libdeps/esp32dev/NeoPixelBus/src/NeoPixelBrightnessBus.h:32:106: note: declared here
+ template<typename T_COLOR_FEATURE, typename T_METHOD> class [[deprecated("Use NeoPixelBusLg instead.")]] NeoPixelBrightnessBus :
+                                                                                                          ^~~~~~~~~~~~~~~~~~~~~
+In file included from C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:2:
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/font5x3.h:11:22: error: in-class initialization of static data member 'const uint8_t MatrixDisplay::FONT5x3 [][5]' of incomplete type
+ static const uint8_t FONT5x3[][5] = {
+                      ^~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:7:1: error: extra qualification 'MatrixDisplay::' on member 'MatrixDisplay' [-fpermissive]
+ MatrixDisplay::~MatrixDisplay() {
+ ^~~~~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:7:1: error: 'MatrixDisplay::~MatrixDisplay()' cannot be overloaded with 'MatrixDisplay::~MatrixDisplay()'
+In file included from C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:1:
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.h:25:5: note: previous declaration 'MatrixDisplay::~MatrixDisplay()'
+     ~MatrixDisplay();
+     ^
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:11:6: error: extra qualification 'MatrixDisplay::' on member '_freeStrip' [-fpermissive]
+ void MatrixDisplay::_freeStrip() {
+      ^~~~~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:11:6: error: 'void MatrixDisplay::_freeStrip()' cannot be overloaded with 'void MatrixDisplay::_freeStrip()'
+In file included from C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:1:
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.h:144:10: note: previous declaration 'void MatrixDisplay::_freeStrip()'
+     void _freeStrip();
+          ^~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:16:6: error: extra qualification 'MatrixDisplay::' on member 'begin' [-fpermissive]
+ bool MatrixDisplay::begin(const LedConfig& cfg) {
+      ^~~~~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:16:6: error: 'bool MatrixDisplay::begin(const LedConfig&)' cannot be overloaded with 'bool MatrixDisplay::begin(const LedConfig&)'
+In file included from C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:1:
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.h:29:10: note: previous declaration 'bool MatrixDisplay::begin(const LedConfig&)'
+     bool begin(const LedConfig& cfg);
+          ^~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:43:6: error: extra qualification 'MatrixDisplay::' on member 'applyConfig' [-fpermissive]
+ void MatrixDisplay::applyConfig(const LedConfig& cfg) {
+      ^~~~~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:43:6: error: 'void MatrixDisplay::applyConfig(const LedConfig&)' cannot be overloaded with 'void MatrixDisplay::applyConfig(const LedConfig&)'
+In file included from C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:1:
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.h:99:10: note: previous declaration 'void MatrixDisplay::applyConfig(const LedConfig&)'
+     void applyConfig(const LedConfig& cfg);
+          ^~~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:56:6: error: extra qualification 'MatrixDisplay::' on member 'setDeviceColor' [-fpermissive]
+ void MatrixDisplay::setDeviceColor(uint8_t r, uint8_t g, uint8_t b) {
+      ^~~~~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:56:6: error: 'void MatrixDisplay::setDeviceColor(uint8_t, uint8_t, uint8_t)' cannot be overloaded with 'void MatrixDisplay::setDeviceColor(uint8_t, uint8_t, uint8_t)'
+In file included from C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:1:
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.h:102:10: note: previous declaration 'void MatrixDisplay::setDeviceColor(uint8_t, uint8_t, uint8_t)'
+     void setDeviceColor(uint8_t r, uint8_t g, uint8_t b);
+          ^~~~~~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:62:6: error: extra qualification 'MatrixDisplay::' on member 'loop' [-fpermissive]
+ void MatrixDisplay::loop() {
+      ^~~~~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:62:6: error: 'void MatrixDisplay::loop()' cannot be overloaded with 'void MatrixDisplay::loop()'
+In file included from C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:1:
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.h:32:10: note: previous declaration 'void MatrixDisplay::loop()'
+     void loop();
+          ^~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:145:6: error: extra qualification 'MatrixDisplay::' on member 'showNumber' [-fpermissive]
+ void MatrixDisplay::showNumber(uint8_t n, uint8_t r, uint8_t g, uint8_t b) {
+      ^~~~~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:145:6: error: 'void MatrixDisplay::showNumber(uint8_t, uint8_t, uint8_t, uint8_t)' cannot be overloaded with 'void MatrixDisplay::showNumber(uint8_t, uint8_t, uint8_t, uint8_t)'
+In file included from C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:1:
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.h:35:10: note: previous declaration 'void MatrixDisplay::showNumber(uint8_t, uint8_t, uint8_t, uint8_t)'
+     void showNumber(uint8_t n, uint8_t r, uint8_t g, uint8_t b);
+          ^~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:164:6: error: extra qualification 'MatrixDisplay::' on member 'showCountdown' [-fpermissive]
+ void MatrixDisplay::showCountdown(int n) {
+      ^~~~~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:164:6: error: 'void MatrixDisplay::showCountdown(int)' cannot be overloaded with 'void MatrixDisplay::showCountdown(int)'
+In file included from C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:1:
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.h:44:10: note: previous declaration 'void MatrixDisplay::showCountdown(int)'
+     void showCountdown(int n);
+          ^~~~~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:173:6: error: extra qualification 'MatrixDisplay::' on member 'fillColor' [-fpermissive]
+ void MatrixDisplay::fillColor(uint8_t r, uint8_t g, uint8_t b) {
+      ^~~~~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:173:6: error: 'void MatrixDisplay::fillColor(uint8_t, uint8_t, uint8_t)' cannot be overloaded with 'void MatrixDisplay::fillColor(uint8_t, uint8_t, uint8_t)'
+In file included from C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:1:
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.h:38:10: note: previous declaration 'void MatrixDisplay::fillColor(uint8_t, uint8_t, uint8_t)'
+     void fillColor(uint8_t r, uint8_t g, uint8_t b);
+          ^~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:182:6: error: extra qualification 'MatrixDisplay::' on member 'clear' [-fpermissive]
+ void MatrixDisplay::clear() {
+      ^~~~~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:182:6: error: 'void MatrixDisplay::clear()' cannot be overloaded with 'void MatrixDisplay::clear()'
+In file included from C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:1:
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.h:41:10: note: previous declaration 'void MatrixDisplay::clear()'
+     void clear();
+          ^~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:189:6: error: extra qualification 'MatrixDisplay::' on member 'showText' [-fpermissive]
+ void MatrixDisplay::showText(
+      ^~~~~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:189:6: error: 'void MatrixDisplay::showText(const char*, uint8_t, uint8_t, uint8_t, uint16_t)' cannot be overloaded with 'void MatrixDisplay::showText(const char*, uint8_t, uint8_t, uint8_t, uint16_t)'
+In file included from C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:1:
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.h:48:10: note: previous declaration 'void MatrixDisplay::showText(const char*, uint8_t, uint8_t, uint8_t, uint16_t)'
+     void showText(const char* text, uint8_t r, uint8_t g, uint8_t b, uint16_t speedMs = 80);
+          ^~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:206:6: error: extra qualification 'MatrixDisplay::' on member 'showWinner' [-fpermissive]
+ void MatrixDisplay::showWinner(const char* name) {
+      ^~~~~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:206:6: error: 'void MatrixDisplay::showWinner(const char*)' cannot be overloaded with 'void MatrixDisplay::showWinner(const char*)'
+In file included from C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:1:
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.h:51:10: note: previous declaration 'void MatrixDisplay::showWinner(const char*)'
+     void showWinner(const char* name);
+          ^~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:211:6: error: extra qualification 'MatrixDisplay::' on member 'showIdle' [-fpermissive]
+ void MatrixDisplay::showIdle() {
+      ^~~~~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:211:6: error: 'void MatrixDisplay::showIdle()' cannot be overloaded with 'void MatrixDisplay::showIdle()'
+In file included from C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:1:
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.h:54:10: note: previous declaration 'void MatrixDisplay::showIdle()'
+     void showIdle();
+          ^~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:215:6: error: extra qualification 'MatrixDisplay::' on member 'showEffect' [-fpermissive]
+ void MatrixDisplay::showEffect(
+      ^~~~~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:215:6: error: 'void MatrixDisplay::showEffect(const char*, uint8_t, uint8_t, uint8_t, uint16_t)' cannot be overloaded with 'void MatrixDisplay::showEffect(const char*, uint8_t, uint8_t, uint8_t, uint16_t)'
+In file included from C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:1:
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.h:58:10: note: previous declaration 'void MatrixDisplay::showEffect(const char*, uint8_t, uint8_t, uint8_t, uint16_t)'
+     void showEffect(const char* effectName, uint8_t r, uint8_t g, uint8_t b, uint16_t speedMs);
+          ^~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:251:6: error: extra qualification 'MatrixDisplay::' on member 'showBallRoll' [-fpermissive]
+ void MatrixDisplay::showBallRoll(
+      ^~~~~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:251:6: error: 'void MatrixDisplay::showBallRoll(uint8_t, uint8_t, uint8_t, uint16_t)' cannot be overloaded with 'void MatrixDisplay::showBallRoll(uint8_t, uint8_t, uint8_t, uint16_t)'
+In file included from C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:1:
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.h:63:10: note: previous declaration 'void MatrixDisplay::showBallRoll(uint8_t, uint8_t, uint8_t, uint16_t)'
+     void showBallRoll(uint8_t r, uint8_t g, uint8_t b, uint16_t speedMs = 2000);
+          ^~~~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:284:6: error: extra qualification 'MatrixDisplay::' on member '_stepBallRoll' [-fpermissive]
+ void MatrixDisplay::_stepBallRoll() {
+      ^~~~~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:284:6: error: 'void MatrixDisplay::_stepBallRoll()' cannot be overloaded with 'void MatrixDisplay::_stepBallRoll()'
+In file included from C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:1:
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.h:152:10: note: previous declaration 'void MatrixDisplay::_stepBallRoll()'
+     void _stepBallRoll();
+          ^~~~~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:407:6: error: extra qualification 'MatrixDisplay::' on member 'showCamelChew' [-fpermissive]
+ void MatrixDisplay::showCamelChew(
+      ^~~~~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:407:6: error: 'void MatrixDisplay::showCamelChew(uint8_t, uint8_t, uint8_t, uint16_t)' cannot be overloaded with 'void MatrixDisplay::showCamelChew(uint8_t, uint8_t, uint8_t, uint16_t)'
+In file included from C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:1:
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.h:68:10: note: previous declaration 'void MatrixDisplay::showCamelChew(uint8_t, uint8_t, uint8_t, uint16_t)'
+     void showCamelChew(uint8_t r, uint8_t g, uint8_t b, uint16_t speedMs = 2400);
+          ^~~~~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:427:6: error: extra qualification 'MatrixDisplay::' on member '_stepCamelChew' [-fpermissive]
+ void MatrixDisplay::_stepCamelChew() {
+      ^~~~~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:427:6: error: 'void MatrixDisplay::_stepCamelChew()' cannot be overloaded with 'void MatrixDisplay::_stepCamelChew()'
+In file included from C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:1:
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.h:153:10: note: previous declaration 'void MatrixDisplay::_stepCamelChew()'
+     void _stepCamelChew();
+          ^~~~~~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:464:6: error: extra qualification 'MatrixDisplay::' on member '_show' [-fpermissive]
+ void MatrixDisplay::_show() {
+      ^~~~~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:464:6: error: 'void MatrixDisplay::_show()' cannot be overloaded with 'void MatrixDisplay::_show()'
+In file included from C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:1:
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.h:146:10: note: previous declaration 'void MatrixDisplay::_show()'
+     void _show();
+          ^~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:468:6: error: extra qualification 'MatrixDisplay::' on member '_stepScroll' [-fpermissive]
+ void MatrixDisplay::_stepScroll() {
+      ^~~~~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:468:6: error: 'void MatrixDisplay::_stepScroll()' cannot be overloaded with 'void MatrixDisplay::_stepScroll()'
+In file included from C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:1:
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.h:147:10: note: previous declaration 'void MatrixDisplay::_stepScroll()'
+     void _stepScroll();
+          ^~~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:510:6: error: extra qualification 'MatrixDisplay::' on member '_stepBlink' [-fpermissive]
+ void MatrixDisplay::_stepBlink() {
+      ^~~~~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:510:6: error: 'void MatrixDisplay::_stepBlink()' cannot be overloaded with 'void MatrixDisplay::_stepBlink()'
+In file included from C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:1:
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.h:148:10: note: previous declaration 'void MatrixDisplay::_stepBlink()'
+     void _stepBlink();
+          ^~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:526:6: error: extra qualification 'MatrixDisplay::' on member '_stepPulse' [-fpermissive]
+ void MatrixDisplay::_stepPulse() {
+      ^~~~~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:526:6: error: 'void MatrixDisplay::_stepPulse()' cannot be overloaded with 'void MatrixDisplay::_stepPulse()'
+In file included from C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:1:
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.h:149:10: note: previous declaration 'void MatrixDisplay::_stepPulse()'
+     void _stepPulse();
+          ^~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:547:6: error: extra qualification 'MatrixDisplay::' on member '_stepChase' [-fpermissive]
+ void MatrixDisplay::_stepChase() {
+      ^~~~~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:547:6: error: 'void MatrixDisplay::_stepChase()' cannot be overloaded with 'void MatrixDisplay::_stepChase()'
+In file included from C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:1:
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.h:150:10: note: previous declaration 'void MatrixDisplay::_stepChase()'
+     void _stepChase();
+          ^~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:560:6: error: extra qualification 'MatrixDisplay::' on member '_stepSparkle' [-fpermissive]
+ void MatrixDisplay::_stepSparkle() {
+      ^~~~~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:560:6: error: 'void MatrixDisplay::_stepSparkle()' cannot be overloaded with 'void MatrixDisplay::_stepSparkle()'
+In file included from C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:1:
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.h:151:10: note: previous declaration 'void MatrixDisplay::_stepSparkle()'
+     void _stepSparkle();
+          ^~~~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:577:6: error: extra qualification 'MatrixDisplay::' on member 'showCamelSpeedup' [-fpermissive]
+ void MatrixDisplay::showCamelSpeedup(uint8_t r, uint8_t g, uint8_t b, uint16_t speedMs) {
+      ^~~~~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:577:6: error: 'void MatrixDisplay::showCamelSpeedup(uint8_t, uint8_t, uint8_t, uint16_t)' cannot be overloaded with 'void MatrixDisplay::showCamelSpeedup(uint8_t, uint8_t, uint8_t, uint16_t)'
+In file included from C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:1:
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.h:72:10: note: previous declaration 'void MatrixDisplay::showCamelSpeedup(uint8_t, uint8_t, uint8_t, uint16_t)'
+     void showCamelSpeedup(uint8_t r, uint8_t g, uint8_t b, uint16_t speedMs = 1500);
+          ^~~~~~~~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:589:6: error: extra qualification 'MatrixDisplay::' on member '_stepCamelSpeedup' [-fpermissive]
+ void MatrixDisplay::_stepCamelSpeedup() {
+      ^~~~~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:589:6: error: 'void MatrixDisplay::_stepCamelSpeedup()' cannot be overloaded with 'void MatrixDisplay::_stepCamelSpeedup()'
+In file included from C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:1:
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.h:154:10: note: previous declaration 'void MatrixDisplay::_stepCamelSpeedup()'
+     void _stepCamelSpeedup();
+          ^~~~~~~~~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:637:6: error: extra qualification 'MatrixDisplay::' on member 'showScoreHigh' [-fpermissive]
+ void MatrixDisplay::showScoreHigh(uint8_t r, uint8_t g, uint8_t b, uint16_t speedMs) {
+      ^~~~~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:637:6: error: 'void MatrixDisplay::showScoreHigh(uint8_t, uint8_t, uint8_t, uint16_t)' cannot be overloaded with 'void MatrixDisplay::showScoreHigh(uint8_t, uint8_t, uint8_t, uint16_t)'
+In file included from C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:1:
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.h:76:10: note: previous declaration 'void MatrixDisplay::showScoreHigh(uint8_t, uint8_t, uint8_t, uint16_t)'
+     void showScoreHigh(uint8_t r, uint8_t g, uint8_t b, uint16_t speedMs = 1200);
+          ^~~~~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:648:6: error: extra qualification 'MatrixDisplay::' on member '_stepScoreHigh' [-fpermissive]
+ void MatrixDisplay::_stepScoreHigh() {
+      ^~~~~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:648:6: error: 'void MatrixDisplay::_stepScoreHigh()' cannot be overloaded with 'void MatrixDisplay::_stepScoreHigh()'
+In file included from C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:1:
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.h:155:10: note: previous declaration 'void MatrixDisplay::_stepScoreHigh()'
+     void _stepScoreHigh();
+          ^~~~~~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:693:6: error: extra qualification 'MatrixDisplay::' on member 'showToLead' [-fpermissive]
+ void MatrixDisplay::showToLead(uint8_t r, uint8_t g, uint8_t b, uint16_t speedMs) {
+      ^~~~~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:693:6: error: 'void MatrixDisplay::showToLead(uint8_t, uint8_t, uint8_t, uint16_t)' cannot be overloaded with 'void MatrixDisplay::showToLead(uint8_t, uint8_t, uint8_t, uint16_t)'
+In file included from C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:1:
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.h:80:10: note: previous declaration 'void MatrixDisplay::showToLead(uint8_t, uint8_t, uint8_t, uint16_t)'
+     void showToLead(uint8_t r, uint8_t g, uint8_t b, uint16_t speedMs = 1000);
+          ^~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:704:6: error: extra qualification 'MatrixDisplay::' on member '_stepToLead' [-fpermissive]
+ void MatrixDisplay::_stepToLead() {
+      ^~~~~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:704:6: error: 'void MatrixDisplay::_stepToLead()' cannot be overloaded with 'void MatrixDisplay::_stepToLead()'
+In file included from C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:1:
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.h:156:10: note: previous declaration 'void MatrixDisplay::_stepToLead()'
+     void _stepToLead();
+          ^~~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:754:6: error: extra qualification 'MatrixDisplay::' on member 'showFarBehind' [-fpermissive]
+ void MatrixDisplay::showFarBehind(uint8_t r, uint8_t g, uint8_t b, uint16_t speedMs) {
+      ^~~~~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:754:6: error: 'void MatrixDisplay::showFarBehind(uint8_t, uint8_t, uint8_t, uint16_t)' cannot be overloaded with 'void MatrixDisplay::showFarBehind(uint8_t, uint8_t, uint8_t, uint16_t)'
+In file included from C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:1:
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.h:84:10: note: previous declaration 'void MatrixDisplay::showFarBehind(uint8_t, uint8_t, uint8_t, uint16_t)'
+     void showFarBehind(uint8_t r, uint8_t g, uint8_t b, uint16_t speedMs = 1800);
+          ^~~~~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:765:6: error: extra qualification 'MatrixDisplay::' on member '_stepFarBehind' [-fpermissive]
+ void MatrixDisplay::_stepFarBehind() {
+      ^~~~~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:765:6: error: 'void MatrixDisplay::_stepFarBehind()' cannot be overloaded with 'void MatrixDisplay::_stepFarBehind()'
+In file included from C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:1:
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.h:157:10: note: previous declaration 'void MatrixDisplay::_stepFarBehind()'
+     void _stepFarBehind();
+          ^~~~~~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:810:6: error: extra qualification 'MatrixDisplay::' on member 'showGameStart' [-fpermissive]
+ void MatrixDisplay::showGameStart() {
+      ^~~~~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:810:6: error: 'void MatrixDisplay::showGameStart()' cannot be overloaded with 'void MatrixDisplay::showGameStart()'
+In file included from C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:1:
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.h:88:10: note: previous declaration 'void MatrixDisplay::showGameStart()'
+     void showGameStart();
+          ^~~~~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:820:6: error: extra qualification 'MatrixDisplay::' on member '_stepGameStart' [-fpermissive]
+ void MatrixDisplay::_stepGameStart() {
+      ^~~~~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:820:6: error: 'void MatrixDisplay::_stepGameStart()' cannot be overloaded with 'void MatrixDisplay::_stepGameStart()'
+In file included from C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:1:
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.h:158:10: note: previous declaration 'void MatrixDisplay::_stepGameStart()'
+     void _stepGameStart();
+          ^~~~~~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:877:6: error: extra qualification 'MatrixDisplay::' on member 'showGameEnd' [-fpermissive]
+ void MatrixDisplay::showGameEnd() {
+      ^~~~~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:877:6: error: 'void MatrixDisplay::showGameEnd()' cannot be overloaded with 'void MatrixDisplay::showGameEnd()'
+In file included from C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:1:
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.h:92:10: note: previous declaration 'void MatrixDisplay::showGameEnd()'
+     void showGameEnd();
+          ^~~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:886:6: error: extra qualification 'MatrixDisplay::' on member '_stepGameEnd' [-fpermissive]
+ void MatrixDisplay::_stepGameEnd() {
+      ^~~~~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:886:6: error: 'void MatrixDisplay::_stepGameEnd()' cannot be overloaded with 'void MatrixDisplay::_stepGameEnd()'
+In file included from C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:1:
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.h:159:10: note: previous declaration 'void MatrixDisplay::_stepGameEnd()'
+     void _stepGameEnd();
+          ^~~~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:926:6: error: extra qualification 'MatrixDisplay::' on member 'showSomeoneWon' [-fpermissive]
+ void MatrixDisplay::showSomeoneWon(uint8_t r, uint8_t g, uint8_t b) {
+      ^~~~~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:926:6: error: 'void MatrixDisplay::showSomeoneWon(uint8_t, uint8_t, uint8_t)' cannot be overloaded with 'void MatrixDisplay::showSomeoneWon(uint8_t, uint8_t, uint8_t)'
+In file included from C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:1:
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.h:96:10: note: previous declaration 'void MatrixDisplay::showSomeoneWon(uint8_t, uint8_t, uint8_t)'
+     void showSomeoneWon(uint8_t r, uint8_t g, uint8_t b);
+          ^~~~~~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:936:6: error: extra qualification 'MatrixDisplay::' on member '_stepSomeoneWon' [-fpermissive]
+ void MatrixDisplay::_stepSomeoneWon() {
+      ^~~~~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:936:6: error: 'void MatrixDisplay::_stepSomeoneWon()' cannot be overloaded with 'void MatrixDisplay::_stepSomeoneWon()'
+In file included from C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:1:
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.h:160:10: note: previous declaration 'void MatrixDisplay::_stepSomeoneWon()'
+     void _stepSomeoneWon();
+          ^~~~~~~~~~~~~~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:986:1: error: expected '}' at end of input
+ }
+ ^
+In file included from C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:1:
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.h:22:21: note: to match this '{'
+ class MatrixDisplay {
+                     ^
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp: In member function 'void MatrixDisplay::_stepCamelChew()':
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:450:7: error: 'n' was not declared in this scope
+     }\n\n    // Blink state\n    bool blinking = false;\n    if (now >= _ccBlinkTimer) {\n        unsigned long blinkAge = now - _ccBlinkTimer;\n        if (blinkAge < 120) {\n            blinking = true;\n        } else {\n            _ccBlinkTimer = now + 2500 + random(0, 3000);\n        }\n    }\n\n    // Ear flick state\n    uint8_t earFlickSide = 3;\n    if (now >= _ccEarTimer) {\n        unsigned long earAge = now - _ccEarTimer;\n        if (earAge < 220) {\n            earFlickSide = _ccEarSide;\n        } else {\n            _ccEarSide = (uint8_t)(random(0, 3));\n            _ccEarTimer = now + 3500 + random(0, 4000);\n        }\n    }\n\n    // Draw frame\n    _strip->ClearTo(RgbColor(200, 140, 55));\n    uint8_t mid = _cols / 2;\n\n    // Ears (rows 0-1)\n    RgbColor earColL = (earFlickSide != 1) ? RgbColor(235, 175, 70) : RgbColor(255, 210, 110);\n    RgbColor earColR = (earFlickSide != 0) ? RgbColor(235, 175, 70) : RgbColor(255, 210, 110);\n    for (uint8_t er = 0; er <= 1 && er < _rows; ++er) {\n        _setPixel(er, 0, earColL.R, earColL.G, earColL.B);\n        if (_cols > 1) _setPixel(er, 1, earColL.R, earColL.G, earColL.B);\n        if (_cols > 2) _setPixel(er, _cols - 2, earColR.R, earColR.G, earColR.B);\n        if (_cols > 3) _setPixel(er, _cols - 1, earColR.R, earColR.G, earColR.B);\n    }\n\n    // Eyes\n    uint8_t eyeRow = (_rows * 28) / 100;\n    uint8_t eyeColL = (_cols * 25) / 100;\n    uint8_t eyeColR = (_cols * 625) / 1000;\n    RgbColor eyeCol = blinking ? RgbColor(200, 140, 55) : RgbColor(28, 16, 6);\n    if (eyeRow < _rows && eyeColL < _cols) _setPixel(eyeRow, eyeColL, eyeCol.R, eyeCol.G, eyeCol.B);\n    if (eyeRow < _rows && eyeColR < _cols) _setPixel(eyeRow, eyeColR, eyeCol.R, eyeCol.G, eyeCol.B);\n\n    // Nostrils\n    uint8_t nosRow = (_rows * 50) / 100;\n    if (nosRow < _rows && eyeColL < _cols) _setPixel(nosRow, eyeColL, 55, 32, 12);\n    if (nosRow < _rows && eyeColR < _cols) _setPixel(nosRow, eyeColR, 55, 32, 12);\n\n    // Lips\n    uint8_t lipRow = (_rows * 625) / 1000;\n    if (lipRow < _rows) {\n        for (uint8_t lc = 1; lc < _cols - 1; ++lc) {\n            _setPixel(lipRow, lc, 155, 95, 30);\n        }\n    }\n\n    // Jaw\n    uint8_t jawRow = (_rows * 75) / 1000;\n    if (jawRow < _rows) {\n        uint8_t jawR = (mouthOpen < 0.05f)\n            ? 155\n            : (uint8_t)(155.0f + (18.0f - 155.0f) * mouthOpen);\n        uint8_t jawG = (mouthOpen < 0.05f)\n            ? 95\n            : (uint8_t)(95.0f + (10.0f - 95.0f) * mouthOpen);\n        uint8_t jawB = (mouthOpen < 0.05f)\n            ? 30\n            : (uint8_t)(30.0f + (4.0f - 30.0f) * mouthOpen);\n        for (uint8_t jc = 1; jc < _cols - 1; ++jc) {\n            _setPixel(jawRow, jc, jawR, jawG, jawB);\n        }\n    }\n\n    // Hay in mouth\n    if (mouthOpen > 0.3f && jawRow < _rows) {\n        float hayAlpha = (mouthOpen - 0.3f) / 0.4f;\n        if (hayAlpha > 1.0f) hayAlpha = 1.0f;\n        uint8_t hayR = (uint8_t)(_ccHayR * hayAlpha);\n        uint8_t hayG = (uint8_t)(_ccHayG * hayAlpha);\n        uint8_t hayB = (uint8_t)(_ccHayB * hayAlpha);\n\n        if (mid > 0) _setPixel(jawRow, mid - 1, hayR, hayG, hayB);\n        _setPixel(jawRow, mid, hayR, hayG, hayB);\n        if (mid + 1 < _cols) _setPixel(jawRow, mid + 1, hayR, hayG, hayB);\n\n        if (mouthOpen > 0.6f && lipRow < _rows) {\n            uint8_t haySoft_R = (uint8_t)(hayR * 0.5f);\n            uint8_t haySoft_G = (uint8_t)(hayG * 0.5f);\n            uint8_t haySoft_B = (uint8_t)(hayB * 0.5f);\n            if (mid > 0) _setPixel(lipRow, mid - 1, haySoft_R, haySoft_G, haySoft_B);\n            _setPixel(lipRow, mid, haySoft_R, haySoft_G, haySoft_B);\n        }\n    }\n\n    // Chin\n    if (_rows > 0) {\n        uint8_t chinRow = _rows - 1;\n        for (uint8_t cc = 0; cc < _cols; ++cc) {\n            _setPixel(chinRow, cc, 175, 120, 45);\n        }\n    }\n\n    _strip->Show();\n}\n\nvoid MatrixDisplay::_setPixel(uint8_t row, uint8_t col, uint8_t r, uint8_t g, uint8_t b) {
+       ^
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:450:7: note: suggested alternative: 'yn'
+     }\n\n    // Blink state\n    bool blinking = false;\n    if (now >= _ccBlinkTimer) {\n        unsigned long blinkAge = now - _ccBlinkTimer;\n        if (blinkAge < 120) {\n            blinking = true;\n        } else {\n            _ccBlinkTimer = now + 2500 + random(0, 3000);\n        }\n    }\n\n    // Ear flick state\n    uint8_t earFlickSide = 3;\n    if (now >= _ccEarTimer) {\n        unsigned long earAge = now - _ccEarTimer;\n        if (earAge < 220) {\n            earFlickSide = _ccEarSide;\n        } else {\n            _ccEarSide = (uint8_t)(random(0, 3));\n            _ccEarTimer = now + 3500 + random(0, 4000);\n        }\n    }\n\n    // Draw frame\n    _strip->ClearTo(RgbColor(200, 140, 55));\n    uint8_t mid = _cols / 2;\n\n    // Ears (rows 0-1)\n    RgbColor earColL = (earFlickSide != 1) ? RgbColor(235, 175, 70) : RgbColor(255, 210, 110);\n    RgbColor earColR = (earFlickSide != 0) ? RgbColor(235, 175, 70) : RgbColor(255, 210, 110);\n    for (uint8_t er = 0; er <= 1 && er < _rows; ++er) {\n        _setPixel(er, 0, earColL.R, earColL.G, earColL.B);\n        if (_cols > 1) _setPixel(er, 1, earColL.R, earColL.G, earColL.B);\n        if (_cols > 2) _setPixel(er, _cols - 2, earColR.R, earColR.G, earColR.B);\n        if (_cols > 3) _setPixel(er, _cols - 1, earColR.R, earColR.G, earColR.B);\n    }\n\n    // Eyes\n    uint8_t eyeRow = (_rows * 28) / 100;\n    uint8_t eyeColL = (_cols * 25) / 100;\n    uint8_t eyeColR = (_cols * 625) / 1000;\n    RgbColor eyeCol = blinking ? RgbColor(200, 140, 55) : RgbColor(28, 16, 6);\n    if (eyeRow < _rows && eyeColL < _cols) _setPixel(eyeRow, eyeColL, eyeCol.R, eyeCol.G, eyeCol.B);\n    if (eyeRow < _rows && eyeColR < _cols) _setPixel(eyeRow, eyeColR, eyeCol.R, eyeCol.G, eyeCol.B);\n\n    // Nostrils\n    uint8_t nosRow = (_rows * 50) / 100;\n    if (nosRow < _rows && eyeColL < _cols) _setPixel(nosRow, eyeColL, 55, 32, 12);\n    if (nosRow < _rows && eyeColR < _cols) _setPixel(nosRow, eyeColR, 55, 32, 12);\n\n    // Lips\n    uint8_t lipRow = (_rows * 625) / 1000;\n    if (lipRow < _rows) {\n        for (uint8_t lc = 1; lc < _cols - 1; ++lc) {\n            _setPixel(lipRow, lc, 155, 95, 30);\n        }\n    }\n\n    // Jaw\n    uint8_t jawRow = (_rows * 75) / 1000;\n    if (jawRow < _rows) {\n        uint8_t jawR = (mouthOpen < 0.05f)\n            ? 155\n            : (uint8_t)(155.0f + (18.0f - 155.0f) * mouthOpen);\n        uint8_t jawG = (mouthOpen < 0.05f)\n            ? 95\n            : (uint8_t)(95.0f + (10.0f - 95.0f) * mouthOpen);\n        uint8_t jawB = (mouthOpen < 0.05f)\n            ? 30\n            : (uint8_t)(30.0f + (4.0f - 30.0f) * mouthOpen);\n        for (uint8_t jc = 1; jc < _cols - 1; ++jc) {\n            _setPixel(jawRow, jc, jawR, jawG, jawB);\n        }\n    }\n\n    // Hay in mouth\n    if (mouthOpen > 0.3f && jawRow < _rows) {\n        float hayAlpha = (mouthOpen - 0.3f) / 0.4f;\n        if (hayAlpha > 1.0f) hayAlpha = 1.0f;\n        uint8_t hayR = (uint8_t)(_ccHayR * hayAlpha);\n        uint8_t hayG = (uint8_t)(_ccHayG * hayAlpha);\n        uint8_t hayB = (uint8_t)(_ccHayB * hayAlpha);\n\n        if (mid > 0) _setPixel(jawRow, mid - 1, hayR, hayG, hayB);\n        _setPixel(jawRow, mid, hayR, hayG, hayB);\n        if (mid + 1 < _cols) _setPixel(jawRow, mid + 1, hayR, hayG, hayB);\n\n        if (mouthOpen > 0.6f && lipRow < _rows) {\n            uint8_t haySoft_R = (uint8_t)(hayR * 0.5f);\n            uint8_t haySoft_G = (uint8_t)(hayG * 0.5f);\n            uint8_t haySoft_B = (uint8_t)(hayB * 0.5f);\n            if (mid > 0) _setPixel(lipRow, mid - 1, haySoft_R, haySoft_G, haySoft_B);\n            _setPixel(lipRow, mid, haySoft_R, haySoft_G, haySoft_B);\n        }\n    }\n\n    // Chin\n    if (_rows > 0) {\n        uint8_t chinRow = _rows - 1;\n        for (uint8_t cc = 0; cc < _cols; ++cc) {\n            _setPixel(chinRow, cc, 175, 120, 45);\n        }\n    }\n\n    _strip->Show();\n}\n\nvoid MatrixDisplay::_setPixel(uint8_t row, uint8_t col, uint8_t r, uint8_t g, uint8_t b) {
+       ^
+       yn
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:454:20: error: 'row' was not declared in this scope
+     if (zigzag && (row % 2 == 1)) {
+                    ^~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:454:20: note: suggested alternative: 'pow'
+     if (zigzag && (row % 2 == 1)) {
+                    ^~~
+                    pow
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:455:52: error: 'col' was not declared in this scope
+         idx = (uint16_t)row * _cols + (_cols - 1 - col);
+                                                    ^~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:455:52: note: suggested alternative: 'cosl'
+         idx = (uint16_t)row * _cols + (_cols - 1 - col);
+                                                    ^~~
+                                                    cosl
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:457:39: error: 'col' was not declared in this scope
+         idx = (uint16_t)row * _cols + col;
+                                       ^~~
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:457:39: note: suggested alternative: 'cosl'
+         idx = (uint16_t)row * _cols + col;
+                                       ^~~
+                                       cosl
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:460:45: error: 'r' was not declared in this scope
+         _strip->SetPixelColor(idx, RgbColor(r, g, b));
+                                             ^
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:460:48: error: 'g' was not declared in this scope
+         _strip->SetPixelColor(idx, RgbColor(r, g, b));
+                                                ^
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:460:51: error: 'b' was not declared in this scope
+         _strip->SetPixelColor(idx, RgbColor(r, g, b));
+                                                   ^
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp: At global scope:
+C:/Users/Tamay/vscode/esp-rollaball-derby/clients/shared/leds/MatrixDisplay.cpp:986:1: error: expected unqualified-id at end of input
+ }
+ ^
+Compiling .pio\build\esp32dev\libe6f\ArduinoWebsockets\websockets_server.cpp.o
+*** [.pio\build\esp32dev\src\main.cpp.o] Error 1
+*** [.pio\build\esp32dev\libe29\leds\MatrixDisplay.cpp.o] Error 1
+========================= [FAILED] Took 17.39 seconds =========================
+
+Environment    Status    Duration
+-------------  --------  ------------
+esp32dev       FAILED    00:00:17.386
+==================== 1 failed, 0 succeeded in 00:00:17.386 ====================

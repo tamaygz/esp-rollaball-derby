@@ -7,7 +7,7 @@ window.Derby = window.Derby || {};
  * Derby.DebugPlayer — debug player page controller.
  *
  * Manages a single "web" player connection, exposes score controls (+0/+1/+2/+3),
- * a rename form, and an event log. Intended for use on debug-player.html only.
+ * a rename form, and an event log. Used by the `/admin/debug-player` page.
  */
 (function () {
   var LS_KEY_NAME = 'derby-player-name';

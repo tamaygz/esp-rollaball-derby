@@ -31,17 +31,29 @@
           
           <div class="form-group">
             <label for="led-count">LED Count</label>
-            <input type="number" id="led-count" min="1" max="300" value="50">
-            <span class="hint">ESP8266: max 300, ESP32: max 1000</span>
+            <input type="number" id="led-count" min="1" max="1000" value="50">
+            <span id="led-count-hint" class="hint">max 1000 LEDs</span>
           </div>
 
           <div class="form-group">
             <label for="led-pin">GPIO Pin</label>
             <select id="led-pin">
-              <option value="2" selected>D4 / GPIO2 (UART1)</option>
-              <option value="3">RX / GPIO3 (DMA)</option>
+              <optgroup id="led-pin-esp8266" label="ESP8266 pins">
+                <option value="2">D4 / GPIO2 (UART1 — leaves Serial free)</option>
+                <option value="3">RX / GPIO3 (DMA — uses RX pin)</option>
+              </optgroup>
+              <optgroup id="led-pin-esp32" label="ESP32 pins">
+                <option value="4">GPIO4 (RMT ch0 — default matrix pin)</option>
+                <option value="13">GPIO13 (RMT ch1)</option>
+                <option value="14">GPIO14 (RMT ch2)</option>
+                <option value="16">GPIO16 (RMT ch3)</option>
+                <option value="17">GPIO17 (RMT ch4)</option>
+                <option value="18">GPIO18 (RMT ch5)</option>
+                <option value="19">GPIO19 (RMT ch6)</option>
+                <option value="21">GPIO21 (RMT ch7)</option>
+              </optgroup>
             </select>
-            <small style="color:#888">Hardware-timed output only. GPIO2 leaves Serial free; GPIO3 uses the RX pin.</small>
+            <small id="led-pin-hint" class="hint"></small>
           </div>
 
           <div class="form-group">
@@ -60,6 +72,14 @@
               <input type="number" id="led-matrix-rows" min="4" max="32" value="8" placeholder="Rows">
               <span>×</span>
               <input type="number" id="led-matrix-cols" min="4" max="32" value="8" placeholder="Cols">
+            </div>
+            <div class="form-row" style="margin-top:6px;gap:16px;">
+              <label class="checkbox-label">
+                <input type="checkbox" id="led-mirror-h"> Mirror horizontal
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="led-mirror-v"> Mirror vertical
+              </label>
             </div>
           </div>
 
@@ -83,13 +103,8 @@
           <div class="form-group">
             <label for="led-effect-select">Effect</label>
             <select id="led-effect-select">
-              <option value="">— Select Effect —</option>
-              <option value="solid">Solid Color</option>
-              <option value="blink">Blink</option>
-              <option value="pulse">Pulse (Breathing)</option>
-              <option value="rainbow">Rainbow</option>
-              <option value="chase">Chase</option>
-              <option value="sparkle">Sparkle</option>
+              <option value="">\u2014 Select Effect \u2014</option>
+              <!-- Populated by led-admin.js from /api/leds/effects manifest -->
             </select>
           </div>
 

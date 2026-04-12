@@ -1,0 +1,993 @@
+npm warn Unknown user config "PYTHON". This will stop working in the next major version of npm.
+
+> esp-rollaball-derby-server@1.0.0 test
+> node --test tests/*.test.js
+
+TAP version 13
+# Subtest: BotManager ÔÇö addBot / removeBot / listBots
+    # Subtest: addBot creates a player and returns bot info
+    ok 1 - addBot creates a player and returns bot info
+      ---
+      duration_ms: 4.5823
+      type: 'test'
+      ...
+    # Subtest: addBot broadcasts state
+    ok 2 - addBot broadcasts state
+      ---
+      duration_ms: 2.1129
+      type: 'test'
+      ...
+    # Subtest: addBot can create multiple bots
+    ok 3 - addBot can create multiple bots
+      ---
+      duration_ms: 1.3598
+      type: 'test'
+      ...
+    # Subtest: listBots returns all bots
+    ok 4 - listBots returns all bots
+      ---
+      duration_ms: 4.485
+      type: 'test'
+      ...
+    # Subtest: removeBot stops and deletes the bot
+    ok 5 - removeBot stops and deletes the bot
+      ---
+      duration_ms: 1.543
+      type: 'test'
+      ...
+    # Subtest: removeBot returns false for unknown id
+    ok 6 - removeBot returns false for unknown id
+      ---
+      duration_ms: 0.7737
+      type: 'test'
+      ...
+    # Subtest: removeBot force-removes player even during running game
+    ok 7 - removeBot force-removes player even during running game
+      ---
+      duration_ms: 1.3133
+      type: 'test'
+      ...
+    # Subtest: removeAll clears all bots
+    ok 8 - removeAll clears all bots
+      ---
+      duration_ms: 0.8449
+      type: 'test'
+      ...
+    1..8
+ok 1 - BotManager ÔÇö addBot / removeBot / listBots
+  ---
+  duration_ms: 20.3788
+  type: 'suite'
+  ...
+# Subtest: BotManager ÔÇö calcPoints
+    # Subtest: roll 0-10 gives 3 points
+    ok 1 - roll 0-10 gives 3 points
+      ---
+      duration_ms: 0.5062
+      type: 'test'
+      ...
+    # Subtest: roll 11-25 gives 2 points
+    ok 2 - roll 11-25 gives 2 points
+      ---
+      duration_ms: 0.2986
+      type: 'test'
+      ...
+    # Subtest: roll 26-55 gives 1 point
+    ok 3 - roll 26-55 gives 1 point
+      ---
+      duration_ms: 0.1856
+      type: 'test'
+      ...
+    # Subtest: roll 56-100 gives 0 points
+    ok 4 - roll 56-100 gives 0 points
+      ---
+      duration_ms: 0.1704
+      type: 'test'
+      ...
+    1..4
+ok 2 - BotManager ÔÇö calcPoints
+  ---
+  duration_ms: 1.625
+  type: 'suite'
+  ...
+# Subtest: BotManager ÔÇö game lifecycle hooks
+    # Subtest: onGameStart starts bot timers (no immediate scoring)
+    ok 1 - onGameStart starts bot timers (no immediate scoring)
+      ---
+      duration_ms: 1.3188
+      type: 'test'
+      ...
+    # Subtest: onGameStop clears bot timers
+    ok 2 - onGameStop clears bot timers
+      ---
+      duration_ms: 0.7608
+      type: 'test'
+      ...
+    # Subtest: onGameReset stops timers and re-connects bot players
+    ok 3 - onGameReset stops timers and re-connects bot players
+      ---
+      duration_ms: 0.8435
+      type: 'test'
+      ...
+    # Subtest: bot auto-starts when added during running game
+    ok 4 - bot auto-starts when added during running game
+      ---
+      duration_ms: 1.2285
+      type: 'test'
+      ...
+    1..4
+ok 3 - BotManager ÔÇö game lifecycle hooks
+  ---
+  duration_ms: 4.5351
+  type: 'suite'
+  ...
+# Subtest: BotManager ÔÇö _rollFor scoring
+    # Subtest: _rollFor scores and broadcasts when game is running
+    ok 1 - _rollFor scores and broadcasts when game is running
+      ---
+      duration_ms: 1.471
+      type: 'test'
+      ...
+    # Subtest: _rollFor does nothing when game is not running
+    ok 2 - _rollFor does nothing when game is not running
+      ---
+      duration_ms: 1.3464
+      type: 'test'
+      ...
+    # Subtest: _rollFor can score 0 points (zero_roll event)
+    ok 3 - _rollFor can score 0 points (zero_roll event)
+      ---
+      duration_ms: 6.5736
+      type: 'test'
+      ...
+    1..3
+ok 4 - BotManager ÔÇö _rollFor scoring
+  ---
+  duration_ms: 9.6891
+  type: 'suite'
+  ...
+# Subtest: ConnectionManager ÔÇö handleConnection()
+    # Subtest: registers a new client in the clients map
+    ok 1 - registers a new client in the clients map
+      ---
+      duration_ms: 4.3815
+      type: 'test'
+      ...
+    # Subtest: assigns a unique id per connection
+    ok 2 - assigns a unique id per connection
+      ---
+      duration_ms: 0.8285
+      type: 'test'
+      ...
+    1..2
+ok 5 - ConnectionManager ÔÇö handleConnection()
+  ---
+  duration_ms: 7.1338
+  type: 'suite'
+  ...
+# Subtest: ConnectionManager ÔÇö _handleRegister()
+    # Subtest: assigns name and adds player to gameState for sensor type
+    ok 1 - assigns name and adds player to gameState for sensor type
+      ---
+      duration_ms: 4.8355
+      type: 'test'
+      ...
+    # Subtest: auto-assigns a name if none provided
+    ok 2 - auto-assigns a name if none provided
+      ---
+      duration_ms: 1.338
+      type: 'test'
+      ...
+    # Subtest: sanitizes HTML tags from playerName
+    ok 3 - sanitizes HTML tags from playerName
+      ---
+      duration_ms: 1.5003
+      type: 'test'
+      ...
+    # Subtest: display clients do not get added to gameState.players
+    ok 4 - display clients do not get added to gameState.players
+      ---
+      duration_ms: 1.1267
+      type: 'test'
+      ...
+    # Subtest: rejects invalid type
+    ok 5 - rejects invalid type
+      ---
+      duration_ms: 4.1325
+      type: 'test'
+      ...
+    1..5
+ok 6 - ConnectionManager ÔÇö _handleRegister()
+  ---
+  duration_ms: 14.9795
+  type: 'suite'
+  ...
+# Subtest: ConnectionManager ÔÇö _handleMessage()
+    # Subtest: returns error on invalid JSON
+    ok 1 - returns error on invalid JSON
+      ---
+      duration_ms: 4.6963
+      type: 'test'
+      ...
+    # Subtest: returns error on unknown message type
+    ok 2 - returns error on unknown message type
+      ---
+      duration_ms: 1.2263
+      type: 'test'
+      ...
+    # Subtest: routes register message correctly
+    ok 3 - routes register message correctly
+      ---
+      duration_ms: 2.6293
+      type: 'test'
+      ...
+    1..3
+ok 7 - ConnectionManager ÔÇö _handleMessage()
+  ---
+  duration_ms: 9.0268
+  type: 'suite'
+  ...
+# Subtest: ConnectionManager ÔÇö _handleDisconnect()
+    # Subtest: removes client from clients map
+    ok 1 - removes client from clients map
+      ---
+      duration_ms: 1.16
+      type: 'test'
+      ...
+    # Subtest: marks player disconnected when game is running
+    ok 2 - marks player disconnected when game is running
+      ---
+      duration_ms: 1.1924
+      type: 'test'
+      ...
+    # Subtest: removes player from gameState when game is idle
+    ok 3 - removes player from gameState when game is idle
+      ---
+      duration_ms: 0.6899
+      type: 'test'
+      ...
+    1..3
+ok 8 - ConnectionManager ÔÇö _handleDisconnect()
+  ---
+  duration_ms: 3.3229
+  type: 'suite'
+  ...
+# Subtest: ConnectionManager ÔÇö _handleScore()
+    # Subtest: broadcast scored message includes events array
+    ok 1 - broadcast scored message includes events array
+      ---
+      duration_ms: 1.8791
+      type: 'test'
+      ...
+    # Subtest: zero-point score accepted ÔÇö event zero_roll, position unchanged
+    ok 2 - zero-point score accepted ÔÇö event zero_roll, position unchanged
+      ---
+      duration_ms: 1.0884
+      type: 'test'
+      ...
+    # Subtest: invalid points value sends error
+    ok 3 - invalid points value sends error
+      ---
+      duration_ms: 3.6305
+      type: 'test'
+      ...
+    1..3
+ok 9 - ConnectionManager ÔÇö _handleScore()
+  ---
+  duration_ms: 6.978
+  type: 'suite'
+  ...
+# Subtest: ConnectionManager ÔÇö getConnectedCounts()
+    # Subtest: counts clients by type
+    ok 1 - counts clients by type
+      ---
+      duration_ms: 1.6824
+      type: 'test'
+      ...
+    1..1
+ok 10 - ConnectionManager ÔÇö getConnectedCounts()
+  ---
+  duration_ms: 1.8837
+  type: 'suite'
+  ...
+# Subtest: ConnectionManager ÔÇö chipId-based reconnect
+    # Subtest: device reconnects via chipId after reboot during running game (no playerId)
+    ok 1 - device reconnects via chipId after reboot during running game (no playerId)
+      ---
+      duration_ms: 2.1533
+      type: 'test'
+      ...
+    # Subtest: chipId mapping is recorded on first registration
+    ok 2 - chipId mapping is recorded on first registration
+      ---
+      duration_ms: 3.0084
+      type: 'test'
+      ...
+    # Subtest: chipId-based reconnect preserves player name when none provided
+    ok 3 - chipId-based reconnect preserves player name when none provided
+      ---
+      duration_ms: 0.9741
+      type: 'test'
+      ...
+    # Subtest: chipId reconnect falls through to new registration when player was deleted
+    ok 4 - chipId reconnect falls through to new registration when player was deleted
+      ---
+      duration_ms: 10.8434
+      type: 'test'
+      ...
+    # Subtest: no chipId ÔÇö normal registration even during active game
+    ok 5 - no chipId ÔÇö normal registration even during active game
+      ---
+      duration_ms: 0.8015
+      type: 'test'
+      ...
+    # Subtest: web client with chipId does NOT trigger chipId-based reconnect
+    ok 6 - web client with chipId does NOT trigger chipId-based reconnect
+      ---
+      duration_ms: 0.8748
+      type: 'test'
+      ...
+    # Subtest: chipId with invalid format is ignored
+    ok 7 - chipId with invalid format is ignored
+      ---
+      duration_ms: 1.3182
+      type: 'test'
+      ...
+    1..7
+ok 11 - ConnectionManager ÔÇö chipId-based reconnect
+  ---
+  duration_ms: 20.6214
+  type: 'suite'
+  ...
+# Subtest: ConnectionManager ÔÇö stale socket cleanup
+    # Subtest: reconnect via chipId closes stale client socket
+    ok 1 - reconnect via chipId closes stale client socket
+      ---
+      duration_ms: 1.667
+      type: 'test'
+      ...
+    # Subtest: reconnect via playerId closes stale client socket
+    ok 2 - reconnect via playerId closes stale client socket
+      ---
+      duration_ms: 1.3574
+      type: 'test'
+      ...
+    1..2
+ok 12 - ConnectionManager ÔÇö stale socket cleanup
+  ---
+  duration_ms: 3.3311
+  type: 'suite'
+  ...
+# Subtest: GameState ÔÇö lifecycle
+    # Subtest: idle ÔåÆ running (valid)
+    ok 1 - idle ÔåÆ running (valid)
+      ---
+      duration_ms: 3.8657
+      type: 'test'
+      ...
+    # Subtest: idle ÔåÆ paused (invalid ÔÇö should throw)
+    ok 2 - idle ÔåÆ paused (invalid ÔÇö should throw)
+      ---
+      duration_ms: 1.527
+      type: 'test'
+      ...
+    # Subtest: cannot start with no players
+    ok 3 - cannot start with no players
+      ---
+      duration_ms: 0.6947
+      type: 'test'
+      ...
+    # Subtest: cannot start from running state
+    ok 4 - cannot start from running state
+      ---
+      duration_ms: 1.6586
+      type: 'test'
+      ...
+    # Subtest: running ÔåÆ paused ÔåÆ running toggle
+    ok 5 - running ÔåÆ paused ÔåÆ running toggle
+      ---
+      duration_ms: 0.758
+      type: 'test'
+      ...
+    # Subtest: running ÔåÆ finished on winner
+    ok 6 - running ÔåÆ finished on winner
+      ---
+      duration_ms: 2.1965
+      type: 'test'
+      ...
+    1..6
+ok 13 - GameState ÔÇö lifecycle
+  ---
+  duration_ms: 15.7403
+  type: 'suite'
+  ...
+# Subtest: GameState ÔÇö score()
+    # Subtest: increments position correctly (+1)
+    ok 1 - increments position correctly (+1)
+      ---
+      duration_ms: 2.8904
+      type: 'test'
+      ...
+    # Subtest: increments position correctly (+3)
+    ok 2 - increments position correctly (+3)
+      ---
+      duration_ms: 1.5458
+      type: 'test'
+      ...
+    # Subtest: increments position correctly (+2)
+    ok 3 - increments position correctly (+2)
+      ---
+      duration_ms: 0.879
+      type: 'test'
+      ...
+    # Subtest: rejects invalid points ÔÇö -1
+    ok 4 - rejects invalid points ÔÇö -1
+      ---
+      duration_ms: 1.3957
+      type: 'test'
+      ...
+    # Subtest: accepts zero points (zero roll) ÔÇö position unchanged, event zero_roll
+    ok 5 - accepts zero points (zero roll) ÔÇö position unchanged, event zero_roll
+      ---
+      duration_ms: 0.7148
+      type: 'test'
+      ...
+    # Subtest: rate limits two rapid successive scores
+    ok 6 - rate limits two rapid successive scores
+      ---
+      duration_ms: 0.794
+      type: 'test'
+      ...
+    # Subtest: rejects score when game is not running
+    ok 7 - rejects score when game is not running
+      ---
+      duration_ms: 0.4813
+      type: 'test'
+      ...
+    1..7
+ok 14 - GameState ÔÇö score()
+  ---
+  duration_ms: 9.7015
+  type: 'suite'
+  ...
+# Subtest: GameState ÔÇö winner detection
+    # Subtest: winner: true when position >= trackLength
+    ok 1 - winner: true when position >= trackLength
+      ---
+      duration_ms: 0.6582
+      type: 'test'
+      ...
+    # Subtest: winner: false while under track length
+    ok 2 - winner: false while under track length
+      ---
+      duration_ms: 0.3882
+      type: 'test'
+      ...
+    1..2
+ok 15 - GameState ÔÇö winner detection
+  ---
+  duration_ms: 1.2273
+  type: 'suite'
+  ...
+# Subtest: GameState ÔÇö reset()
+    # Subtest: resets all positions to 0 and status to idle
+    ok 1 - resets all positions to 0 and status to idle
+      ---
+      duration_ms: 0.7116
+      type: 'test'
+      ...
+    1..1
+ok 16 - GameState ÔÇö reset()
+  ---
+  duration_ms: 0.8546
+  type: 'suite'
+  ...
+# Subtest: GameState ÔÇö updateConfig()
+    # Subtest: blocked when game is running
+    ok 1 - blocked when game is running
+      ---
+      duration_ms: 0.6129
+      type: 'test'
+      ...
+    # Subtest: rejects trackLength < 5
+    ok 2 - rejects trackLength < 5
+      ---
+      duration_ms: 1.0047
+      type: 'test'
+      ...
+    # Subtest: rejects trackLength > 50
+    ok 3 - rejects trackLength > 50
+      ---
+      duration_ms: 0.5519
+      type: 'test'
+      ...
+    # Subtest: rejects maxPlayers > 16
+    ok 4 - rejects maxPlayers > 16
+      ---
+      duration_ms: 0.5546
+      type: 'test'
+      ...
+    # Subtest: rejects maxPlayers < 1
+    ok 5 - rejects maxPlayers < 1
+      ---
+      duration_ms: 0.4017
+      type: 'test'
+      ...
+    # Subtest: rejects non-string theme
+    ok 6 - rejects non-string theme
+      ---
+      duration_ms: 0.455
+      type: 'test'
+      ...
+    # Subtest: applies valid config update
+    ok 7 - applies valid config update
+      ---
+      duration_ms: 0.679
+      type: 'test'
+      ...
+    # Subtest: accepts "auto" as a valid theme
+    ok 8 - accepts "auto" as a valid theme
+      ---
+      duration_ms: 0.4048
+      type: 'test'
+      ...
+    1..8
+ok 17 - GameState ÔÇö updateConfig()
+  ---
+  duration_ms: 5.2002
+  type: 'suite'
+  ...
+# Subtest: GameState ÔÇö auto-theme resolution
+    # Subtest: start() resolves "auto" theme to a concrete theme
+    ok 1 - start() resolves "auto" theme to a concrete theme
+      ---
+      duration_ms: 1.1672
+      type: 'test'
+      ...
+    # Subtest: start() preserves explicit theme unchanged
+    ok 2 - start() preserves explicit theme unchanged
+      ---
+      duration_ms: 1.5722
+      type: 'test'
+      ...
+    1..2
+ok 18 - GameState ÔÇö auto-theme resolution
+  ---
+  duration_ms: 3.0279
+  type: 'suite'
+  ...
+# Subtest: GameState ÔÇö reconnectPlayer()
+    # Subtest: returns null for unknown player
+    ok 1 - returns null for unknown player
+      ---
+      duration_ms: 1.3578
+      type: 'test'
+      ...
+    # Subtest: marks a disconnected player as connected again
+    ok 2 - marks a disconnected player as connected again
+      ---
+      duration_ms: 10.7912
+      type: 'test'
+      ...
+    # Subtest: is idempotent for an already-connected player
+    ok 3 - is idempotent for an already-connected player
+      ---
+      duration_ms: 0.6333
+      type: 'test'
+      ...
+    # Subtest: preserves the existing player entry (no duplicate created)
+    ok 4 - preserves the existing player entry (no duplicate created)
+      ---
+      duration_ms: 0.809
+      type: 'test'
+      ...
+    1..4
+ok 19 - GameState ÔÇö reconnectPlayer()
+  ---
+  duration_ms: 14.0062
+  type: 'suite'
+  ...
+# Subtest: GameState ÔÇö assignName()
+    # Subtest: returns a non-empty string
+    ok 1 - returns a non-empty string
+      ---
+      duration_ms: 1.4302
+      type: 'test'
+      ...
+    # Subtest: returns unique names across calls
+    ok 2 - returns unique names across calls
+      ---
+      duration_ms: 0.5997
+      type: 'test'
+      ...
+    # Subtest: names reset after reset()
+    ok 3 - names reset after reset()
+      ---
+      duration_ms: 1.5142
+      type: 'test'
+      ...
+    1..3
+ok 20 - GameState ÔÇö assignName()
+  ---
+  duration_ms: 3.8395
+  type: 'suite'
+  ...
+# Subtest: GameState ÔÇö streak tracking
+    # Subtest: streak_zero_3x fires after 3 consecutive zero rolls
+    ok 1 - streak_zero_3x fires after 3 consecutive zero rolls
+      ---
+      duration_ms: 0.7589
+      type: 'test'
+      ...
+    # Subtest: streak_zero_3x does NOT fire after only 2 consecutive zeros
+    ok 2 - streak_zero_3x does NOT fire after only 2 consecutive zeros
+      ---
+      duration_ms: 0.4524
+      type: 'test'
+      ...
+    # Subtest: consecutiveZeros resets after a non-zero score
+    ok 3 - consecutiveZeros resets after a non-zero score
+      ---
+      duration_ms: 0.4976
+      type: 'test'
+      ...
+    # Subtest: streak_three_2x fires after 2 consecutive +3 rolls
+    ok 4 - streak_three_2x fires after 2 consecutive +3 rolls
+      ---
+      duration_ms: 0.5348
+      type: 'test'
+      ...
+    # Subtest: streak_three_2x does NOT fire after only 1 +3 roll
+    ok 5 - streak_three_2x does NOT fire after only 1 +3 roll
+      ---
+      duration_ms: 0.4343
+      type: 'test'
+      ...
+    # Subtest: consecutivePlusThrees resets after a non-3 score
+    ok 6 - consecutivePlusThrees resets after a non-3 score
+      ---
+      duration_ms: 0.3516
+      type: 'test'
+      ...
+    # Subtest: streak counters reset after game reset()
+    ok 7 - streak counters reset after game reset()
+      ---
+      duration_ms: 0.3479
+      type: 'test'
+      ...
+    1..7
+ok 21 - GameState ÔÇö streak tracking
+  ---
+  duration_ms: 3.8381
+  type: 'suite'
+  ...
+# Subtest: GameState ÔÇö rank-change events
+    # Subtest: took_lead fires when player overtakes all others
+    ok 1 - took_lead fires when player overtakes all others
+      ---
+      duration_ms: 1.8944
+      type: 'test'
+      ...
+    # Subtest: took_lead does NOT fire when already leading
+    ok 2 - took_lead does NOT fire when already leading
+      ---
+      duration_ms: 0.6595
+      type: 'test'
+      ...
+    # Subtest: took_lead does NOT fire with only one player
+    ok 3 - took_lead does NOT fire with only one player
+      ---
+      duration_ms: 0.6221
+      type: 'test'
+      ...
+    # Subtest: score events always include a base event
+    ok 4 - score events always include a base event
+      ---
+      duration_ms: 0.7168
+      type: 'test'
+      ...
+    1..4
+ok 22 - GameState ÔÇö rank-change events
+  ---
+  duration_ms: 4.2984
+  type: 'suite'
+  ...
+# Subtest: Integration ÔÇö WebSocket flow
+    # Subtest: connect, register, receive registered + state broadcast
+    ok 1 - connect, register, receive registered + state broadcast
+      ---
+      duration_ms: 34.0371
+      type: 'test'
+      ...
+    # Subtest: score event produces scored + state broadcasts
+    ok 2 - score event produces scored + state broadcasts
+      ---
+      duration_ms: 51.6511
+      type: 'test'
+      ...
+    # Subtest: zero-point score produces scored message with zero_roll event
+    ok 3 - zero-point score produces scored message with zero_roll event
+      ---
+      duration_ms: 9.9705
+      type: 'test'
+      ...
+    # Subtest: disconnect updates state
+    ok 4 - disconnect updates state
+      ---
+      duration_ms: 107.2859
+      type: 'test'
+      ...
+    # Subtest: reconnect with stale playerId falls back to new registration gracefully
+    ok 5 - reconnect with stale playerId falls back to new registration gracefully
+      ---
+      duration_ms: 5.2083
+      type: 'test'
+      ...
+    # Subtest: reconnect while game is running reuses player entry
+    ok 6 - reconnect while game is running reuses player entry
+      ---
+      duration_ms: 76.4048
+      type: 'test'
+      ...
+    # Subtest: invalid JSON sends error message, does not crash
+    ok 7 - invalid JSON sends error message, does not crash
+      ---
+      duration_ms: 5.3689
+      type: 'test'
+      ...
+    1..7
+ok 23 - Integration ÔÇö WebSocket flow
+  ---
+  duration_ms: 326.4495
+  type: 'suite'
+  ...
+# Subtest: Integration ÔÇö REST API
+    # Subtest: GET /api/health returns ok
+    ok 1 - GET /api/health returns ok
+      ---
+      duration_ms: 9.6864
+      type: 'test'
+      ...
+    # Subtest: GET /api/game returns game state
+    ok 2 - GET /api/game returns game state
+      ---
+      duration_ms: 2.1965
+      type: 'test'
+      ...
+    # Subtest: POST /api/game/start returns 400 when no players
+    ok 3 - POST /api/game/start returns 400 when no players
+      ---
+      duration_ms: 2.4857
+      type: 'test'
+      ...
+    # Subtest: PUT /api/game/config updates trackLength
+    ok 4 - PUT /api/game/config updates trackLength
+      ---
+      duration_ms: 2.4283
+      type: 'test'
+      ...
+    # Subtest: PUT /api/game/config rejects invalid trackLength
+    ok 5 - PUT /api/game/config rejects invalid trackLength
+      ---
+      duration_ms: 3.9115
+      type: 'test'
+      ...
+    # Subtest: DELETE /api/players/:id removes player when idle
+    ok 6 - DELETE /api/players/:id removes player when idle
+      ---
+      duration_ms: 4.2801
+      type: 'test'
+      ...
+    # Subtest: DELETE /api/players/:id returns 404 for unknown player
+    ok 7 - DELETE /api/players/:id returns 404 for unknown player
+      ---
+      duration_ms: 2.8863
+      type: 'test'
+      ...
+    # Subtest: GET /api/clients returns list of connected clients
+    ok 8 - GET /api/clients returns list of connected clients
+      ---
+      duration_ms: 6.8201
+      type: 'test'
+      ...
+    # Subtest: DELETE /api/clients/:id kicks a connected client
+    ok 9 - DELETE /api/clients/:id kicks a connected client
+      ---
+      duration_ms: 14.3751
+      type: 'test'
+      ...
+    # Subtest: DELETE /api/clients/:id returns 404 for unknown client
+    ok 10 - DELETE /api/clients/:id returns 404 for unknown client
+      ---
+      duration_ms: 2.8882
+      type: 'test'
+      ...
+    1..10
+ok 24 - Integration ÔÇö REST API
+  ---
+  duration_ms: 57.2131
+  type: 'suite'
+  ...
+# Subtest: Integration ÔÇö Bot REST API
+    # Subtest: POST /api/bots creates a server-side bot
+    ok 1 - POST /api/bots creates a server-side bot
+      ---
+      duration_ms: 5.2647
+      type: 'test'
+      ...
+    # Subtest: GET /api/bots lists all bots
+    ok 2 - GET /api/bots lists all bots
+      ---
+      duration_ms: 1.9645
+      type: 'test'
+      ...
+    # Subtest: DELETE /api/bots/:id removes a bot
+    ok 3 - DELETE /api/bots/:id removes a bot
+      ---
+      duration_ms: 3.4412
+      type: 'test'
+      ...
+    # Subtest: DELETE /api/bots/:id returns 404 for unknown bot
+    ok 4 - DELETE /api/bots/:id returns 404 for unknown bot
+      ---
+      duration_ms: 2.233
+      type: 'test'
+      ...
+    1..4
+ok 25 - Integration ÔÇö Bot REST API
+  ---
+  duration_ms: 17.1757
+  type: 'suite'
+  ...
+# Subtest: Integration ÔÇö Motor Colors
+    # Subtest: GET /api/clients includes motorCount and motorColors for motor clients
+    ok 1 - GET /api/clients includes motorCount and motorColors for motor clients
+      ---
+      duration_ms: 11.6409
+      type: 'test'
+      ...
+    # Subtest: POST /api/clients/:id/motor/colors validates color array
+    ok 2 - POST /api/clients/:id/motor/colors validates color array
+      ---
+      duration_ms: 8.4911
+      type: 'test'
+      ...
+    # Subtest: POST /api/clients/:id/motor/colors clamps values to 0-15 range
+    ok 3 - POST /api/clients/:id/motor/colors clamps values to 0-15 range
+      ---
+      duration_ms: 8.5642
+      type: 'test'
+      ...
+    # Subtest: POST /api/clients/:id/motor/colors returns 404 for non-motor client
+    ok 4 - POST /api/clients/:id/motor/colors returns 404 for non-motor client
+      ---
+      duration_ms: 5.5397
+      type: 'test'
+      ...
+    1..4
+ok 26 - Integration ÔÇö Motor Colors
+  ---
+  duration_ms: 38.1126
+  type: 'suite'
+  ...
+# Subtest: Integration ÔÇö Motor WebSocket
+    # Subtest: motor registration includes capabilities and metadata
+    ok 1 - motor registration includes capabilities and metadata
+      ---
+      duration_ms: 6.2163
+      type: 'test'
+      ...
+    # Subtest: positions message is sent only to motor clients during gameplay
+    not ok 2 - positions message is sent only to motor clients during gameplay
+      ---
+      duration_ms: 1013.1542
+      type: 'test'
+      location: 'C:\\Users\\Tamay\\vscode\\esp-rollaball-derby\\server\\tests\\integration.test.js:721:3'
+      failureType: 'testCodeFailure'
+      error: 'Timeout waiting for message'
+      code: 'ERR_TEST_FAILURE'
+      stack: |-
+        Timeout._onTimeout (C:\Users\Tamay\vscode\esp-rollaball-derby\server\tests\integration.test.js:71:43)
+        listOnTimeout (node:internal/timers:588:17)
+        process.processTimers (node:internal/timers:523:7)
+      ...
+    # Subtest: button WebSocket action triggers game state change
+    not ok 3 - button WebSocket action triggers game state change
+      ---
+      duration_ms: 2011.6785
+      type: 'test'
+      location: 'C:\\Users\\Tamay\\vscode\\esp-rollaball-derby\\server\\tests\\integration.test.js:759:3'
+      failureType: 'testCodeFailure'
+      error: 'Timeout waiting for message'
+      code: 'ERR_TEST_FAILURE'
+      stack: |-
+        Timeout._onTimeout (C:\Users\Tamay\vscode\esp-rollaball-derby\server\tests\integration.test.js:71:43)
+        listOnTimeout (node:internal/timers:588:17)
+        process.processTimers (node:internal/timers:523:7)
+      ...
+    # Subtest: motor client reconnects via chipId during active game
+    not ok 4 - motor client reconnects via chipId during active game
+      ---
+      duration_ms: 109.4178
+      type: 'test'
+      location: 'C:\\Users\\Tamay\\vscode\\esp-rollaball-derby\\server\\tests\\integration.test.js:794:3'
+      failureType: 'testCodeFailure'
+      error: "Cannot read properties of null (reading 'motorCount')"
+      code: 'ERR_TEST_FAILURE'
+      name: 'TypeError'
+      stack: |-
+        TestContext.<anonymous> (C:\Users\Tamay\vscode\esp-rollaball-derby\server\tests\integration.test.js:838:25)
+        process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+        async Test.run (node:internal/test_runner/test:1054:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: motor client receives led_config message on registration
+    not ok 5 - motor client receives led_config message on registration
+      ---
+      duration_ms: 2007.6345
+      type: 'test'
+      location: 'C:\\Users\\Tamay\\vscode\\esp-rollaball-derby\\server\\tests\\integration.test.js:844:3'
+      failureType: 'testCodeFailure'
+      error: 'Timeout waiting for message'
+      code: 'ERR_TEST_FAILURE'
+      stack: |-
+        Timeout._onTimeout (C:\Users\Tamay\vscode\esp-rollaball-derby\server\tests\integration.test.js:71:43)
+        listOnTimeout (node:internal/timers:588:17)
+        process.processTimers (node:internal/timers:523:7)
+      ...
+    # Subtest: motor type excluded from player list in game state
+    not ok 6 - motor type excluded from player list in game state
+      ---
+      duration_ms: 4.2264
+      type: 'test'
+      location: 'C:\\Users\\Tamay\\vscode\\esp-rollaball-derby\\server\\tests\\integration.test.js:867:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        motor clients should not appear in players list
+        + actual - expected
+        
+        + {
+        +   colorIndex: 0,
+        +   connected: true,
+        +   connectedAt: 1775969125890,
+        +   consecutivePlusThrees: 0,
+        +   consecutiveZeros: 0,
+        +   id: 'f0be126d-80d7-4177-926b-6051045dae10',
+        +   lastScoredAt: null,
+        +   name: 'MotorNoPlayer',
+        +   position: 0,
+        +   type: 'motor'
+        + }
+        - undefined
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      actual:
+        id: 'f0be126d-80d7-4177-926b-6051045dae10'
+        name: 'MotorNoPlayer'
+        position: 0
+        type: 'motor'
+        colorIndex: 0
+        connected: true
+        connectedAt: 1775969125890
+        lastScoredAt: ~
+        consecutiveZeros: 0
+        consecutivePlusThrees: 0
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (C:\Users\Tamay\vscode\esp-rollaball-derby\server\tests\integration.test.js:882:12)
+        process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+        async Test.run (node:internal/test_runner/test:1054:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    1..6
+not ok 27 - Integration ÔÇö Motor WebSocket
+  ---
+  duration_ms: 5156.2808
+  type: 'suite'
+  location: 'C:\\Users\\Tamay\\vscode\\esp-rollaball-derby\\server\\tests\\integration.test.js:678:1'
+  failureType: 'subtestsFailed'
+  error: '5 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# [Derby] Countdown aborted: Cannot start: game is 'running', must be 'idle'
