@@ -533,6 +533,16 @@ void setup() {
         ESP.restart();
     }
     Serial.printf("[WiFi] Connected — IP: %s\n", WiFi.localIP().toString().c_str());
+    
+    // Clean up WiFiManagerParameter heap allocations after WiFi is connected
+    // and values have been extracted into global buffers by onSaveParams()
+    delete param_ip;
+    delete param_port;
+    delete param_name;
+    param_ip = nullptr;
+    param_port = nullptr;
+    param_name = nullptr;
+    
     statusLed.setState(LedState::WIFI_ONLY);
 
     // mDNS publish self as derby-motor-XXXX

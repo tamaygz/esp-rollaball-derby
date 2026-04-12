@@ -2,6 +2,7 @@
 
 const { Router } = require('express');
 const http = require('http');
+const rateLimit = require('express-rate-limit');
 
 /**
  * Creates a clients router that exposes information about connected WebSocket
@@ -13,6 +14,25 @@ const http = require('http');
  */
 function createClientsRouter(gameState, connectionManager) {
   const router = Router();
+
+  // Rate limiting middleware for motor control endpoints
+  // Prevents excessive requests that could overwhelm the ESP32 wireless link
+  // or cause rapid motor commands to queue up and become unsafe
+  const motorLimiter = rateLimit({
+    windowMs: 1000,        // 1-second window
+    max: 10,               // Max 10 requests per window (10 req/sec)
+    standardHeaders: true, // Include rate-limit headers in response
+    skip: (_req, _res) => false,
+    message: 'Motor endpoint rate limit exceeded. Please try again later.',
+  });
+
+  const motorColorsLimiter = rateLimit({
+    windowMs: 1000,
+    max: 5,                // Stricter limit for color changes (5 req/sec)
+    standardHeaders: true,
+    skip: (_req, _res) => false,
+    message: 'Color update rate limit exceeded. Please try again later.',
+  });
 
   // GET / — all currently connected WS clients, enriched with player context
   router.get('/', (req, res) => {
@@ -151,7 +171,8 @@ function createClientsRouter(gameState, connectionManager) {
   // Motor calibration proxy: /api/clients/:id/motor/*  → ESP32 /api/motor/*
 
   // POST /:id/motor/colors — update server-side motorColors then persist to ESP32
-  router.post('/:id/motor/colors', async (req, res) => {
+  // Rate limited to prevent overwhelming the ESP32 wireless link
+  router.post('/:id/motor/colors', motorColorsLimiter, async (req, res) => {
     const { colors } = req.body || {};
     if (!Array.isArray(colors)) {
       return res.status(400).json({ error: 'colors must be an array' });
@@ -185,7 +206,7 @@ function createClientsRouter(gameState, connectionManager) {
     }
   });
 
-  router.all('/:id/motor/*', (req, res) => {
+  router.all('/:id/motor/*', motorLimiter, (req, res) => {
     const subPath = '/api/motor/' + req.params[0];
     _proxyToEsp32(req, res, req.params.id, subPath);
   });
