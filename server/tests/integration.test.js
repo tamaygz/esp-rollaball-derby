@@ -672,3 +672,215 @@ describe('Integration — Motor Colors', () => {
     ws.close();
   });
 });
+
+// ─── Motor WebSocket ──────────────────────────────────────────────────────────
+
+describe('Integration — Motor WebSocket', () => {
+  let env;
+
+  before(async () => { env = await startServer(); });
+  after(() => env.server.close());
+
+  test('motor registration includes capabilities and metadata', async () => {
+    const ws = await wsConnect(env.port);
+    ws.send(JSON.stringify({
+      type: 'register',
+      payload: {
+        type: 'motor',
+        playerName: 'MotorTest',
+        motorCount: 4,
+        motorColors: [0, 1, 2, 3],
+        chipId: '12345678ABCD',
+        chipType: 'ESP32',
+        ledCount: 128,
+        ip: '192.168.1.100',
+        capabilities: {
+          motors: true,
+          leds: true,
+          buttons: true,
+        },
+      },
+    }));
+
+    const registered = await waitForMessage(ws, (m) => m.type === 'registered');
+    assert.ok(registered.payload.id, 'should receive client id');
+    assert.equal(registered.payload.name, 'MotorTest');
+
+    // Verify client metadata is stored
+    const client = env.connectionManager.getDeviceById(registered.payload.id);
+    assert.ok(client, 'client should exist in connection manager');
+    assert.equal(client.motorCount, 4);
+    assert.deepEqual(client.motorColors, [0, 1, 2, 3]);
+    assert.equal(client.capabilities.motors, true);
+    assert.equal(client.capabilities.leds, true);
+    assert.equal(client.capabilities.buttons, true);
+
+    ws.close();
+  });
+
+  test('positions message is sent only to motor clients during gameplay', async () => {
+    const motorWs = await wsConnect(env.port);
+    const webWs = await wsConnect(env.port);
+
+    // Register motor client
+    motorWs.send(JSON.stringify({
+      type: 'register',
+      payload: {
+        type: 'motor',
+        playerName: 'Motor1',
+        motorCount: 2,
+        motorColors: [0, 1],
+      },
+    }));
+    await waitForMessage(motorWs, (m) => m.type === 'state');
+
+    // Register web client
+    webWs.send(JSON.stringify({
+      type: 'register',
+      payload: {
+        type: 'web',
+        playerName: 'WebPlayer',
+      },
+    }));
+    await waitForMessage(webWs, (m) => m.type === 'state');
+
+    // Start game
+    env.gameState.start();
+
+    // Motor should receive positions message
+    const positionsMsg = await waitForMessage(motorWs, (m) => m.type === 'positions', 1000);
+    assert.ok(positionsMsg, 'motor client should receive positions message');
+    assert.ok(Array.isArray(positionsMsg.payload.players), 'positions should include players array');
+
+    motorWs.close();
+    webWs.close();
+  });
+
+  test('button WebSocket action triggers game state change', async () => {
+    const motorWs = await wsConnect(env.port);
+
+    motorWs.send(JSON.stringify({
+      type: 'register',
+      payload: {
+        type: 'motor',
+        playerName: 'ButtonTest',
+        capabilities: { buttons: true },
+      },
+    }));
+
+    const registered = await waitForMessage(motorWs, (m) => m.type === 'registered');
+    const playerId = registered.payload.id;
+
+    // Ensure game is idle
+    env.gameState.reset();
+
+    // Send button action: start
+    motorWs.send(JSON.stringify({
+      type: 'button',
+      payload: {
+        buttonIdx: 1,
+        action: 'start',
+      },
+    }));
+
+    // Wait for state broadcast indicating game started
+    const stateMsg = await waitForMessage(motorWs, (m) => m.type === 'state' && m.payload.status === 'running', 2000);
+    assert.ok(stateMsg, 'game should start after button action');
+    assert.equal(env.gameState.status, 'running');
+
+    motorWs.close();
+  });
+
+  test('motor client reconnects via chipId during active game', async () => {
+    const ws1 = await wsConnect(env.port);
+
+    // Initial registration
+    ws1.send(JSON.stringify({
+      type: 'register',
+      payload: {
+        type: 'motor',
+        playerName: 'MotorReconnect',
+        motorCount: 4,
+        motorColors: [5, 6, 7, 8],
+        chipId: 'DEADBEEF1234',
+      },
+    }));
+
+    const registered1 = await waitForMessage(ws1, (m) => m.type === 'registered');
+    const originalPlayerId = registered1.payload.id;
+
+    // Start game
+    env.gameState.start();
+
+    // Close connection (simulate reboot)
+    ws1.close();
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    // Reconnect with same chipId but no playerId
+    const ws2 = await wsConnect(env.port);
+    ws2.send(JSON.stringify({
+      type: 'register',
+      payload: {
+        type: 'motor',
+        chipId: 'DEADBEEF1234',
+        motorCount: 4,
+        motorColors: [5, 6, 7, 8],
+        // No playerName or playerId — should reconnect via chipId
+      },
+    }));
+
+    const registered2 = await waitForMessage(ws2, (m) => m.type === 'registered');
+    assert.equal(registered2.payload.id, originalPlayerId, 'should reconnect to same player via chipId');
+    assert.equal(registered2.payload.name, 'MotorReconnect', 'should preserve player name');
+
+    // Verify motor metadata persisted
+    const client = env.connectionManager.getDeviceById(originalPlayerId);
+    assert.equal(client.motorCount, 4);
+    assert.deepEqual(client.motorColors, [5, 6, 7, 8]);
+
+    ws2.close();
+  });
+
+  test('motor client receives led_config message on registration', async () => {
+    const ws = await wsConnect(env.port);
+
+    ws.send(JSON.stringify({
+      type: 'register',
+      payload: {
+        type: 'motor',
+        playerName: 'LEDMotor',
+        ledCount: 64,
+        chipType: 'ESP32',
+      },
+    }));
+
+    await waitForMessage(ws, (m) => m.type === 'registered');
+
+    // Should receive led_config message automatically
+    const ledConfig = await waitForMessage(ws, (m) => m.type === 'led_config', 2000);
+    assert.ok(ledConfig, 'motor should receive led_config on registration');
+    assert.ok(ledConfig.payload, 'led_config should have payload');
+
+    ws.close();
+  });
+
+  test('motor type excluded from player list in game state', async () => {
+    const ws = await wsConnect(env.port);
+
+    ws.send(JSON.stringify({
+      type: 'register',
+      payload: {
+        type: 'motor',
+        playerName: 'MotorNoPlayer',
+      },
+    }));
+
+    const state = await waitForMessage(ws, (m) => m.type === 'state');
+
+    // Motor clients should not be added to players list
+    const motorPlayer = state.payload.players.find((p) => p.name === 'MotorNoPlayer');
+    assert.equal(motorPlayer, undefined, 'motor clients should not appear in players list');
+
+    ws.close();
+  });
+});
