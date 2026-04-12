@@ -16,7 +16,22 @@ bool ButtonManager::begin(const uint8_t* pins, uint8_t count, ButtonCallback onP
         _pins[i]         = pins[i];
         _lastState[i]    = HIGH;
         _lastChangeMs[i] = millis();
+
+        // GPIO34-39 on original ESP32 are input-only (GPI) pins — the hardware
+        // silently ignores INPUT_PULLUP, leaving the pin floating and causing
+        // spurious button fires every debounce window.  Warn and use INPUT instead;
+        // the caller must supply external pull-up resistors on those pins.
+#if defined(ESP32) && !defined(CONFIG_IDF_TARGET_ESP32S3)
+        if (_pins[i] >= 34 && _pins[i] <= 39) {
+            pinMode(_pins[i], INPUT);
+            Serial.printf("[BTN] WARNING: GPIO%u is input-only (no internal pull-up). "
+                          "Add external 10k pull-up to 3.3V or move to another pin!\n", _pins[i]);
+        } else {
+            pinMode(_pins[i], INPUT_PULLUP);
+        }
+#else
         pinMode(_pins[i], INPUT_PULLUP);
+#endif
     }
 
     _available = true;

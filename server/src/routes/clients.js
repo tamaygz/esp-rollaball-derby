@@ -114,14 +114,6 @@ function createClientsRouter(gameState, connectionManager) {
     _proxyToEsp32(req, res, req.params.id, subPath);
   });
 
-  // Bluetooth management proxy: /api/clients/:id/bt/*  → ESP32 /api/bt/*
-  // bt/scan blocks the ESP32 for ~7 s, so we allow up to 12 s.
-  router.all('/:id/bt/*', (req, res) => {
-    const subPath = '/api/bt/' + req.params[0];
-    const isScan  = req.params[0] === 'scan';
-    _proxyToEsp32(req, res, req.params.id, subPath, isScan ? 12000 : 8000);
-  });
-
   return router;
 }
 

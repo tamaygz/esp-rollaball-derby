@@ -67,6 +67,18 @@ void MatrixDisplay::loop() {
         case Mode::WINNER:
             _stepScroll();
             break;
+        case Mode::BLINK:
+            _stepBlink();
+            break;
+        case Mode::PULSE:
+            _stepPulse();
+            break;
+        case Mode::CHASE:
+            _stepChase();
+            break;
+        case Mode::SPARKLE:
+            _stepSparkle();
+            break;
         case Mode::IDLE: {
             // Simple rainbow: shift hue over time
             static uint8_t hueOffset = 0;
@@ -137,12 +149,14 @@ void MatrixDisplay::fillColor(uint8_t r, uint8_t g, uint8_t b) {
         _strip->SetPixelColor(i, RgbColor(r, g, b));
     }
     _strip->Show();
+    _mode = Mode::STATIC;  // stop IDLE rainbow from overwriting
 }
 
 void MatrixDisplay::clear() {
     if (!_available || !_strip) return;
     _strip->ClearTo(RgbColor(0));
     _strip->Show();
+    _mode = Mode::STATIC;  // stop IDLE rainbow from overwriting
 }
 
 void MatrixDisplay::showText(
@@ -169,6 +183,40 @@ void MatrixDisplay::showWinner(const char* name) {
 
 void MatrixDisplay::showIdle() {
     _mode = Mode::IDLE;
+}
+
+void MatrixDisplay::showEffect(
+    const char* effectName, uint8_t r, uint8_t g, uint8_t b, uint16_t speedMs)
+{
+    if (!_available) return;
+    _animR        = r;
+    _animG        = g;
+    _animB        = b;
+    _animSpeedMs  = speedMs > 0 ? speedMs : 500;
+    _animLastStepMs = millis();
+
+    if (strcmp(effectName, "rainbow") == 0) {
+        _mode = Mode::IDLE;
+    } else if (strcmp(effectName, "blink") == 0) {
+        _animOn = true;
+        fillColor(r, g, b);   // start with ON
+        _mode = Mode::BLINK;
+    } else if (strcmp(effectName, "pulse") == 0) {
+        _animPhase = 0;
+        _mode = Mode::PULSE;
+    } else if (strcmp(effectName, "chase") == 0) {
+        _animChasePos = 0;
+        _strip->ClearTo(RgbColor(0));
+        _strip->Show();
+        _mode = Mode::CHASE;
+    } else if (strcmp(effectName, "sparkle") == 0) {
+        _strip->ClearTo(RgbColor(0));
+        _strip->Show();
+        _mode = Mode::SPARKLE;
+    } else {
+        // solid and anything unknown: one-shot fill
+        fillColor(r, g, b);
+    }
 }
 
 // ─── Private helpers ──────────────────────────────────────────────────────────
@@ -231,4 +279,69 @@ void MatrixDisplay::_stepScroll() {
             _mode      = Mode::IDLE;
         }
     }
+}
+
+void MatrixDisplay::_stepBlink() {
+    if (!_strip) return;
+    unsigned long now = millis();
+    if (now - _animLastStepMs < _animSpeedMs) return;
+    _animLastStepMs = now;
+
+    _animOn = !_animOn;
+    if (_animOn) {
+        for (uint16_t i = 0; i < _pixelCount; ++i)
+            _strip->SetPixelColor(i, RgbColor(_animR, _animG, _animB));
+    } else {
+        _strip->ClearTo(RgbColor(0));
+    }
+    _strip->Show();
+}
+
+void MatrixDisplay::_stepPulse() {
+    if (!_strip) return;
+    // Update at ~40 Hz. Speed controls full cycle duration (ms).
+    unsigned long now = millis();
+    if (now - _animLastStepMs < 25) return;
+    _animLastStepMs = now;
+
+    // Phase 0..511: triangle 0→255→0 (brightness). Steps per frame:
+    uint16_t stepsPerFrame = (uint16_t)max(1, (int)(_animSpeedMs / (512 / 25 + 1)));
+    _animPhase = (_animPhase + stepsPerFrame) % 512;
+    uint16_t brightness = _animPhase < 256 ? _animPhase : 511 - _animPhase;
+
+    for (uint16_t i = 0; i < _pixelCount; ++i) {
+        _strip->SetPixelColor(i, RgbColor(
+            (uint8_t)((uint16_t)_animR * brightness / 255),
+            (uint8_t)((uint16_t)_animG * brightness / 255),
+            (uint8_t)((uint16_t)_animB * brightness / 255)));
+    }
+    _strip->Show();
+}
+
+void MatrixDisplay::_stepChase() {
+    if (!_strip || _pixelCount == 0) return;
+    unsigned long now = millis();
+    uint16_t stepMs = max((uint16_t)20, (uint16_t)(_animSpeedMs / _pixelCount));
+    if (now - _animLastStepMs < stepMs) return;
+    _animLastStepMs = now;
+
+    _strip->ClearTo(RgbColor(0));
+    _strip->SetPixelColor(_animChasePos % _pixelCount, RgbColor(_animR, _animG, _animB));
+    _strip->Show();
+    _animChasePos = (_animChasePos + 1) % _pixelCount;
+}
+
+void MatrixDisplay::_stepSparkle() {
+    if (!_strip || _pixelCount == 0) return;
+    unsigned long now = millis();
+    uint16_t stepMs = max((uint16_t)20, (uint16_t)(_animSpeedMs / 8));
+    if (now - _animLastStepMs < stepMs) return;
+    _animLastStepMs = now;
+
+    // Fade all pixels toward black, ignite one random new one
+    for (uint16_t i = 0; i < _pixelCount; ++i)
+        _strip->SetPixelColor(i, RgbColor(0));
+    uint16_t idx = (uint16_t)(random(0, _pixelCount));
+    _strip->SetPixelColor(idx, RgbColor(_animR, _animG, _animB));
+    _strip->Show();
 }

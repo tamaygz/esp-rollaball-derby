@@ -414,7 +414,7 @@
     _refreshBtStatus();
 
     clearInterval(_motorPollTimer);
-    _motorPollTimer = setInterval(function () { _refreshMotorStatus(true); }, 2000);
+    _motorPollTimer = setInterval(function () { _refreshMotorStatus(true); _refreshBtStatus(); }, 2000);
   }
 
   function _closeMotorControl() {
@@ -567,7 +567,7 @@
     } else {
       _startPolling();
       if (_motorCtrlId) {
-        _motorPollTimer = setInterval(function () { _refreshMotorStatus(true); }, 2000);
+        _motorPollTimer = setInterval(function () { _refreshMotorStatus(true); _refreshBtStatus(); }, 2000);
       }
     }
   });

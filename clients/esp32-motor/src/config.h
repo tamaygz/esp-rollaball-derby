@@ -8,8 +8,16 @@
 #define PIN_LED_MATRIX      4     // GPIO4 — data pin for WS2812B matrix
 
 // Control buttons (INPUT_PULLUP — press = LOW)
-#define PIN_BUTTON_1        34    // GPIO34 — Start/Reset button (input-only pin)
-#define PIN_BUTTON_2        35    // GPIO35 — Pause/Resume button (input-only pin)
+// ESP32-S3: GPIO3 and GPIO46 are fully bidirectional with internal pull-up.
+// ESP32 DevKit: GPIO34/35 are input-only (GPI) — internal pull-up NOT available.
+//   → external 10 kΩ pull-up resistors to 3.3 V are required on those pins.
+#ifdef CONFIG_IDF_TARGET_ESP32S3
+  #define PIN_BUTTON_1      3     // GPIO3  — Start/Reset  (TOUCH3, full bidirectional)
+  #define PIN_BUTTON_2      46    // GPIO46 — Pause/Resume (strapping pin, safe with INPUT_PULLUP)
+#else
+  #define PIN_BUTTON_1      34    // GPIO34 — Start/Reset  (input-only, needs external pull-up)
+  #define PIN_BUTTON_2      35    // GPIO35 — Pause/Resume (input-only, needs external pull-up)
+#endif
 
 // ─── Motor Pin Layout ─────────────────────────────────────────────────────────
 // 28BYJ-48 stepper via ULN2003: 4 GPIO pins per motor (IN1–IN4)
@@ -32,9 +40,6 @@
 // Limit switch pins (INPUT_PULLUP), one per lane
 // Set to 255 to disable limit switch for a lane (homing will use step count only)
 #define LIMIT_SWITCH_PINS { 36, 39, 255, 255, 255, 255, 255, 255 }
-
-// Buzzer fallback pin (PWM tone via ledcWriteTone) — set 255 to disable
-#define BT_FALLBACK_PIN    255
 
 // ─── 28BYJ-48 Motor Constants ─────────────────────────────────────────────────
 // Half-step mode: 8 steps/cycle × 64 gear ratio × 8 half-steps/mechanical step

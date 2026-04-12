@@ -53,6 +53,10 @@ public:
     // Start ambient rainbow wave animation.
     void showIdle();
 
+    // Play a named effect with colour and speed — handles all strip + matrix effects.
+    // effectName: "solid"|"blink"|"pulse"|"chase"|"sparkle"|"rainbow"
+    void showEffect(const char* effectName, uint8_t r, uint8_t g, uint8_t b, uint16_t speedMs);
+
     // Apply an updated LedConfig — reinitialises strip if ledCount or pin changed.
     void applyConfig(const LedConfig& cfg);
 
@@ -86,11 +90,25 @@ private:
     unsigned long _scrollLastStepMs = 0;
     int16_t       _scrollTotalCols  = 0;     // total column width of text
 
-    enum class Mode { IDLE, NUMBER, SCROLLING, WINNER };
+    enum class Mode { IDLE, STATIC, NUMBER, SCROLLING, WINNER, BLINK, PULSE, CHASE, SPARKLE };
     Mode _mode = Mode::IDLE;
+
+    // Animated effect state (BLINK / PULSE / CHASE / SPARKLE)
+    uint8_t       _animR           = 0;
+    uint8_t       _animG           = 0;
+    uint8_t       _animB           = 255;
+    uint16_t      _animSpeedMs     = 500;
+    unsigned long _animLastStepMs  = 0;
+    bool          _animOn          = true;    // BLINK on/off toggle
+    uint16_t      _animPhase       = 0;       // PULSE triangle 0..511
+    uint16_t      _animChasePos    = 0;       // CHASE pixel index
 
     void _freeStrip();
     void _setPixel(uint8_t row, uint8_t col, uint8_t r, uint8_t g, uint8_t b);
     void _show();
     void _stepScroll();
+    void _stepBlink();
+    void _stepPulse();
+    void _stepChase();
+    void _stepSparkle();
 };

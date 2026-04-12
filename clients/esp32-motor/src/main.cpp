@@ -13,8 +13,6 @@
 #include "buttons.h"
 #include "led.h"
 #include "matrix_display.h"
-#include "bt_audio.h"
-#include "sound.h"
 
 // ─── Global Instances ─────────────────────────────────────────────────────────
 static WSClient       wsClient;
@@ -22,8 +20,6 @@ static MotorManager   motorManager;
 static Buttons        buttons;
 static StatusLed      statusLed;
 static MatrixDisplay  matrixDisplay;
-static BtAudio        btAudio;
-static SoundManager   soundManager;
 static WebServer      httpServer(HTTP_CONFIG_PORT);
 
 static bool           g_pendingRestart = false;
@@ -208,10 +204,23 @@ static bool discoverServer(String& host, uint16_t& port) {
     Serial.println("[mDNS] Querying _derby._tcp...");
     int n = MDNS.queryService("derby", "tcp");
     if (n > 0) {
-        host = MDNS.IP(0).toString();
-        port = MDNS.port(0);
-        Serial.printf("[mDNS] Server at %s:%u\n", host.c_str(), port);
-        return true;
+        // Only accept a result on the same /24 as the ESP32 — avoids picking
+        // a VPN or virtual-adapter IP (WSL2 / Hyper-V) on a Windows host.
+        IPAddress localIP = WiFi.localIP();
+        for (int i = 0; i < n; i++) {
+            IPAddress candidate = MDNS.IP(i);
+            Serial.printf("[mDNS] Result %d: %s:%u\n", i, candidate.toString().c_str(), MDNS.port(i));
+            if (candidate[0] == localIP[0] &&
+                candidate[1] == localIP[1] &&
+                candidate[2] == localIP[2]) {
+                host = candidate.toString();
+                port = MDNS.port(i);
+                Serial.printf("[mDNS] Server at %s:%u\n", host.c_str(), port);
+                return true;
+            }
+        }
+        Serial.printf("[mDNS] %d result(s) found but none on same /24 as %s — using configured IP\n",
+                      n, localIP.toString().c_str());
     }
     return false;
 }
@@ -364,98 +373,6 @@ static void handleMotorConfigPost() {
     httpServer.send(200, "application/json", "{\"ok\":true}");
 }
 
-// GET /api/bt/status
-static void handleBtStatus() {
-    JsonDocument doc;
-    doc["connected"]    = btAudio.isConnected();
-    doc["pairedDevice"] = btAudio.getPairedDeviceName();
-    doc["pairedAddress"] = btAudio.getPairedAddress();
-    doc["available"]    = btAudio.isAvailable();
-    String out;
-    serializeJson(doc, out);
-    httpServer.send(200, "application/json", out);
-}
-
-// GET /api/bt/scan   (blocking: ~7 s; proxy timeout is 12 s)
-static void handleBtScan() {
-    uint8_t count = btAudio.scan(7);
-    JsonDocument doc;
-    JsonArray devices = doc["devices"].to<JsonArray>();
-    for (uint8_t i = 0; i < count; i++) {
-        const BtDevice* d = btAudio.scanResult(i);
-        if (!d) continue;
-        JsonObject dev = devices.add<JsonObject>();
-        dev["name"]    = d->name;
-        dev["address"] = d->address;
-        dev["rssi"]    = d->rssi;
-    }
-    doc["count"] = count;
-    String out;
-    serializeJson(doc, out);
-    httpServer.send(200, "application/json", out);
-}
-
-// POST /api/bt/connect   (reconnect to already-paired device)
-static void handleBtConnect() {
-    if (!btAudio.hasPairedDevice()) {
-        httpServer.send(400, "application/json", "{\"error\":\"No paired device\"}");
-        return;
-    }
-    btAudio.connect(btAudio.getPairedAddress());
-    httpServer.send(200, "application/json", "{\"ok\":true}");
-}
-
-// POST /api/bt/disconnect   (disconnect without forgetting the device)
-static void handleBtDisconnect() {
-    btAudio.disconnect(false);
-    httpServer.send(200, "application/json", "{\"ok\":true}");
-}
-
-// POST /api/bt/pair   { "address": "XX:XX:XX:XX:XX:XX" }
-static void handleBtPair() {
-    if (httpServer.method() != HTTP_POST) { httpServer.send(405, "application/json", "{\"error\":\"Method Not Allowed\"}"); return; }
-    JsonDocument req;
-    if (deserializeJson(req, httpServer.arg("plain"))) { httpServer.send(400, "application/json", "{\"error\":\"Invalid JSON\"}"); return; }
-    const char* addr = req["address"] | "";
-    if (!btAudio.connect(addr)) {
-        httpServer.send(400, "application/json", "{\"error\":\"Invalid address\"}");
-        return;
-    }
-    httpServer.send(200, "application/json", "{\"ok\":true}");
-}
-
-// DELETE /api/bt/unpair
-static void handleBtUnpair() {
-    btAudio.disconnect(true);
-    httpServer.send(200, "application/json", "{\"ok\":true}");
-}
-
-// POST /api/bt/play   { "event": "winner" }
-static void handleBtPlay() {
-    if (httpServer.method() != HTTP_POST) { httpServer.send(405, "application/json", "{\"error\":\"Method Not Allowed\"}"); return; }
-    JsonDocument req;
-    if (deserializeJson(req, httpServer.arg("plain"))) { httpServer.send(400, "application/json", "{\"error\":\"Invalid JSON\"}"); return; }
-    const char* ev = req["event"] | "winner";
-    SoundEvent event = SoundEvent::WINNER;
-    if      (strcmp(ev, "score_1")        == 0) event = SoundEvent::SCORE_PLUS1;
-    else if (strcmp(ev, "score_2")        == 0) event = SoundEvent::SCORE_PLUS2;
-    else if (strcmp(ev, "score_3")        == 0) event = SoundEvent::SCORE_PLUS3;
-    else if (strcmp(ev, "score_0")        == 0) event = SoundEvent::SCORE_ZERO;
-    else if (strcmp(ev, "game_started")   == 0) event = SoundEvent::GAME_STARTED;
-    else if (strcmp(ev, "game_paused")    == 0) event = SoundEvent::GAME_PAUSED;
-    else if (strcmp(ev, "game_resumed")   == 0) event = SoundEvent::GAME_RESUMED;
-    else if (strcmp(ev, "game_reset")     == 0) event = SoundEvent::GAME_RESET;
-    else if (strcmp(ev, "countdown_tick") == 0) event = SoundEvent::COUNTDOWN_TICK;
-    else if (strcmp(ev, "countdown_go")   == 0) event = SoundEvent::COUNTDOWN_GO;
-    else if (strcmp(ev, "button_click")   == 0) event = SoundEvent::BUTTON_CLICK;
-    else if (strcmp(ev, "took_lead")      == 0) event = SoundEvent::TOOK_LEAD;
-    else if (strcmp(ev, "became_last")    == 0) event = SoundEvent::BECAME_LAST;
-    else if (strcmp(ev, "streak_zero")    == 0) event = SoundEvent::STREAK_ZERO;
-    else if (strcmp(ev, "streak_three")   == 0) event = SoundEvent::STREAK_THREE;
-    soundManager.play(event);
-    httpServer.send(200, "application/json", "{\"ok\":true}");
-}
-
 // POST /config   { "server_ip": "...", "server_port": "3000", "player_name": "..." }
 static void handleHttpConfig() {
     if (httpServer.method() != HTTP_POST) {
@@ -498,13 +415,6 @@ static void setupHttpRoutes() {
     httpServer.on("/api/motor/calibrate/reset",     HTTP_POST, handleCalibrateReset);
     httpServer.on("/api/motor/config",           HTTP_GET,  handleMotorConfigGet);
     httpServer.on("/api/motor/config",           HTTP_POST, handleMotorConfigPost);
-    httpServer.on("/api/bt/status",              HTTP_GET,  handleBtStatus);
-    httpServer.on("/api/bt/scan",                HTTP_GET,  handleBtScan);
-    httpServer.on("/api/bt/pair",                HTTP_POST,   handleBtPair);
-    httpServer.on("/api/bt/unpair",              HTTP_DELETE, handleBtUnpair);
-    httpServer.on("/api/bt/connect",             HTTP_POST,   handleBtConnect);
-    httpServer.on("/api/bt/disconnect",          HTTP_POST,   handleBtDisconnect);
-    httpServer.on("/api/bt/play",               HTTP_POST,   handleBtPlay);
     httpServer.on("/config",                     handleHttpConfig);
     httpServer.begin();
     Serial.printf("[HTTP] REST API listening on port %d\n", HTTP_CONFIG_PORT);
@@ -547,7 +457,6 @@ void setup() {
         const uint8_t btnPins[] = { PIN_BUTTON_1, PIN_BUTTON_2 };
         buttons.begin(btnPins, BUTTON_COUNT, [](uint8_t idx, const char* action) {
             wsClient.sendButton(idx, action);
-            soundManager.play(SoundEvent::BUTTON_CLICK);
         }, BUTTON_DEBOUNCE_MS);
     }
 
@@ -621,12 +530,6 @@ void setup() {
     }
     wsClient.setLedMetadata(g_hasLedConfig ? g_savedLedConfig.ledCount : ledConfigDefaults().ledCount);
 
-    // BT audio — non-blocking init
-    btAudio.begin();
-
-    // Sound manager — host/port for fetching WAV files from game server
-    soundManager.begin(&btAudio, g_serverIp, (uint16_t)atoi(g_serverPort));
-
     // HTTP REST API
     setupHttpRoutes();
 }
@@ -640,8 +543,6 @@ void loop() {
     buttons.loop();
     motorManager.loop();
     matrixDisplay.loop();
-    soundManager.loop();
-    btAudio.loop();
 
     bool wifiOk = (WiFi.status() == WL_CONNECTED);
 
@@ -667,6 +568,7 @@ void loop() {
     }
 
     httpServer.handleClient();
+    wsClient.loop();
     // MDNS.update() — not needed on ESP32; mDNS runs automatically in the background.
 
     if (g_pendingRestart) {
@@ -674,8 +576,6 @@ void loop() {
         delay(200);
         ESP.restart();
     }
-
-    wsClient.loop();
 
     // ── Persist playerId when assigned ────────────────────────────────────────
     {
@@ -699,12 +599,19 @@ void loop() {
     // ── LED test effect ───────────────────────────────────────────────────────
     LedTestEffectMessage pendingEffect;
     if (wsClient.pollTestEffect(pendingEffect)) {
-        if (strcmp(pendingEffect.effectName, "rainbow") == 0) {
-            // Rainbow: use the ambient idle animation built into MatrixDisplay
-            matrixDisplay.showIdle();
+        uint16_t spd = pendingEffect.speedMs > 0 ? pendingEffect.speedMs : 500;
+        if (strcmp(pendingEffect.effectName, "countdown") == 0) {
+            matrixDisplay.showCountdown(3);
+        } else if (strcmp(pendingEffect.effectName, "text") == 0) {
+            matrixDisplay.showText("DERBY", pendingEffect.r, pendingEffect.g, pendingEffect.b,
+                                   pendingEffect.speedMs > 0 ? pendingEffect.speedMs : 80);
+        } else if (strcmp(pendingEffect.effectName, "winner") == 0) {
+            matrixDisplay.showWinner("WINNER");
+        } else if (strcmp(pendingEffect.effectName, "clear") == 0) {
+            matrixDisplay.clear();
         } else {
-            // solid / blink / pulse / chase / sparkle: all fill with the chosen color
-            matrixDisplay.fillColor(pendingEffect.r, pendingEffect.g, pendingEffect.b);
+            // solid, blink, pulse, chase, sparkle, rainbow
+            matrixDisplay.showEffect(pendingEffect.effectName, pendingEffect.r, pendingEffect.g, pendingEffect.b, spd);
         }
     }
 
@@ -734,7 +641,6 @@ void loop() {
         case GlobalEventType::COUNTDOWN_TICK: {
             static int countdown = 3;
             matrixDisplay.showCountdown(countdown);
-            soundManager.play(SoundEvent::COUNTDOWN_TICK);
             if (countdown > 0) countdown--;
             else countdown = 3;
             buttons.setGameStatus("running");
@@ -742,28 +648,23 @@ void loop() {
         }
         case GlobalEventType::GAME_STARTED:
             matrixDisplay.showCountdown(0);   // "GO"
-            soundManager.play(SoundEvent::GAME_STARTED);
             buttons.setGameStatus("running");
             break;
         case GlobalEventType::GAME_PAUSED:
             buttons.setGameStatus("paused");
             matrixDisplay.showText("PAUSED", 255, 165, 0, 100);
-            soundManager.play(SoundEvent::GAME_PAUSED);
             break;
         case GlobalEventType::GAME_RESUMED:
             buttons.setGameStatus("running");
-            soundManager.play(SoundEvent::GAME_RESUMED);
             break;
         case GlobalEventType::GAME_RESET:
             motorManager.homeAll();
             matrixDisplay.showIdle();
             buttons.setGameStatus("idle");
-            soundManager.play(SoundEvent::GAME_RESET);
             break;
         case GlobalEventType::WINNER_SELF:
         case GlobalEventType::WINNER_OTHER: {
             winnerEvent = true;
-            soundManager.play(SoundEvent::WINNER);
             const char* name = wsClient.getPlayerId().c_str();
             matrixDisplay.showWinner(name);
             buttons.setGameStatus("idle");

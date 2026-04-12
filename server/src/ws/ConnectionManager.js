@@ -12,9 +12,10 @@ const COUNTDOWN_TICK_MS   = 1_000;
 const COUNTDOWN_GO_HOLD_MS = 600;
 
 class ConnectionManager {
-  constructor(gameState, ledConfigManager = null) {
+  constructor(gameState, ledConfigManager = null, soundManager = null) {
     this.gameState       = gameState;
     this.ledConfigManager = ledConfigManager;
+    this._soundManager   = soundManager;
     this.clients         = new Map(); // id → { ws, type, playerId, id, chipId, chipType, reportedLedCount }
     this._chipIdToPlayerId = new Map(); // chipId → playerId  (survives WS disconnects)
     this._botManager     = null;
@@ -74,10 +75,12 @@ class ConnectionManager {
       for (let i = countdown; i >= 1; i--) {
         if (this._countdownGen !== gen) return;
         this.broadcastAll({ type: 'countdown', payload: { count: i } });
+        this._soundManager?.play('countdown_tick');
         await wait(COUNTDOWN_TICK_MS);
       }
       if (this._countdownGen !== gen) return;
       this.broadcastAll({ type: 'countdown', payload: { count: 0 } });
+      this._soundManager?.play('countdown_go');
       await wait(COUNTDOWN_GO_HOLD_MS);
       if (this._countdownGen !== gen) return;
 
@@ -210,6 +213,11 @@ class ConnectionManager {
   }
 
   broadcastScored(player, points, events) {
+    // Play the most significant sound: lead/last/streak events take priority over score.
+    const PRIORITY_EVENTS = ['took_lead', 'became_last', 'streak_three', 'streak_zero'];
+    const soundEvent = (events || []).find((e) => PRIORITY_EVENTS.includes(e)) || `score_${points}`;
+    this._soundManager?.play(soundEvent);
+
     this.broadcastAll({
       type: 'scored',
       payload: {
@@ -228,10 +236,12 @@ class ConnectionManager {
    * @param {'game_started'|'game_paused'|'game_resumed'|'game_reset'} event
    */
   broadcastGameEvent(event) {
+    this._soundManager?.play(event);
     this.broadcastAll({ type: 'game_event', payload: { event } });
   }
 
   broadcastWinner(player) {
+    this._soundManager?.play('winner');
     this.broadcastAll({
       type: 'winner',
       payload: { playerId: player.id, name: player.name },

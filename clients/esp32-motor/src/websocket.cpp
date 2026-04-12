@@ -87,8 +87,6 @@ void WSClient::_sendRegister() {
     caps["motors"]  = (_motorCount > 0);
     caps["leds"]    = (_ledMetadataCount > 0);
     caps["buttons"] = true;
-    caps["sound"]   = true;
-    caps["bt"]      = true;
 
     serializeJson(doc, buf, sizeof(buf));
     _client.send(buf);

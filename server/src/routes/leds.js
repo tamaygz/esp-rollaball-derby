@@ -256,7 +256,8 @@ function createLedRoutes(ledConfigManager, connectionManager) {
       }
       
       // Validate effect name
-      const validEffects = ['solid', 'blink', 'pulse', 'rainbow', 'chase', 'sparkle'];
+      const validEffects = ['solid', 'blink', 'pulse', 'rainbow', 'chase', 'sparkle',
+        'countdown', 'text', 'winner', 'clear'];
       if (!validEffects.includes(effectName)) {
         return res.status(400).json({
           error: 'Bad request',

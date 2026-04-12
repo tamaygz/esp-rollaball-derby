@@ -157,6 +157,7 @@ Derby.LED = (function () {
         var card = listEl.querySelector('[data-device-id="' + prevSelected + '"]');
         if (card) card.classList.add('led-device-selected');
         _selectedDevice = stillHere;
+        _updateMatrixEffectsGroup();
       }
     }
   }
@@ -268,6 +269,33 @@ Derby.LED = (function () {
     _selectedDevice = _devices.find(function (d) { return d.id === deviceId; });
     if (_selectedDevice) {
       _populateConfigForm(_selectedDevice);
+      _updateMatrixEffectsGroup();
+    }
+  }
+
+  function _updateMatrixEffectsGroup() {
+    var select = _el('led-effect-select');
+    if (!select) return;
+
+    var isMotor = _selectedDevice && _selectedDevice.type === 'motor';
+
+    // Remove any previously injected matrix options
+    select.querySelectorAll('option[data-matrix]').forEach(function (o) { o.remove(); });
+
+    if (isMotor) {
+      var matrixOptions = [
+        { value: 'countdown', label: '[Matrix] Countdown (3→GO)' },
+        { value: 'text',      label: '[Matrix] Scroll Text' },
+        { value: 'winner',    label: '[Matrix] Winner Animation' },
+        { value: 'clear',     label: '[Matrix] Clear (all off)' },
+      ];
+      matrixOptions.forEach(function (item) {
+        var opt = document.createElement('option');
+        opt.value = item.value;
+        opt.textContent = item.label;
+        opt.dataset.matrix = '1';
+        select.appendChild(opt);
+      });
     }
   }
 
