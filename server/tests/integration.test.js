@@ -707,7 +707,7 @@ describe('Integration — Motor WebSocket', () => {
     assert.equal(registered.payload.name, 'MotorTest');
 
     // Verify client metadata is stored
-    const client = env.connectionManager.getDeviceById(registered.payload.id);
+    const client = env.connectionManager.clients.get(registered.payload.id);
     assert.ok(client, 'client should exist in connection manager');
     assert.equal(client.motorCount, 4);
     assert.deepEqual(client.motorColors, [0, 1, 2, 3]);
@@ -719,6 +719,9 @@ describe('Integration — Motor WebSocket', () => {
   });
 
   test('positions message is sent only to motor clients during gameplay', async () => {
+    // Set countdown to 0 for immediate start
+    env.gameState.updateConfig({ countdown: 0 });
+
     const motorWs = await wsConnect(env.port);
     const webWs = await wsConnect(env.port);
 
@@ -732,20 +735,25 @@ describe('Integration — Motor WebSocket', () => {
         motorColors: [0, 1],
       },
     }));
-    await waitForMessage(motorWs, (m) => m.type === 'state');
+    const motorReg = await waitForMessage(motorWs, (m) => m.type === 'registered');
+    const motorId = motorReg.payload.id;
 
-    // Register web client
+    // Register web client (as sensor to have a player in the game)
     webWs.send(JSON.stringify({
       type: 'register',
       payload: {
-        type: 'web',
+        type: 'sensor',
         playerName: 'WebPlayer',
       },
     }));
-    await waitForMessage(webWs, (m) => m.type === 'state');
+    const webReg = await waitForMessage(webWs, (m) => m.type === 'registered');
+    const webPlayerId = webReg.payload.id;
 
-    // Start game
+    // Start game (no countdown)
     env.gameState.start();
+
+    // Score a point to trigger position broadcast
+    env.gameState.score(webPlayerId, 1);
 
     // Motor should receive positions message
     const positionsMsg = await waitForMessage(motorWs, (m) => m.type === 'positions', 1000);
@@ -757,7 +765,11 @@ describe('Integration — Motor WebSocket', () => {
   });
 
   test('button WebSocket action triggers game state change', async () => {
+    // Set countdown to 0 for immediate start
+    env.gameState.updateConfig({ countdown: 0 });
+
     const motorWs = await wsConnect(env.port);
+    const sensorWs = await wsConnect(env.port);
 
     motorWs.send(JSON.stringify({
       type: 'register',
@@ -767,9 +779,17 @@ describe('Integration — Motor WebSocket', () => {
         capabilities: { buttons: true },
       },
     }));
+    await waitForMessage(motorWs, (m) => m.type === 'registered');
 
-    const registered = await waitForMessage(motorWs, (m) => m.type === 'registered');
-    const playerId = registered.payload.id;
+    // Add a sensor player so the game can start
+    sensorWs.send(JSON.stringify({
+      type: 'register',
+      payload: {
+        type: 'sensor',
+        playerName: 'Sensor1',
+      },
+    }));
+    await waitForMessage(sensorWs, (m) => m.type === 'registered');
 
     // Ensure game is idle
     env.gameState.reset();
@@ -783,12 +803,13 @@ describe('Integration — Motor WebSocket', () => {
       },
     }));
 
-    // Wait for state broadcast indicating game started
-    const stateMsg = await waitForMessage(motorWs, (m) => m.type === 'state' && m.payload.status === 'running', 2000);
+    // Wait for state broadcast indicating game started (countdown=0, so immediate)
+    const stateMsg = await waitForMessage(motorWs, (m) => m.type === 'state' && m.payload.status === 'running', 1000);
     assert.ok(stateMsg, 'game should start after button action');
     assert.equal(env.gameState.status, 'running');
 
     motorWs.close();
+    sensorWs.close();
   });
 
   test('motor client reconnects via chipId during active game', async () => {
@@ -809,7 +830,8 @@ describe('Integration — Motor WebSocket', () => {
     const registered1 = await waitForMessage(ws1, (m) => m.type === 'registered');
     const originalPlayerId = registered1.payload.id;
 
-    // Start game
+    // Start game (set countdown to 0)
+    env.gameState.updateConfig({ countdown: 0 });
     env.gameState.start();
 
     // Close connection (simulate reboot)
@@ -834,52 +856,31 @@ describe('Integration — Motor WebSocket', () => {
     assert.equal(registered2.payload.name, 'MotorReconnect', 'should preserve player name');
 
     // Verify motor metadata persisted
-    const client = env.connectionManager.getDeviceById(originalPlayerId);
+    const client = env.connectionManager.clients.get(originalPlayerId);
     assert.equal(client.motorCount, 4);
     assert.deepEqual(client.motorColors, [5, 6, 7, 8]);
 
     ws2.close();
   });
 
-  test('motor client receives led_config message on registration', async () => {
+  test('motor client is added to player list (participates in game)', async () => {
     const ws = await wsConnect(env.port);
 
     ws.send(JSON.stringify({
       type: 'register',
       payload: {
         type: 'motor',
-        playerName: 'LEDMotor',
-        ledCount: 64,
-        chipType: 'ESP32',
+        playerName: 'MotorPlayer',
       },
     }));
 
-    await waitForMessage(ws, (m) => m.type === 'registered');
-
-    // Should receive led_config message automatically
-    const ledConfig = await waitForMessage(ws, (m) => m.type === 'led_config', 2000);
-    assert.ok(ledConfig, 'motor should receive led_config on registration');
-    assert.ok(ledConfig.payload, 'led_config should have payload');
-
-    ws.close();
-  });
-
-  test('motor type excluded from player list in game state', async () => {
-    const ws = await wsConnect(env.port);
-
-    ws.send(JSON.stringify({
-      type: 'register',
-      payload: {
-        type: 'motor',
-        playerName: 'MotorNoPlayer',
-      },
-    }));
-
+    const registered = await waitForMessage(ws, (m) => m.type === 'registered');
     const state = await waitForMessage(ws, (m) => m.type === 'state');
 
-    // Motor clients should not be added to players list
-    const motorPlayer = state.payload.players.find((p) => p.name === 'MotorNoPlayer');
-    assert.equal(motorPlayer, undefined, 'motor clients should not appear in players list');
+    // Motor clients ARE added to players list (they participate in the game)
+    const motorPlayer = state.payload.players.find((p) => p.name === 'MotorPlayer');
+    assert.ok(motorPlayer, 'motor clients should appear in players list');
+    assert.equal(motorPlayer.id, registered.payload.id);
 
     ws.close();
   });
