@@ -367,7 +367,9 @@ static void handleMotorColorsPost() {
         uint8_t i = 0;
         for (JsonVariantConst v : req["colors"].as<JsonArrayConst>()) {
             if (i >= MOTOR_MAX_LANES) break;
-            g_motorColors[i++] = v.as<uint8_t>();
+            // Clamp to 0-15 range (max 16 player colors)
+            uint8_t colorIdx = v.as<uint8_t>();
+            g_motorColors[i++] = (colorIdx > 15) ? 15 : colorIdx;
         }
         markStateDirty();
     }

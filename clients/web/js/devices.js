@@ -9,25 +9,8 @@
   var POLL_INTERVAL = 3000;
   var _pollTimer = null;
 
-  // 16-color shared palette (mirrors clients/assets/themes/shared/player-colors.json)
-  var PLAYER_COLORS = [
-    { index: 0,  hex: '#E53E3E', name: 'Scarlet'       },
-    { index: 1,  hex: '#3182CE', name: 'Royal Blue'    },
-    { index: 2,  hex: '#38A169', name: 'Emerald'       },
-    { index: 3,  hex: '#D69E2E', name: 'Gold'          },
-    { index: 4,  hex: '#805AD5', name: 'Amethyst'      },
-    { index: 5,  hex: '#D53F8C', name: 'Rose'          },
-    { index: 6,  hex: '#00B5D8', name: 'Cyan'          },
-    { index: 7,  hex: '#68D391', name: 'Mint'          },
-    { index: 8,  hex: '#FF6B35', name: 'Tangerine'     },
-    { index: 9,  hex: '#B7791F', name: 'Amber'         },
-    { index: 10, hex: '#9B2C2C', name: 'Crimson'       },
-    { index: 11, hex: '#2C7A7B', name: 'Teal'          },
-    { index: 12, hex: '#744210', name: 'Sienna'        },
-    { index: 13, hex: '#553C9A', name: 'Indigo'        },
-    { index: 14, hex: '#C05621', name: 'Burnt Sienna'  },
-    { index: 15, hex: '#276749', name: 'Forest'        },
-  ];
+  // 16-color shared palette loaded from clients/assets/themes/shared/player-colors.json
+  var PLAYER_COLORS = [];
 
   function _el(id) { return document.getElementById(id); }
 
@@ -167,6 +150,7 @@
 
   var _motorCtrlId    = null;
   var _motorCtrlName  = '';
+  var _motorCtrlCount = 0;
   var _motorPollTimer = null;
   var _jogSteps       = 1;
 
@@ -466,11 +450,17 @@
     if (!btn) return;
     btn.addEventListener('click', function () {
       if (!_motorCtrlId) return;
-      var selects = document.querySelectorAll('.track-color-select');
+      // Build dense array from lane selects, validate 0-15 range
       var colors = [];
-      selects.forEach(function (sel) {
-        colors[parseInt(sel.dataset.lane, 10)] = parseInt(sel.value, 10);
-      });
+      for (var i = 0; i < _motorCtrlCount; i++) {
+        var sel = document.querySelector('.track-color-select[data-lane="' + i + '"]');
+        if (sel) {
+          var val = parseInt(sel.value, 10);
+          colors[i] = (isNaN(val) || val < 0 || val > 15) ? 0 : val;
+        } else {
+          colors[i] = 0;
+        }
+      }
       btn.disabled = true;
       if (status) status.textContent = 'Saving\u2026';
       fetch('/api/clients/' + encodeURIComponent(_motorCtrlId) + '/motor/colors', {
@@ -490,8 +480,9 @@
   }
 
   function _openMotorControl(clientId, clientName, motorCount, motorColors) {
-    _motorCtrlId   = clientId;
-    _motorCtrlName = clientName;
+    _motorCtrlId    = clientId;
+    _motorCtrlName  = clientName;
+    _motorCtrlCount = motorCount || 0;
     var panel = _el('card-motor-control');
     var label = _el('motor-ctrl-device-label');
     if (panel) panel.style.display = '';
@@ -643,12 +634,47 @@
 
   // ── Init ──────────────────────────────────────────────────────────────────
 
+  function _loadPlayerColors() {
+    return fetch('/assets/themes/shared/player-colors.json')
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        PLAYER_COLORS = data.colors || [];
+        console.log('[Devices] Loaded', PLAYER_COLORS.length, 'player colors');
+      })
+      .catch(function (e) {
+        console.error('[Devices] Failed to load player colors:', e);
+        // Fallback to hardcoded defaults
+        PLAYER_COLORS = [
+          { index: 0,  hex: '#E53E3E', name: 'Scarlet'       },
+          { index: 1,  hex: '#3182CE', name: 'Royal Blue'    },
+          { index: 2,  hex: '#38A169', name: 'Emerald'       },
+          { index: 3,  hex: '#D69E2E', name: 'Gold'          },
+          { index: 4,  hex: '#805AD5', name: 'Amethyst'      },
+          { index: 5,  hex: '#D53F8C', name: 'Rose'          },
+          { index: 6,  hex: '#00B5D8', name: 'Cyan'          },
+          { index: 7,  hex: '#68D391', name: 'Mint'          },
+          { index: 8,  hex: '#FF6B35', name: 'Tangerine'     },
+          { index: 9,  hex: '#B7791F', name: 'Amber'         },
+          { index: 10, hex: '#9B2C2C', name: 'Crimson'       },
+          { index: 11, hex: '#2C7A7B', name: 'Teal'          },
+          { index: 12, hex: '#744210', name: 'Sienna'        },
+          { index: 13, hex: '#553C9A', name: 'Indigo'        },
+          { index: 14, hex: '#C05621', name: 'Burnt Sienna'  },
+          { index: 15, hex: '#276749', name: 'Forest'        },
+        ];
+      });
+  }
+
   var btnRefresh = _el('btn-refresh');
   if (btnRefresh) btnRefresh.addEventListener('click', _refresh);
 
-  _initSensorConfigForm();
-  _initMotorControlPanel();
-  _fetchMdnsInfo();
+  // Load player colors first, then initialize
+  _loadPlayerColors().then(function () {
+    _initSensorConfigForm();
+    _initMotorControlPanel();
+    _fetchMdnsInfo();
+    _startPolling();
+  });
 
   document.addEventListener('visibilitychange', function () {
     if (document.hidden) {
@@ -663,6 +689,4 @@
       }
     }
   });
-
-  _startPolling();
 }());
