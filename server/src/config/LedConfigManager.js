@@ -28,17 +28,21 @@ class LedConfigManager extends EventEmitter {
     // Default configuration fallback
     this.defaultConfig = {
       sensor: {
-        ledCount: 10,
+        ledCount: 30,
         topology: 'strip',
-        gpioPin: 4,
-        brightness: 128,
+        gpioPin: 2,
+        brightness: 80,
         defaultEffect: 'rainbow'
       },
       motor: {
-        ledCount: 10,
-        topology: 'strip',
+        ledCount: 64,
+        topology: 'matrix_zigzag',
         gpioPin: 4,
-        brightness: 128,
+        brightness: 25,
+        matrixRows: 8,
+        matrixCols: 8,
+        mirrorH: false,
+        mirrorV: false,
         defaultEffect: 'chase'
       },
       display: {
@@ -332,7 +336,7 @@ class LedConfigManager extends EventEmitter {
     }
     
     // Validate topology
-    const validTopologies = ['strip', 'matrix', 'ring'];
+    const validTopologies = ['strip', 'matrix', 'matrix_zigzag', 'matrix_progressive', 'ring'];
     if (!validTopologies.includes(topology)) {
       throw new Error(`topology must be one of: ${validTopologies.join(', ')}`);
     }

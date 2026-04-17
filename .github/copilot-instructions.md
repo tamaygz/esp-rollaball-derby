@@ -7,7 +7,7 @@ Local-network physical race game: IR sensors on ESP8266 → Node.js server (sing
 ```
 ESP8266 Sensors ──┐
                    ├──► Node.js Server ──► Display Client (Pixi.js beamer/TV)
-ESP8266 Motors ───┘         │
+ESP32 Peripheral ──┘         │
                              └──► Web Admin Client (vanilla JS)
 ```
 
@@ -18,7 +18,8 @@ ESP8266 Motors ───┘         │
 | Web admin | ✅ Complete | `clients/web/` |
 | Display client | ✅ Complete | `clients/display/` |
 | ESP8266 sensor firmware | 🚧 In progress | `clients/esp8266-sensor/` |
-| ESP8266 motor firmware | ⏳ Deferred (Phase 3) | `clients/esp8266-motor/` |
+| ESP32 peripheral firmware | 🚧 In progress | `clients/esp32-motor/` |
+| ESP8266 motor firmware | ⏳ Superseded by ESP32 peripheral | `clients/esp8266-motor/` |
 
 ## Build and Test
 

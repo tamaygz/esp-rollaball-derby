@@ -133,7 +133,7 @@ void WSClient::_onMessage(WebsocketsMessage msg) {
     if (strcmp(type, "countdown") == 0) {
         int count = doc["payload"]["count"] | 0;
         if (count >= 1) {
-            _pendingGlobalEvent = GlobalEvent::COUNTDOWN_TICK;
+            _pendingGlobalEvent = GlobalEventType::COUNTDOWN_TICK;
         }
         return;
     }
@@ -142,8 +142,8 @@ void WSClient::_onMessage(WebsocketsMessage msg) {
         const char* winnerId = doc["payload"]["playerId"];
         if (winnerId) {
             _pendingGlobalEvent = (_playerId == winnerId)
-                            ? GlobalEvent::WINNER_SELF
-                            : GlobalEvent::WINNER_OTHER;
+                            ? GlobalEventType::WINNER_SELF
+                            : GlobalEventType::WINNER_OTHER;
         }
         return;
     }
@@ -151,10 +151,10 @@ void WSClient::_onMessage(WebsocketsMessage msg) {
     if (strcmp(type, "game_event") == 0) {
         const char* event = doc["payload"]["event"];
         if (!event) return;
-        if      (strcmp(event, "game_started") == 0) _pendingGlobalEvent = GlobalEvent::GAME_STARTED;
-        else if (strcmp(event, "game_paused")  == 0) _pendingGlobalEvent = GlobalEvent::GAME_PAUSED;
-        else if (strcmp(event, "game_resumed") == 0) _pendingGlobalEvent = GlobalEvent::GAME_RESUMED;
-        else if (strcmp(event, "game_reset")   == 0) _pendingGlobalEvent = GlobalEvent::GAME_RESET;
+        if      (strcmp(event, "game_started") == 0) _pendingGlobalEvent = GlobalEventType::GAME_STARTED;
+        else if (strcmp(event, "game_paused")  == 0) _pendingGlobalEvent = GlobalEventType::GAME_PAUSED;
+        else if (strcmp(event, "game_resumed") == 0) _pendingGlobalEvent = GlobalEventType::GAME_RESUMED;
+        else if (strcmp(event, "game_reset")   == 0) _pendingGlobalEvent = GlobalEventType::GAME_RESET;
         return;
     }
 
@@ -166,26 +166,26 @@ void WSClient::_onMessage(WebsocketsMessage msg) {
         // Pick the highest-priority event from the events array.
         // Priority (high→low): took_lead > streak_three > score_3 > score_2
         //   > score_1 > streak_zero > zero_roll > became_last
-        LocalEvent best = LocalEvent::NONE;
+        LocalEventType best = LocalEventType::NONE;
         JsonArrayConst events = doc["payload"]["events"].as<JsonArrayConst>();
         for (JsonVariantConst ev : events) {
             const char* evStr = ev.as<const char*>();
             if (!evStr) continue;
-            LocalEvent candidate = LocalEvent::NONE;
-            if      (strcmp(evStr, "took_lead")      == 0) candidate = LocalEvent::TOOK_LEAD;
-            else if (strcmp(evStr, "streak_three_2x") == 0) candidate = LocalEvent::STREAK_THREE;
-            else if (strcmp(evStr, "score_3")         == 0) candidate = LocalEvent::SCORE_PLUS3;
-            else if (strcmp(evStr, "score_2")         == 0) candidate = LocalEvent::SCORE_PLUS2;
-            else if (strcmp(evStr, "score_1")         == 0) candidate = LocalEvent::SCORE_PLUS1;
-            else if (strcmp(evStr, "streak_zero_3x")  == 0) candidate = LocalEvent::STREAK_ZERO;
-            else if (strcmp(evStr, "zero_roll")        == 0) candidate = LocalEvent::ZERO_ROLL;
-            else if (strcmp(evStr, "became_last")      == 0) candidate = LocalEvent::BECAME_LAST;
+            LocalEventType candidate = LocalEventType::NONE;
+            if      (strcmp(evStr, "took_lead")      == 0) candidate = LocalEventType::TOOK_LEAD;
+            else if (strcmp(evStr, "streak_three_2x") == 0) candidate = LocalEventType::STREAK_THREE;
+            else if (strcmp(evStr, "score_3")         == 0) candidate = LocalEventType::SCORE_PLUS3;
+            else if (strcmp(evStr, "score_2")         == 0) candidate = LocalEventType::SCORE_PLUS2;
+            else if (strcmp(evStr, "score_1")         == 0) candidate = LocalEventType::SCORE_PLUS1;
+            else if (strcmp(evStr, "streak_zero_3x")  == 0) candidate = LocalEventType::STREAK_ZERO;
+            else if (strcmp(evStr, "zero_roll")        == 0) candidate = LocalEventType::ZERO_ROLL;
+            else if (strcmp(evStr, "became_last")      == 0) candidate = LocalEventType::BECAME_LAST;
             // Higher enum value = higher priority in our ordering
             if (static_cast<int>(candidate) > static_cast<int>(best)) {
                 best = candidate;
             }
         }
-        if (best != LocalEvent::NONE) {
+        if (best != LocalEventType::NONE) {
             _pendingLocalEvent = best;
         }
         return;
@@ -201,6 +201,8 @@ void WSClient::_onMessage(WebsocketsMessage msg) {
         cfg.topology   = LedTopology::STRIP; // default
         cfg.matrixRows = 8;
         cfg.matrixCols = 8;
+        cfg.mirrorH    = doc["payload"]["mirrorH"] | false;
+        cfg.mirrorV    = doc["payload"]["mirrorV"] | false;
 
         const char* topStr = doc["payload"]["topology"] | "strip";
         if      (strcmp(topStr, "ring")               == 0) cfg.topology = LedTopology::RING;
@@ -254,6 +256,8 @@ void WSClient::_onMessage(WebsocketsMessage msg) {
 
         msg.speedMs   = static_cast<uint16_t>(doc["payload"]["params"]["speed"]      | 1000);
         msg.brightness = static_cast<uint8_t>(doc["payload"]["params"]["brightness"] | 255);
+        const char* text = doc["payload"]["params"]["text"] | "";
+        strlcpy(msg.text, text, sizeof(msg.text));
 
         _pendingTestEffect    = msg;
         _hasPendingTestEffect = true;
@@ -265,15 +269,15 @@ void WSClient::_onMessage(WebsocketsMessage msg) {
     // Silently ignore other broadcast messages (state, positions).
 }
 
-LocalEvent WSClient::pollLocalEvent() {
-    LocalEvent ev       = _pendingLocalEvent;
-    _pendingLocalEvent  = LocalEvent::NONE;
+LocalEventType WSClient::pollLocalEvent() {
+    LocalEventType ev   = _pendingLocalEvent;
+    _pendingLocalEvent  = LocalEventType::NONE;
     return ev;
 }
 
-GlobalEvent WSClient::pollGlobalEvent() {
-    GlobalEvent ev       = _pendingGlobalEvent;
-    _pendingGlobalEvent  = GlobalEvent::NONE;
+GlobalEventType WSClient::pollGlobalEvent() {
+    GlobalEventType ev   = _pendingGlobalEvent;
+    _pendingGlobalEvent  = GlobalEventType::NONE;
     return ev;
 }
 

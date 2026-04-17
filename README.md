@@ -30,6 +30,7 @@ All communication over WebSocket (`ws://`). The server is the single source of t
 - **Server-side bots**: Autonomous bot players via REST API — roll at 2–8 s human-like intervals
 - **Action effects**: 8 visual event types (zero_roll, score_1/2/3, streak_zero_3x, streak_three_2x, took_lead, became_last)
 - **Theming**: Horse 🐎 and camel 🐪 themes with auto-random selection
+- **Motor control**: ESP32 stepper motor control with track color assignment for physical lane mapping
 - **Reconnect**: Both admin and display clients auto-reconnect with exponential backoff
 - **mDNS autodiscovery**: Server publishes `_derby._tcp` via DNS-SD; ESP8266 sensors find the server automatically on the LAN
 - **Rate limiting**: 300 ms per player to prevent spam

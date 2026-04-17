@@ -4,7 +4,7 @@
 window.Derby = window.Derby || {};
 
 /**
- * Derby.ledMain — entry point for the LED admin page (leds.html).
+ * Derby.ledMain — entry point for the LED admin panel (served at /admin/leds).
  * Minimal bootstrap: connects WebSocket and routes only LED-relevant messages.
  */
 (function () {

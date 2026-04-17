@@ -231,6 +231,26 @@ class GameState {
     return player;
   }
 
+  /**
+   * Override the colorIndex of a player.
+   * Used by the motor color sync system to align a player's digital color
+   * with the physical motor lane color.
+   * @param {string} playerId
+   * @param {number} colorIndex - 0-based index into shared palette
+   * @returns {object} The updated player object
+   */
+  setPlayerColorIndex(playerId, colorIndex) {
+    const player = this.players.get(playerId);
+    if (!player) {
+      throw new Error('Player not found');
+    }
+    if (typeof colorIndex !== 'number' || !Number.isInteger(colorIndex) || colorIndex < 0 || colorIndex > 15) {
+      throw new Error('colorIndex must be an integer between 0 and 15');
+    }
+    player.colorIndex = colorIndex;
+    return player;
+  }
+
   // ─── Scoring ──────────────────────────────────────────────────────────────
 
   score(playerId, points) {

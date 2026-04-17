@@ -10,6 +10,7 @@
 #ifndef GAME_EVENT_MAPPER_H
 #define GAME_EVENT_MAPPER_H
 
+#include "GameEvents.h"
 #include "AnimationManager.h"
 #include "effects/SolidEffect.h"
 #include "effects/BlinkEffect.h"
@@ -17,31 +18,6 @@
 #include "effects/RainbowEffect.h"
 #include "effects/ChaseEffect.h"
 #include "effects/SparkleEffect.h"
-
-// Device-local event types (mirror LocalEvent priority order in websocket.h).
-enum class LocalEventType {
-  NONE,
-  BECAME_LAST,
-  ZERO_ROLL,
-  STREAK_ZERO,
-  SCORE_PLUS1,
-  SCORE_PLUS2,
-  SCORE_PLUS3,
-  STREAK_THREE,
-  TOOK_LEAD,
-};
-
-// Game-global event types (mirror GlobalEvent in websocket.h).
-enum class GlobalEventType {
-  NONE,
-  COUNTDOWN_TICK,
-  GAME_STARTED,
-  GAME_PAUSED,
-  GAME_RESUMED,
-  GAME_RESET,
-  WINNER_SELF,
-  WINNER_OTHER,
-};
 
 /**
  * Maps game events to LED effects.

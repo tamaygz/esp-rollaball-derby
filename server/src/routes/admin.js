@@ -3,7 +3,7 @@
 const express = require('express');
 const router = express.Router();
 
-// ─── Redirect legacy .html URLs to clean routes ────────────────────────────────
+// ─── Redirects for old .html bookmarks (source files no longer exist, EJS templates serve these routes) ───
 router.get('/index.html',        (req, res) => res.redirect(301, '/admin'));
 router.get('/devices.html',      (req, res) => res.redirect(301, '/admin/devices'));
 router.get('/leds.html',         (req, res) => res.redirect(301, '/admin/leds'));

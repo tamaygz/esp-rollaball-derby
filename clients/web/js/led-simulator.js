@@ -288,6 +288,9 @@ Derby.LEDSimulator = (function () {
       setPixel: setPixel,
       setAll: setAll,
       ledCount: _config.ledCount,
+      matrixRows: _config.matrixRows,
+      matrixCols: _config.matrixCols,
+      topology: _config.topology,
     });
 
     if (!_animationId) {

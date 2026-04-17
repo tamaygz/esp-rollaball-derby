@@ -1,0 +1,15 @@
+{
+  "name": "Derby Motor (ESP32 Dev Module — bundled)",
+  "new_install_prompt_erase": true,
+  "builds": [
+    {
+      "chipFamily": "ESP32",
+      "parts": [
+        {
+          "path": "./firmware-motor.bin",
+          "offset": 0
+        }
+      ]
+    }
+  ]
+}

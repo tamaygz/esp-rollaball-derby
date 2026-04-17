@@ -41,9 +41,13 @@ On startup the server publishes `_derby._tcp` via mDNS (DNS-SD). ESP8266 sensors
 | DELETE | `/api/bots/:id` | Remove a bot and its player |
 | GET | `/api/clients` | List connected WebSocket clients |
 | DELETE | `/api/clients/:id` | Kick a WebSocket client |
+| POST | `/api/clients/:id/motor/colors` | Update track colors for ESP32 motor device (proxy to ESP32) |
+| ALL | `/api/clients/:id/motor/*` | Proxy all other motor requests to ESP32 HTTP server |
+| ALL | `/api/clients/:id/bt/*` | Proxy Bluetooth requests to ESP32 HTTP server |
 | GET | `/api/leds/config` | Get all LED configurations |
 | GET | `/api/leds/config/:deviceType` | Get LED config for device type (sensor/motor/display) |
 | PUT | `/api/leds/config/:deviceType` | Update LED config (triggers broadcast) |
+| GET | `/api/leds/effects` | Get the effects manifest (all available effects with params schema) |
 | POST | `/api/leds/effects/test` | Send test effect to a specific device (rate-limited) |
 
 Static mounts:
@@ -191,6 +195,51 @@ curl -X POST http://localhost:3000/api/leds/effects/test \
 ```
 
 Rate limiting: Test effect endpoint limited to 1 request/second per device ID.
+
+## Motor Colors Configuration
+
+ESP32 motor devices report `motorCount` (number of stepper lanes) and `motorColors` (color index per lane) during registration. The server exposes these via `GET /api/clients` and provides `POST /api/clients/:id/motor/colors` for configuration.
+
+### Track Color Assignment
+
+Each physical track/lane is assigned a color index (0–15) from the shared 16-color palette (`clients/assets/themes/shared/player-colors.json`). The ESP32 uses these mappings to match game positions to physical lanes:
+
+```cpp
+// Example: Lane 0 = Red (index 0), Lane 1 = Blue (index 1)
+if (g_motorColors[lane] == player.colorIndex) {
+  motorManager.moveLaneToNormalized(lane, player.position);
+}
+```
+
+### API Usage
+
+**Get motor device info (includes motorColors):**
+```bash
+curl http://localhost:3000/api/clients
+```
+
+Response includes:
+```json
+{
+  "id": "motor-abc123",
+  "type": "motor",
+  "motorCount": 4,
+  "motorColors": [0, 1, 2, 3]
+}
+```
+
+**Update track colors:**
+```bash
+curl -X POST http://localhost:3000/api/clients/motor-abc123/motor/colors \
+  -H "Content-Type: application/json" \
+  -d '{"colors": [5, 10, 2, 7]}'
+```
+
+The server validates and clamps color indices to 0–15 range, then proxies the request to the ESP32's `/api/motor/colors` endpoint. On success, the server updates its in-memory state; on failure, state remains unchanged (optimistic update reverted).
+
+### Admin UI
+
+The devices admin page (`/admin/devices.ejs`) provides a visual Track Colors panel when a motor device control panel is opened. Users select colors from swatches, see live preview, and click "Save Track Colors" to persist changes.
 
 ## Tests
 
