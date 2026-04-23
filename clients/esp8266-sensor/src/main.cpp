@@ -120,6 +120,17 @@ static bool isValidStateFile(const char* path) {
     return !err;
 }
 
+static bool isValidLedPinForPlatform(int pin) {
+#if defined(ESP8266)
+    // Shared LED controller supports only GPIO2/GPIO3 on ESP8266 timing methods.
+    return pin == 2 || pin == 3;
+#elif defined(ESP32)
+    return pin >= 0 && pin <= LED_GPIO_MAX;
+#else
+    return false;
+#endif
+}
+
 static void loadState() {
     const bool hasState = LittleFS.exists(STATE_FILE);
     const bool hasTemp  = LittleFS.exists(STATE_TMP);
@@ -174,7 +185,7 @@ static void loadState() {
 
         // Validate / clamp to safe ranges — corrupted state must not brick LEDs.
         const bool isCountValid      = (count >= 1 && count <= LED_PLATFORM_MAX_LEDS);
-        const bool isPinValid        = (pin >= 0 && pin <= LED_GPIO_MAX);
+        const bool isPinValid        = isValidLedPinForPlatform(pin);
         const bool isBrightnessValid = (bri >= 0 && bri <= 255);
         if (!isCountValid || !isPinValid || !isBrightnessValid) {
             Serial.println("[STATE] LED config out of range — ignoring saved values");
