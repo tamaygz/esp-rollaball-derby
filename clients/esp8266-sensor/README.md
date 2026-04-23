@@ -11,7 +11,7 @@ PlatformIO firmware for sensor nodes on **ESP8266** and **ESP32** boards. Reads 
 | +3 sensor | GPIO4 (D2) | GPIO27 | Active-LOW (INPUT_PULLUP) |
 | LED strip data | GPIO2 (D4) | GPIO2 | WS2812B data pin |
 
-Connect the collector/output of each IR break-beam receiver to the pin, and GND to the sensor GND. The emitter side is powered from 3.3 V. All three sensor pins are configured as `INPUT_PULLUP` so **no external pull-up resistors are required** — the ESP8266 internal pull-ups (~47 kΩ) hold the line HIGH; the sensor pulls it LOW when the beam is broken.
+Connect the collector/output of each IR break-beam receiver to the pin, and GND to the sensor GND. The emitter side is powered from 3.3 V. All three sensor pins are configured as `INPUT_PULLUP` so **no external pull-up resistors are required** — the board's internal pull-ups hold the line HIGH; the sensor pulls it LOW when the beam is broken.
 
 Each scoring hole has its own sensor input: breaking the `+1`, `+2`, or `+3` beam causes the firmware to report the corresponding `points` value (`1`, `2`, or `3`) to the server.
 ## Requirements
