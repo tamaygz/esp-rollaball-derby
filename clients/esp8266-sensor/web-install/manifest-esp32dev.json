@@ -1,0 +1,15 @@
+{
+  "name": "Derby Sensor (ESP32 DevKit)",
+  "new_install_prompt_erase": true,
+  "builds": [
+    {
+      "chipFamily": "ESP32",
+      "parts": [
+        {
+          "path": "https://github.com/tamaygz/esp-rollaball-derby/releases/latest/download/firmware-esp32dev.bin",
+          "offset": 0
+        }
+      ]
+    }
+  ]
+}

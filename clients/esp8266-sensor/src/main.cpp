@@ -1,7 +1,15 @@
 #include <Arduino.h>
+#if defined(ESP8266)
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
 #include <ESP8266mDNS.h>
+#elif defined(ESP32)
+#include <WiFi.h>
+#include <WebServer.h>
+#include <ESPmDNS.h>
+#else
+#error "Unsupported board: define ESP8266 or ESP32 target"
+#endif
 #include <WiFiManager.h>
 #include <LittleFS.h>
 #include <ArduinoJson.h>
@@ -10,12 +18,18 @@
 #include "websocket.h"
 #include "sensors.h"
 #include "led.h"
+#include "device_info.h"
 
 // ─── Global Instances ─────────────────────────────────────────────────────────
 static WSClient        wsClient;
 static Sensors         sensors;
 static LedManager      ledManager;
-static ESP8266WebServer httpServer(HTTP_CONFIG_PORT);
+#if defined(ESP8266)
+using DerbyWebServer = ESP8266WebServer;
+#else
+using DerbyWebServer = WebServer;
+#endif
+static DerbyWebServer  httpServer(HTTP_CONFIG_PORT);
 
 // Flag set by the /config handler so the reboot happens after the HTTP response
 // has been flushed to the client.
@@ -159,7 +173,7 @@ static void loadState() {
         const int bri   = doc["led_brightness"] | static_cast<int>(LED_DEFAULT_BRIGHTNESS);
 
         // Validate / clamp to safe ranges — corrupted state must not brick LEDs.
-        if (count < 1 || count > 300 || pin < 0 || pin > 16 || bri < 0 || bri > 255) {
+        if (count < 1 || count > LED_PLATFORM_MAX_LEDS || pin < 0 || pin > LED_GPIO_MAX || bri < 0 || bri > 255) {
             Serial.println("[STATE] LED config out of range — ignoring saved values");
         } else {
             g_savedLedConfig.ledCount   = static_cast<uint16_t>(count);
@@ -269,7 +283,7 @@ static void flushStateIfNeeded() {
 static bool discoverServer(String& host, uint16_t& port) {
     // Build a unique mDNS hostname: "derby-sensor-XXXX"
     char mdnsName[32];
-    snprintf(mdnsName, sizeof(mdnsName), "derby-sensor-%04x", ESP.getChipId() & 0xFFFF);
+    snprintf(mdnsName, sizeof(mdnsName), "derby-sensor-%04x", derbyChipSuffix16());
 
     if (!MDNS.begin(mdnsName)) {
         Serial.println("[mDNS] Failed to start responder");
@@ -421,7 +435,7 @@ void setup() {
                     buf += c;
                 }
             }
-            if (!done) delay(1);   // yield to ESP8266 background tasks
+            if (!done) delay(1);   // yield to background tasks
         }
         if (!done) Serial.println(F("[CFG] Serial config window expired"));
     }
@@ -429,7 +443,7 @@ void setup() {
     // Build unique AP name: "Derby-Sensor-XXXX" using last 4 hex digits of chip ID.
     char apName[32];
     snprintf(apName, sizeof(apName), "%s%04X",
-             WIFIMANAGER_AP_PREFIX, ESP.getChipId() & 0xFFFF);
+             WIFIMANAGER_AP_PREFIX, derbyChipSuffix16());
 
     // WiFiManager custom parameters — pre-filled from saved config.
     param_ip   = new WiFiManagerParameter("server_ip",   "Server IP",   g_serverIp,   39);

@@ -1,4 +1,5 @@
 #include "websocket.h"
+#include "device_info.h"
 
 void WSClient::begin(const char* host, uint16_t port, const char* playerName,
                      const char* persistedPlayerId) {
@@ -63,14 +64,14 @@ void WSClient::_sendRegister() {
     }
     // LED metadata — lets the server validate LED count and log device capabilities.
     payload["ledCount"] = _ledMetadataCount;
-    payload["chipType"] = "ESP8266";
+    payload["chipType"] = derbyChipType();
     // Unique hardware identifier for persistent color assignment
-    char chipIdBuf[9];
-    snprintf(chipIdBuf, sizeof(chipIdBuf), "%08X", ESP.getChipId());
+    char chipIdBuf[17];
+    derbyChipIdHex(chipIdBuf, sizeof(chipIdBuf));
     payload["chipId"] = chipIdBuf;
     JsonObject ledCaps = payload["ledCapabilities"].to<JsonObject>();
-    ledCaps["maxLeds"] = 300;
-    ledCaps["method"]  = "DMA";
+    ledCaps["maxLeds"] = LED_PLATFORM_MAX_LEDS;
+    ledCaps["method"]  = LED_CAPABILITIES_METHOD;
     ledCaps["pin"]     = PIN_LED;
 
     serializeJson(doc, buf, sizeof(buf));

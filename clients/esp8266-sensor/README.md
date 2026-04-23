@@ -1,22 +1,22 @@
-# Roll-a-Ball Derby — ESP8266 Sensor Client
+# Roll-a-Ball Derby — Sensor Client (ESP8266 + ESP32)
 
-PlatformIO firmware for the **Wemos D1 Mini** (ESP8266) sensor node. Reads three IR break-beam sensors (+1, +2, and +3 scoring holes) and sends score events to the game server via WebSocket.
+PlatformIO firmware for sensor nodes on **ESP8266** and **ESP32** boards. Reads three IR break-beam sensors (+1, +2, and +3 scoring holes) and sends score events to the game server via WebSocket.
 
 ## Hardware
 
-| Signal | D1 Mini pin | GPIO | Notes |
-|--------|-------------|------|-------|
-| +1 sensor | D1 | GPIO5 | Active-LOW (INPUT_PULLUP) |
-| +2 sensor | D5 | GPIO14 | Active-LOW (INPUT_PULLUP) |
-| +3 sensor | D2 | GPIO4 | Active-LOW (INPUT_PULLUP) |
-| Status LED | LED_BUILTIN | GPIO2 | Active-LOW (built-in) |
+| Signal | ESP8266 (D1 Mini/NodeMCU) | ESP32 DevKit | Notes |
+|--------|----------------------------|--------------|-------|
+| +1 sensor | GPIO5 (D1) | GPIO25 | Active-LOW (INPUT_PULLUP) |
+| +2 sensor | GPIO14 (D5) | GPIO26 | Active-LOW (INPUT_PULLUP) |
+| +3 sensor | GPIO4 (D2) | GPIO27 | Active-LOW (INPUT_PULLUP) |
+| LED strip data | GPIO2 (D4) | GPIO2 | WS2812B data pin |
 
 Connect the collector/output of each IR break-beam receiver to the pin, and GND to the sensor GND. The emitter side is powered from 3.3 V. All three sensor pins are configured as `INPUT_PULLUP` so **no external pull-up resistors are required** — the ESP8266 internal pull-ups (~47 kΩ) hold the line HIGH; the sensor pulls it LOW when the beam is broken.
 
 Each scoring hole has its own sensor input: breaking the `+1`, `+2`, or `+3` beam causes the firmware to report the corresponding `points` value (`1`, `2`, or `3`) to the server.
 ## Requirements
 
-- Wemos D1 Mini (ESP8266, 4 MB flash)
+- Wemos D1 Mini (ESP8266, 4 MB flash), NodeMCU v2/v3 (ESP8266), or ESP32 DevKit (esp32dev)
 - USB cable
 
 ## ⚡ Flash from Your Browser (No Toolchain Needed)
@@ -27,7 +27,7 @@ The easiest way to flash the firmware — works on macOS, Windows, and Linux wit
 2. Open the flashing page in Chrome or Edge:
    - If the browser is running on the **same computer** as the server, use **`http://localhost:3000/flash-sensor`**.
    - If you are opening it from **another device** on your LAN, serve the game server over **HTTPS** and open **`https://<server-host>/flash-sensor`** instead.
-3. Plug the Wemos D1 Mini into a USB port on the computer running the browser.
+3. Plug the sensor board (ESP8266 or ESP32 DevKit) into a USB port on the computer running the browser.
 4. Click **Install Derby Sensor Firmware** and select the serial port.
 5. Wait ~30 s — the latest pre-built binary is downloaded from [GitHub Releases](https://github.com/tamaygz/esp-rollaball-derby/releases/latest) and flashed automatically.
 
@@ -35,7 +35,7 @@ The easiest way to flash the firmware — works on macOS, Windows, and Linux wit
 
 > **Safari / Firefox are not supported** — Web Serial is only available in Chromium-based browsers.
 
-> **Forking this repo?** Update the firmware URL in `web-install/manifest.json` to point to your own repository's GitHub Releases.
+> **Forking this repo?** Update the firmware URLs in `web-install/manifest*.json` to point to your own repository's GitHub Releases.
 
 ## Build & Flash with PlatformIO (Advanced)
 
@@ -100,7 +100,8 @@ On WiFi reconnect (e.g. after dropout), autodiscovery is re-attempted so the sen
 |---------|---------|---------|
 | `gilmaimon/ArduinoWebsockets` | ^0.5.4 | WebSocket client (RFC-6455) |
 | `tzapu/WiFiManager` | ^2.0.17 | WiFi config captive portal |
-| `bblanchon/ArduinoJson` | ^7.0.0 | JSON serialisation || `ESP8266mDNS` | _(built-in)_ | mDNS responder + DNS-SD service discovery |
+| `bblanchon/ArduinoJson` | ^7.0.0 | JSON serialisation |
+| `ESP8266mDNS` / `ESPmDNS` | _(built-in)_ | mDNS responder + DNS-SD service discovery |
 ## WebSocket Protocol
 
 Connects to `ws://<server_ip>:<server_port>/`.

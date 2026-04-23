@@ -347,7 +347,7 @@
 
   <!-- Header -->
   <header class="hdr">
-    <div class="badge">⚡ ESP8266 Flasher</div>
+    <div class="badge">⚡ ESP8266 / ESP32 Flasher</div>
     <h1>Derby <em>Sensor</em></h1>
     <p class="sub">Flash IR sensor firmware directly from your browser — no toolchain required.</p>
   </header>
@@ -383,6 +383,10 @@
         <button class="seg" data-board="nodemcuv2">
           <strong>NodeMCU v2 / v3</strong>
           <small>CH340 · 4 MB flash</small>
+        </button>
+        <button class="seg" data-board="esp32dev">
+          <strong>ESP32 DevKit</strong>
+          <small>ESP32-WROOM · USB-UART</small>
         </button>
       </div>
     </div>
@@ -491,10 +495,17 @@
 const MANIFESTS = {
   d1_mini:   './manifest.json',
   nodemcuv2: './manifest-nodemcuv2.json',
+  esp32dev:  './manifest-esp32dev.json',
 };
 const MANIFESTS_BUNDLED = {
   d1_mini:   './manifest-bundled.json',
   nodemcuv2: './manifest-bundled-nodemcuv2.json',
+  esp32dev:  './manifest-bundled-esp32dev.json',
+};
+const BOARD_CHIP_FAMILY = {
+  d1_mini:   'ESP8266',
+  nodemcuv2: 'ESP8266',
+  esp32dev:  'ESP32',
 };
 
 // ── DOM refs ──────────────────────────────────────────────────────────────────
@@ -584,7 +595,7 @@ function handleBinFile(file) {
   const manifest = {
     name: 'Derby Sensor (custom)',
     new_install_prompt_erase: true,
-    builds: [{ chipFamily: 'ESP8266', parts: [{ path: binUrl, offset: 0 }] }],
+    builds: [{ chipFamily: BOARD_CHIP_FAMILY[currentBoard] || 'ESP8266', parts: [{ path: binUrl, offset: 0 }] }],
   };
   const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
   manualUrl = URL.createObjectURL(manifestBlob);

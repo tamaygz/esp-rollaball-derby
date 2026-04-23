@@ -1,9 +1,10 @@
-# Build the ESP8266 sensor firmware and publish a GitHub Release.
+# Build the sensor firmware (ESP8266 + ESP32) and publish a GitHub Release.
 # Triggered manually from the Actions tab — no automatic push/tag triggers.
 # Choose the source branch and the release tag (default: "latest").
-# Two board targets are built:
+# Three board targets are built:
 #   firmware-wemos-d1-mini.zip  — Wemos D1 Mini
 #   firmware-nodemcu-v3.zip     — NodeMCU v3 (nodemcuv2 board ID in PlatformIO)
+#   firmware-esp32-devkit.zip   — ESP32 DevKit (esp32dev board ID in PlatformIO)
 # A raw firmware.bin (Wemos D1 Mini) is also attached so the ESP Web Tools
 # manifest URL continues to work without change.
 
@@ -63,6 +64,11 @@ jobs:
           (cd clients/esp8266-sensor/.pio/build/nodemcuv2 && \
             zip -j "$GITHUB_WORKSPACE/dist/firmware-nodemcu-v3.zip" firmware.bin)
 
+          # --- ESP32 DevKit ---
+          cp clients/esp8266-sensor/.pio/build/esp32dev/firmware.bin dist/firmware-esp32dev.bin
+          (cd clients/esp8266-sensor/.pio/build/esp32dev && \
+            zip -j "$GITHUB_WORKSPACE/dist/firmware-esp32-devkit.zip" firmware.bin)
+
       - name: Upload firmware artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -95,13 +101,13 @@ jobs:
           # Use exit code to detect whether the release already exists.
           # If gh release view exits 0 the release exists → upload/clobber.
           # Any non-zero exit means it doesn't exist yet → create it.
-          ASSETS="dist/firmware.bin dist/firmware-wemos-d1-mini.zip dist/firmware-nodemcu-v3.zip"
+          ASSETS="dist/firmware.bin dist/firmware-wemos-d1-mini.zip dist/firmware-nodemcu-v3.zip dist/firmware-esp32dev.bin dist/firmware-esp32-devkit.zip"
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" $ASSETS --clobber
           else
             gh release create "$TAG" $ASSETS \
               --title "Sensor Firmware $TAG" \
-              --notes $'Pre-compiled ESP8266 sensor firmware for the Roll-a-Ball Derby sensor node.\n\n| File | Board |\n|------|-------|\n| `firmware-wemos-d1-mini.zip` | Wemos D1 Mini |\n| `firmware-nodemcu-v3.zip` | NodeMCU v3 |\n| `firmware.bin` | Wemos D1 Mini (raw binary for ESP Web Tools flasher) |\n\n**Flash without any toolchain**: open `http://localhost:3000/flash-sensor` in Chrome or Edge (on the same machine as the server), plug in the device via USB, and click *Install*.'
+              --notes $'Pre-compiled sensor firmware for the Roll-a-Ball Derby sensor node.\n\n| File | Board |\n|------|-------|\n| `firmware-wemos-d1-mini.zip` | Wemos D1 Mini |\n| `firmware-nodemcu-v3.zip` | NodeMCU v3 |\n| `firmware-esp32-devkit.zip` | ESP32 DevKit |\n| `firmware.bin` | Wemos D1 Mini (raw binary for ESP Web Tools flasher) |\n| `firmware-esp32dev.bin` | ESP32 DevKit (raw binary for ESP Web Tools flasher) |\n\n**Flash without any toolchain**: open `http://localhost:3000/flash-sensor` in Chrome or Edge (on the same machine as the server), plug in the device via USB, and click *Install*.'
           fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

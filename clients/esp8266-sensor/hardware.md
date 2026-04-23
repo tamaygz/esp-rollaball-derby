@@ -1,8 +1,8 @@
-# Roll-a-Ball Derby — ESP8266 Sensor Node Hardware Guide
+# Roll-a-Ball Derby — Sensor Node Hardware Guide (ESP8266 + ESP32)
 
 ## Overview
 
-The ESP8266 Sensor Node detects balls passing through scoring holes using IR photodiodes and transmits score events to the game server via WebSocket. This document covers hardware requirements, wiring diagrams, and pin configurations for all supported ESP8266 board variants.
+The sensor node detects balls passing through scoring holes using IR photodiodes and transmits score events to the game server via WebSocket. This document covers hardware requirements, wiring diagrams, and pin configurations for supported ESP8266 and ESP32 board variants.
 
 ## Supported Board Configurations
 
@@ -21,15 +21,20 @@ The ESP8266 Sensor Node detects balls passing through scoring holes using IR pho
 - **PlatformIO Board ID**: `nodemcuv2`
 - **Notes**: v3 hardware identical to v2, different USB chip only
 
+### ESP32 DevKit (ESP32-WROOM)
+- **Chip**: ESP32 dual-core
+- **Flash**: 4MB (typical)
+- **USB**: CP210x/CH340 (varies by board vendor)
+- **PlatformIO Board ID**: `esp32dev`
+
 ## Pin Configuration Summary
 
-| Function | GPIO | D1 Mini Pin | NodeMCU Pin | Notes |
-|----------|------|-------------|-------------|-------|
-| +1 Sensor | GPIO5 | D1 | D1 | IR photodiode (+1 points) |
-| +2 Sensor | GPIO14 | D5 | D5 | IR photodiode (+2 points) |  
-| +3 Sensor | GPIO4 | D2 | D2 | IR photodiode (+3 points) |
-| Status LED | GPIO2 | D4/LED_BUILTIN | D4 | WS2812B strip (optional) |
-| Built-in LED | GPIO2 | LED_BUILTIN | LED_BUILTIN | Onboard blue LED |
+| Function | ESP8266 GPIO / Pin | ESP32 GPIO | Notes |
+|----------|---------------------|------------|-------|
+| +1 Sensor | GPIO5 / D1 | GPIO25 | IR photodiode (+1 points) |
+| +2 Sensor | GPIO14 / D5 | GPIO26 | IR photodiode (+2 points) |
+| +3 Sensor | GPIO4 / D2 | GPIO27 | IR photodiode (+3 points) |
+| LED Data | GPIO2 / D4 | GPIO2 | WS2812B strip (optional) |
 
 **Pin Mapping Reference**:
 - D1 Mini and NodeMCU use the same GPIO numbering
@@ -177,6 +182,7 @@ LED Strip DIN── Level Shifter HV1
 
 ### Power Consumption Analysis
 - **ESP8266**: 80mA @ 3.3V (typical WiFi usage)
+- **ESP32**: 120mA @ 3.3V (typical WiFi usage)
 - **IR Photodiodes**: <1mA each @ 3.3V (3× photodiodes = <3mA)
 - **Pull-up resistors**: ~0.3mA each when activated (3× resistors = ~1mA)
 - **LED Strip**: 60mA per LED @ 5V (full white brightness)
