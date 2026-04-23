@@ -66,7 +66,7 @@ void WSClient::_sendRegister() {
     payload["ledCount"] = _ledMetadataCount;
     payload["chipType"] = derbyChipType();
     // Unique hardware identifier for persistent color assignment
-    char chipIdBuf[17];
+    char chipIdBuf[DERBY_CHIP_ID_HEX_MAX_LEN];
     derbyChipIdHex(chipIdBuf, sizeof(chipIdBuf));
     payload["chipId"] = chipIdBuf;
     JsonObject ledCaps = payload["ledCapabilities"].to<JsonObject>();
