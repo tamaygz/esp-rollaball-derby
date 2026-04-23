@@ -24,8 +24,10 @@ inline uint16_t derbyChipSuffix16() {
 inline void derbyChipIdHex(char* out, size_t outSize) {
     if (!out || outSize == 0) return;
 #if defined(ESP8266)
+    if (outSize < 9) return;  // 8 hex chars + null terminator
     snprintf(out, outSize, "%08X", ESP.getChipId());
 #elif defined(ESP32)
+    if (outSize < 13) return; // 12 hex chars + null terminator
     uint64_t id = ESP.getEfuseMac();
     snprintf(out, outSize, "%04X%08X",
              static_cast<uint16_t>((id >> 32) & 0xFFFF),

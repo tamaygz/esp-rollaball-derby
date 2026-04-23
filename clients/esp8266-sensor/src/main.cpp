@@ -173,7 +173,10 @@ static void loadState() {
         const int bri   = doc["led_brightness"] | static_cast<int>(LED_DEFAULT_BRIGHTNESS);
 
         // Validate / clamp to safe ranges — corrupted state must not brick LEDs.
-        if (count < 1 || count > LED_PLATFORM_MAX_LEDS || pin < 0 || pin > LED_GPIO_MAX || bri < 0 || bri > 255) {
+        const bool isCountValid      = (count >= 1 && count <= LED_PLATFORM_MAX_LEDS);
+        const bool isPinValid        = (pin >= 0 && pin <= LED_GPIO_MAX);
+        const bool isBrightnessValid = (bri >= 0 && bri <= 255);
+        if (!isCountValid || !isPinValid || !isBrightnessValid) {
             Serial.println("[STATE] LED config out of range — ignoring saved values");
         } else {
             g_savedLedConfig.ledCount   = static_cast<uint16_t>(count);

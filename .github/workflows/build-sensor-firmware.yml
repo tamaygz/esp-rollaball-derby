@@ -43,6 +43,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install PlatformIO
+        # esptool.py requires intelhex when generating ESP32 bootloader/bin assets.
         run: pip install platformio intelhex
 
       - name: Build firmware (all board targets)
