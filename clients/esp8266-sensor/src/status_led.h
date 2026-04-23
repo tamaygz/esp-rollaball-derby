@@ -121,8 +121,8 @@ private:
 #  else
         digitalWrite(PIN_STATUS_LED, on ? HIGH : LOW);
 #  endif
+#else
+        (void)on;  // ESP8266: UART1 owns GPIO2; explicit control disabled
 #endif
-        // ESP8266 never reaches here (_active is always false).
-        (void)on;
     }
 };

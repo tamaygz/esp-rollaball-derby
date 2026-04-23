@@ -46,7 +46,7 @@
 // panel gpioPin setting), StatusLed detects the conflict at runtime and falls
 // back to the side-effect mode automatically.
 #if defined(ESP8266)
-#  define PIN_STATUS_LED  PIN_LED   // GPIO2 — side-effect mode only (UART1 owns pin)
+#  define PIN_STATUS_LED  2         // GPIO2 — same as PIN_LED; UART1 owns this pin (side-effect mode only)
 #  define STATUS_LED_ACTIVE_LOW  true
 #elif defined(ESP32)
 #  define PIN_STATUS_LED  2         // GPIO2 — onboard blue LED on most DevKit boards
