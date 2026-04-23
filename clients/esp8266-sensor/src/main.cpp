@@ -18,12 +18,14 @@
 #include "websocket.h"
 #include "sensors.h"
 #include "led.h"
+#include "status_led.h"
 #include "device_info.h"
 
 // ─── Global Instances ─────────────────────────────────────────────────────────
 static WSClient        wsClient;
 static Sensors         sensors;
 static LedManager      ledManager;
+static StatusLed       statusLed;
 #if defined(ESP8266)
 using DerbyWebServer = ESP8266WebServer;
 #else
@@ -436,10 +438,12 @@ void setup() {
     if (g_hasLedConfig) {
         ledManager.begin(g_savedLedConfig);
         wsClient.setLedMetadata(g_savedLedConfig.ledCount);
+        statusLed.begin(g_savedLedConfig.pin);
         Serial.println("[BOOT] Using saved LED config from previous session");
     } else {
         ledManager.begin(ledConfigDefaults());
         wsClient.setLedMetadata(LED_DEFAULT_COUNT);
+        statusLed.begin(LED_DEFAULT_PIN);
     }
 
     // ─── Serial Pre-Configure Window ──────────────────────────────────────────
@@ -539,6 +543,7 @@ static bool s_wifiWasConnected = false;
 
 void loop() {
     ledManager.loop();
+    statusLed.loop();
 
     bool wifiOk = (WiFi.status() == WL_CONNECTED);
 
@@ -594,6 +599,7 @@ void loop() {
     if (wsClient.pollLedConfig(pendingCfg)) {
         ledManager.applyConfig(pendingCfg);
         wsClient.setLedMetadata(pendingCfg.ledCount);
+        statusLed.setStripPin(pendingCfg.pin);
         // Persist the LED config so next boot starts with the correct setup.
         g_savedLedConfig = pendingCfg;
         g_hasLedConfig   = true;
@@ -616,12 +622,12 @@ void loop() {
         // Global events: all devices react (countdown, lifecycle, winner).
         bool winnerEvent = false;
         switch (gev) {
-            case GlobalEventType::COUNTDOWN_TICK: ledManager.onGlobalEvent(gev); break;
-            case GlobalEventType::GAME_STARTED:   ledManager.onGlobalEvent(gev); break;
+            case GlobalEventType::COUNTDOWN_TICK: ledManager.onGlobalEvent(gev); statusLed.blink(600); break;
+            case GlobalEventType::GAME_STARTED:   ledManager.onGlobalEvent(gev); statusLed.blink(500); break;
             case GlobalEventType::GAME_PAUSED:    ledManager.onGlobalEvent(gev); break;
-            case GlobalEventType::GAME_RESUMED:   ledManager.onGlobalEvent(gev); break;
+            case GlobalEventType::GAME_RESUMED:   ledManager.onGlobalEvent(gev); statusLed.blink(300); break;
             case GlobalEventType::GAME_RESET:     ledManager.onGlobalEvent(gev); break;
-            case GlobalEventType::WINNER_SELF:    ledManager.onGlobalEvent(gev); winnerEvent = true; break;
+            case GlobalEventType::WINNER_SELF:    ledManager.onGlobalEvent(gev); statusLed.blink(1000); winnerEvent = true; break;
             case GlobalEventType::WINNER_OTHER:   ledManager.onGlobalEvent(gev); winnerEvent = true; break;
             default: break;
         }
@@ -631,14 +637,14 @@ void loop() {
         // WS batch and would immediately overwrite the rainbow/pulse effect.
         if (winnerEvent) lev = LocalEventType::NONE;
         switch (lev) {
-            case LocalEventType::SCORE_PLUS1:   ledManager.onLocalEvent(lev); break;
-            case LocalEventType::SCORE_PLUS2:   ledManager.onLocalEvent(lev); break;
-            case LocalEventType::SCORE_PLUS3:   ledManager.onLocalEvent(lev); break;
+            case LocalEventType::SCORE_PLUS1:   ledManager.onLocalEvent(lev); statusLed.blink(200); break;
+            case LocalEventType::SCORE_PLUS2:   ledManager.onLocalEvent(lev); statusLed.blink(200); break;
+            case LocalEventType::SCORE_PLUS3:   ledManager.onLocalEvent(lev); statusLed.blink(300); break;
             case LocalEventType::ZERO_ROLL:     ledManager.onLocalEvent(lev); break;
-            case LocalEventType::TOOK_LEAD:     ledManager.onLocalEvent(lev); break;
+            case LocalEventType::TOOK_LEAD:     ledManager.onLocalEvent(lev); statusLed.blink(400); break;
             case LocalEventType::BECAME_LAST:   ledManager.onLocalEvent(lev); break;
             case LocalEventType::STREAK_ZERO:   ledManager.onLocalEvent(lev); break;
-            case LocalEventType::STREAK_THREE:  ledManager.onLocalEvent(lev); break;
+            case LocalEventType::STREAK_THREE:  ledManager.onLocalEvent(lev); statusLed.blink(400); break;
             default: break;
         }
 

@@ -34,7 +34,8 @@ The sensor node detects balls passing through scoring holes using IR photodiodes
 | +1 Sensor | GPIO5 / D1 | GPIO25 | IR photodiode (+1 points) |
 | +2 Sensor | GPIO14 / D5 | GPIO26 | IR photodiode (+2 points) |
 | +3 Sensor | GPIO4 / D2 | GPIO27 | IR photodiode (+3 points) |
-| LED Data | GPIO2 / D4 | GPIO2 | WS2812B strip (optional) |
+| LED Data | GPIO2 / D4 | **GPIO4** | WS2812B strip data (optional) |
+| Status LED | GPIO2 / D4 | GPIO2 | Onboard LED — blinks on game events |
 
 **Pin Mapping Reference**:
 - D1 Mini and NodeMCU use the same GPIO numbering
@@ -58,8 +59,14 @@ The sensor node detects balls passing through scoring holes using IR photodiodes
 - **Type**: WS2812B addressable LED strip
 - **Default count**: 30 LEDs (configurable)
 - **Power**: 5V DC (separate supply for >10 LEDs)
-- **Data pin**: GPIO2 (D4)
+- **Data pin**: GPIO2 (D4) on ESP8266 · **GPIO4** on ESP32
 - **Purpose**: Visual feedback and game state indication
+
+> **ESP32 note:** The default data pin was changed from GPIO2 to GPIO4 so that
+> GPIO2 (the DevKit onboard LED) can be used as an explicit secondary status
+> indicator. If you must use GPIO2 for the strip, push `gpioPin: 2` via the
+> admin panel — the status LED will fall back gracefully to the UART1
+> side-effect mode (always-on between frames, same as ESP8266).
 
 ### 3. Power Supply
 - **USB**: 5V from USB port (500mA typical)
@@ -308,7 +315,8 @@ Edit `src/config.h` to customize:
 #define PIN_SENSOR_1  5     // +1 point photodiode (D1)
 #define PIN_SENSOR_2  14    // +2 point photodiode (D5)  
 #define PIN_SENSOR_3  4     // +3 point photodiode (D2)
-#define PIN_LED       2     // LED strip data (D4)
+#define PIN_LED       2     // ESP8266: LED strip data (D4)
+                            // ESP32:   LED strip data (GPIO4 default)
 #define DEBOUNCE_MS   500   // Sensor debounce time
 ```
 

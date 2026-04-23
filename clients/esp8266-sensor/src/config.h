@@ -19,12 +19,38 @@
 #define PIN_SENSOR_1  25          // GPIO25 → +1 hole IR break-beam
 #define PIN_SENSOR_2  26          // GPIO26 → +2 hole IR break-beam
 #define PIN_SENSOR_3  27          // GPIO27 → +3 hole IR break-beam
-#define PIN_LED       2           // GPIO2   → WS2812B LED strip
+// GPIO4 is the default WS2812B data pin on ESP32.
+// GPIO2 is kept free for the onboard status LED (see PIN_STATUS_LED below).
+#define PIN_LED       4           // GPIO4   → WS2812B LED strip
 #define LED_CAPABILITIES_METHOD "RMT"
 #define LED_PLATFORM_MAX_LEDS   1000
 #define LED_GPIO_MAX            39
 #else
 #error "Unsupported board: define ESP8266 or ESP32 target"
+#endif
+
+// ─── Onboard Status LED ───────────────────────────────────────────────────────
+// Secondary visual indicator that blinks during game events.
+//
+// On ESP8266 (D1 Mini / NodeMCU): the WS2812B strip uses UART1 on GPIO2 in
+// inverted mode, which idles the pin LOW — the active-LOW onboard LED therefore
+// stays ON between frames.  This produces a natural status-LED effect with no
+// extra code.  PIN_STATUS_LED equals PIN_LED to signal that explicit GPIO
+// control must be skipped (it would conflict with the UART1 peripheral).
+//
+// On ESP32 DevKit: GPIO2 (the onboard LED, active-HIGH) is kept free from the
+// WS2812B strip (which defaults to GPIO4).  StatusLed drives GPIO2 explicitly,
+// producing a visible blink during countdown ticks and scoring events.
+//
+// If you move the WS2812B strip back to GPIO2 on ESP32 (e.g. via the admin
+// panel gpioPin setting), StatusLed detects the conflict at runtime and falls
+// back to the side-effect mode automatically.
+#if defined(ESP8266)
+#  define PIN_STATUS_LED  PIN_LED   // GPIO2 — side-effect mode only (UART1 owns pin)
+#  define STATUS_LED_ACTIVE_LOW  true
+#elif defined(ESP32)
+#  define PIN_STATUS_LED  2         // GPIO2 — onboard blue LED on most DevKit boards
+#  define STATUS_LED_ACTIVE_LOW  false
 #endif
 
 // ─── Sensor Debounce ──────────────────────────────────────────────────────────
