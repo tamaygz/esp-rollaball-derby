@@ -303,20 +303,36 @@ static bool discoverServer(String& host, uint16_t& port) {
     // Pick the first result on the same subnet as the ESP32's WiFi interface.
     // Windows hosts can advertise mDNS from multiple adapters (e.g. WSL2 bridge),
     // so we must reject IPs that are unreachable from the sensor's subnet.
-    IPAddress localNet = WiFi.localIP();
-    IPAddress mask     = WiFi.subnetMask();
-    uint32_t myNet     = (uint32_t)localNet & (uint32_t)mask;
+    IPAddress localIp = WiFi.localIP();
+    IPAddress mask    = WiFi.subnetMask();
+
+    // On ESP32, subnetMask() can return 0.0.0.0 immediately after connect while
+    // DHCP is still settling. Fall back to /24 — covers virtually all home/office
+    // networks and is enough to distinguish 192.168.x.x from 172.x.x.x.
+    if ((uint32_t)mask == 0) {
+        mask = IPAddress(255, 255, 255, 0);
+        Serial.printf("[mDNS] Subnet mask not ready — assuming /24 (local IP: %s)\n",
+                      localIp.toString().c_str());
+    }
+
+    uint32_t myNet = (uint32_t)localIp & (uint32_t)mask;
+    Serial.printf("[mDNS] Local: %s  mask: %s  net: %d.%d.%d.%d  candidates: %d\n",
+                  localIp.toString().c_str(), mask.toString().c_str(),
+                  (myNet >> 24) & 0xFF, (myNet >> 16) & 0xFF,
+                  (myNet >> 8) & 0xFF, myNet & 0xFF, n);
 
     for (int i = 0; i < n; i++) {
         IPAddress candidate = MDNS.IP(i);
-        if (((uint32_t)candidate & (uint32_t)mask) == myNet) {
+        uint32_t candNet    = (uint32_t)candidate & (uint32_t)mask;
+        Serial.printf("[mDNS] Candidate[%d]: %s  net match: %s\n",
+                      i, candidate.toString().c_str(),
+                      candNet == myNet ? "YES" : "NO");
+        if (candNet == myNet) {
             host = candidate.toString();
             port = MDNS.port(i);
-            Serial.printf("[mDNS] Found server at %s:%u\n", host.c_str(), port);
+            Serial.printf("[mDNS] Selected server at %s:%u\n", host.c_str(), port);
             return true;
         }
-        Serial.printf("[mDNS] Skipping %s — not on local subnet\n",
-                      candidate.toString().c_str());
     }
 
     Serial.println("[mDNS] No same-subnet server found — falling back to config");
