@@ -517,7 +517,9 @@ void loop() {
         }
     }
 
+#if defined(ESP8266)
     MDNS.update();
+#endif
     httpServer.handleClient();
 
     // Reboot after the HTTP response has been flushed (flagged by handleHttpConfig).

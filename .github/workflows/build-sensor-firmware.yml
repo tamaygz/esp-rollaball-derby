@@ -43,7 +43,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install PlatformIO
-        run: pip install platformio
+        run: pip install platformio intelhex
 
       - name: Build firmware (all board targets)
         run: |
