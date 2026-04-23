@@ -4,7 +4,7 @@
 // This header abstracts platform-specific LED control methods.
 
 #include <NeoPixelBus.h>
-#include <NeoPixelBrightnessBus.h>
+#include <NeoPixelBusLg.h>
 
 // ─── Platform Detection ───────────────────────────────────────────────────────
 #if defined(ESP8266)
@@ -21,9 +21,9 @@
     using LedMethodUart1 = NeoEsp8266Uart1800KbpsMethod;
     using LedMethodDma   = NeoEsp8266Dma800KbpsMethod;
 
-    // NeoPixelBrightnessBus adds SetBrightness() used by MatrixDisplay.
-    using LedStripUart1 = NeoPixelBrightnessBus<NeoGrbFeature, LedMethodUart1>;
-    using LedStripDma   = NeoPixelBrightnessBus<NeoGrbFeature, LedMethodDma>;
+    // NeoPixelBusLg provides luminance control used by MatrixDisplay.
+    using LedStripUart1 = NeoPixelBusLg<NeoGrbFeature, LedMethodUart1, NeoGammaNullMethod>;
+    using LedStripDma   = NeoPixelBusLg<NeoGrbFeature, LedMethodDma, NeoGammaNullMethod>;
 
     // Default method alias (used by ESP32 path where only one type exists)
     using LedMethod = LedMethodUart1;
@@ -38,9 +38,9 @@
     
     // Use RMT channel 0 for rock-solid timing with WiFi active.
     // ESP32 has 8 RMT channels; channel 0 is safe for most applications.
-    // NeoPixelBrightnessBus is a drop-in superset of NeoPixelBus that adds SetBrightness().
+    // NeoPixelBusLg provides luminance control for brightness adjustment.
     using LedMethod = NeoEsp32Rmt0Ws2812xMethod;
-    using LedStrip  = NeoPixelBrightnessBus<NeoGrbFeature, LedMethod>;
+    using LedStrip  = NeoPixelBusLg<NeoGrbFeature, LedMethod, NeoGammaNullMethod>;
 
 #else
     #error "Unsupported platform. This code requires ESP8266 or ESP32."
