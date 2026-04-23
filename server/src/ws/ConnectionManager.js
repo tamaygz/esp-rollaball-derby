@@ -554,10 +554,11 @@ class ConnectionManager {
       }
     }
 
-    // Assign device color
+    // Assign device color — pass currently-held colors so no two players share a color
     let colorIndex = 0;
     if (this.ledConfigManager) {
-      colorIndex = this.ledConfigManager.assignColor(deviceChipIdForName);
+      const activeColors = new Set([...this.gameState.players.values()].map((p) => p.colorIndex));
+      colorIndex = this.ledConfigManager.assignColor(deviceChipIdForName, activeColors);
     }
 
     if (type !== 'display') {

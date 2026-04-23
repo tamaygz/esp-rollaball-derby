@@ -251,6 +251,20 @@ class GameState {
     return player;
   }
 
+  /**
+   * Returns the lowest colorIndex (0–15) not currently held by any player.
+   * Used to ensure new players and bots always receive a unique colour.
+   * @returns {number}
+   */
+  nextFreeColorIndex() {
+    const used = new Set([...this.players.values()].map((p) => p.colorIndex));
+    for (let i = 0; i < 16; i++) {
+      if (!used.has(i)) return i;
+    }
+    // More than 16 players — wrap
+    return this.players.size % 16;
+  }
+
   // ─── Scoring ──────────────────────────────────────────────────────────────
 
   score(playerId, points) {

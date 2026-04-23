@@ -248,29 +248,34 @@ class LedConfigManager extends EventEmitter {
    * Assign a color to a device (or web client).
    *
    * For devices with a chipId: looks up the persisted mapping first. If the
-   * chipId is unknown, picks the lowest unused colorIndex and persists it.
+   * persisted color is currently held by another active player, falls through
+   * to pick a free one.  Unknown chipIds are assigned the lowest free index.
    *
-   * For web clients (chipId is null/undefined): picks the lowest colorIndex
-   * not currently claimed by any persisted device.
+   * For web/bot clients (chipId is null/undefined): picks the lowest colorIndex
+   * not claimed by any persisted device or currently active player.
    *
-   * @param {string|null} chipId  The ESP chipId hex string, or null for web clients.
+   * @param {string|null}  chipId       The ESP chipId hex string, or null for web/bot clients.
+   * @param {Set<number>} [alreadyUsed] colorIndex values held by currently active players.
    * @returns {number} colorIndex 0 … PALETTE_SIZE-1
    */
-  assignColor(chipId) {
+  assignColor(chipId, alreadyUsed = new Set()) {
     const map = this.getDeviceColorMap();
 
-    // Known device → return persisted color
+    // Known device → return persisted color if not currently held by another player
     if (chipId && map[chipId] !== undefined) {
-      return map[chipId];
+      if (!alreadyUsed.has(map[chipId])) {
+        return map[chipId];
+      }
+      // Persisted color is taken — fall through to pick a different one
     }
 
-    // Collect indices already claimed by persisted devices
+    // Collect indices claimed by persisted devices OR currently active players
     const usedByDevices = new Set(Object.values(map));
+    const used = new Set([...usedByDevices, ...alreadyUsed]);
 
     // Pick lowest unused index
     for (let i = 0; i < PALETTE_SIZE; i++) {
-      if (!usedByDevices.has(i)) {
-        // Persist for hardware devices, not for web clients
+      if (!used.has(i)) {
         if (chipId) {
           map[chipId] = i;
           this._persistDeviceColorMap(map);
@@ -279,7 +284,18 @@ class LedConfigManager extends EventEmitter {
       }
     }
 
-    // All slots occupied — wrap with modulo (RISK-002)
+    // All device+active slots occupied — try at least something not in alreadyUsed
+    for (let i = 0; i < PALETTE_SIZE; i++) {
+      if (!alreadyUsed.has(i)) {
+        if (chipId) {
+          map[chipId] = i;
+          this._persistDeviceColorMap(map);
+        }
+        return i;
+      }
+    }
+
+    // Truly exhausted (more players than palette) — wrap with modulo (RISK-002)
     const fallback = Object.keys(map).length % PALETTE_SIZE;
     if (chipId) {
       map[chipId] = fallback;
