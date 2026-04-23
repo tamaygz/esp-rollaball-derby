@@ -1,0 +1,15 @@
+{
+  "name": "Derby Motor (ESP32-S3 — bundled)",
+  "new_install_prompt_erase": true,
+  "builds": [
+    {
+      "chipFamily": "ESP32-S3",
+      "parts": [
+        {
+          "path": "./firmware-motor-esp32-s3.bin",
+          "offset": 0
+        }
+      ]
+    }
+  ]
+}
