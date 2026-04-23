@@ -7,7 +7,11 @@
 #define PIN_SENSOR_2  14          // D5 → GPIO14 → +2 hole IR break-beam
 #define PIN_SENSOR_3  4           // D2 → GPIO4  → +3 hole IR break-beam
 #define PIN_LED       2           // GPIO2 (D4 / TX1) → WS2812B LED strip
+#if PIN_LED == 3
 #define LED_CAPABILITIES_METHOD "DMA"
+#else
+#define LED_CAPABILITIES_METHOD "UART1"
+#endif
 #define LED_PLATFORM_MAX_LEDS   300
 #define LED_GPIO_MAX            16
 #elif defined(ESP32)
