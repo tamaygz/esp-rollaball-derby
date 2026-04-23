@@ -295,14 +295,31 @@ static bool discoverServer(String& host, uint16_t& port) {
 
     Serial.println("[mDNS] Querying for _derby._tcp ...");
     int n = MDNS.queryService("derby", "tcp");
-    if (n > 0) {
-        host = MDNS.IP(0).toString();
-        port = MDNS.port(0);
-        Serial.printf("[mDNS] Found server at %s:%u\n", host.c_str(), port);
-        return true;
+    if (n <= 0) {
+        Serial.println("[mDNS] No server found — falling back to config");
+        return false;
     }
 
-    Serial.println("[mDNS] No server found — falling back to config");
+    // Pick the first result on the same subnet as the ESP32's WiFi interface.
+    // Windows hosts can advertise mDNS from multiple adapters (e.g. WSL2 bridge),
+    // so we must reject IPs that are unreachable from the sensor's subnet.
+    IPAddress localNet = WiFi.localIP();
+    IPAddress mask     = WiFi.subnetMask();
+    uint32_t myNet     = (uint32_t)localNet & (uint32_t)mask;
+
+    for (int i = 0; i < n; i++) {
+        IPAddress candidate = MDNS.IP(i);
+        if (((uint32_t)candidate & (uint32_t)mask) == myNet) {
+            host = candidate.toString();
+            port = MDNS.port(i);
+            Serial.printf("[mDNS] Found server at %s:%u\n", host.c_str(), port);
+            return true;
+        }
+        Serial.printf("[mDNS] Skipping %s — not on local subnet\n",
+                      candidate.toString().c_str());
+    }
+
+    Serial.println("[mDNS] No same-subnet server found — falling back to config");
     return false;
 }
 
