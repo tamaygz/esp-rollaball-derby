@@ -24,6 +24,7 @@
 
       --horse-green: #4CAF50;
       --camel-amber: #FF8F00;
+      --reef-teal:   #00B5D8;
     }
 
     html { scroll-behavior: smooth; }
@@ -133,6 +134,7 @@
     }
     .badge-horse  { background: rgba(76,175,80,0.15);  color: #81C784; border: 1px solid rgba(76,175,80,0.3); }
     .badge-camel  { background: rgba(255,143,0,0.15);  color: #FFB300; border: 1px solid rgba(255,143,0,0.3); }
+    .badge-reef   { background: rgba(0,181,216,0.15);  color: #00D4F0; border: 1px solid rgba(0,181,216,0.3); }
     .badge-shared { background: rgba(212,175,55,0.12); color: var(--gold); border: 1px solid var(--gold-dim); }
 
     /* ── Race Track Demo ──────────────────────────────────────── */
@@ -352,11 +354,12 @@
   <header>
     <p class="eyebrow">Visual Asset Catalog · v1.0</p>
     <h1>Roll-a-Ball Derby</h1>
-    <p class="subtitle">2 themes · 8 sprites each · 16 player colours · Pixi.js tint-ready</p>
+    <p class="subtitle">3 themes · octopus/horse/camel · 16 player colours · Pixi.js tint-ready</p>
     <div class="rule"></div>
     <nav>
       <a href="#horse">Horse / Greenlands</a>
       <a href="#camel">Camel / Desert</a>
+      <a href="#reef">Reef / Ocean</a>
       <a href="#shared">Shared Assets</a>
       <a href="#usage">Usage Notes</a>
     </nav>
@@ -472,8 +475,57 @@
     </section>
 
 
-    <!-- ══════════════════════════════════════════════════════════
-         SHARED ASSETS
+    <!-- ══════════════════════════════════════════════════════════         REEF THEME
+    ═══════════════════════════════════════════════════════ -->
+    <section id="reef">
+      <div class="section-header">
+        <h2>Reef Race</h2>
+        <span class="theme-badge badge-reef">Ocean</span>
+      </div>
+
+      <div class="track-demo">
+        <span class="track-label">Live track preview — animated</span>
+        <div class="track-strip" id="reefTrack">
+          <img class="bg" src="../reef/track-bg.svg" alt="Reef track background"/>
+          <img class="finish" src="../reef/finish-flag.svg" alt="Finish flag"/>
+        </div>
+      </div>
+
+      <div class="assets-row">
+        <div class="asset-card">
+          <div class="asset-card-header">
+            Sprite · white/tintable
+            <code>reef/sprite.svg</code>
+          </div>
+          <div class="sprite-grid" id="reefSwatches">
+            <div class="loading-msg">Loading…</div>
+          </div>
+        </div>
+
+        <div class="asset-card">
+          <div class="asset-card-header">
+            Track background
+            <code>reef/track-bg.svg</code>
+          </div>
+          <div class="asset-preview" style="padding:0; min-height:130px;">
+            <img src="../reef/track-bg.svg" alt="Reef track bg" style="width:100%;height:130px;object-fit:cover;display:block;"/>
+          </div>
+        </div>
+
+        <div class="asset-card">
+          <div class="asset-card-header">
+            Finish flag
+            <code>reef/finish-flag.svg</code>
+          </div>
+          <div class="asset-preview" style="background:#062A4F;">
+            <img src="../reef/finish-flag.svg" alt="Reef finish flag" style="height:80px;width:auto;"/>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ═══════════════════════════════════════════════════════         SHARED ASSETS
     ══════════════════════════════════════════════════════════════ -->
     <section id="shared">
       <div class="section-header">
@@ -547,8 +599,8 @@
   </main>
 
   <footer>
-    Roll-a-Ball Derby · Asset Catalog · Generated 2026-04-07
-    &nbsp;·&nbsp; All sprites white/tintable for Pixi.js &nbsp;·&nbsp; viewBox: horse 100×72 | camel 112×84
+    Roll-a-Ball Derby · Asset Catalog · Generated 2026-04-23
+    &nbsp;·&nbsp; All sprites white/tintable for Pixi.js &nbsp;·&nbsp; viewBox: horse 100×72 | camel 112×84 | reef 80×80
   </footer>
 
 
@@ -665,8 +717,10 @@
       await Promise.all([
         buildSpriteSwatches('horseSwatches', '../horse/sprite.svg'),
         buildSpriteSwatches('camelSwatches', '../camel/sprite.svg'),
+        buildSpriteSwatches('reefSwatches',  '../reef/sprite.svg'),
         buildTrackRunners('horseTrack', '../horse/sprite.svg', 3, ['0s', '-1.8s', '-3.2s']),
         buildTrackRunners('camelTrack', '../camel/sprite.svg', 3, ['0s', '-2s',   '-3.6s']),
+        buildTrackRunners('reefTrack',  '../reef/sprite.svg',  3, ['0s', '-1.6s', '-3.4s']),
       ]);
     })();
   </script>

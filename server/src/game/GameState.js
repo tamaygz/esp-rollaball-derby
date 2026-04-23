@@ -3,7 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const CONCRETE_THEMES = ['horse', 'camel'];
+const CONCRETE_THEMES = ['horse', 'camel', 'reef'];
 const VALID_THEMES = [...CONCRETE_THEMES, 'auto'];
 const RATE_LIMIT_MS = 300;
 const STREAK_ZERO_THRESHOLD  = 3;  // consecutive zeros to trigger streak_zero_3x

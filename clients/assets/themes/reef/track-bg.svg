@@ -1,0 +1,176 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 100" width="2400" height="300" preserveAspectRatio="xMidYMid slice">
+  <!--
+    Underwater Reef — Race Track Lane Background
+    Layers: deep-ocean water gradient · distant reef silhouette · sandy floor ·
+            coral/seaweed/bubble decorations scattered along the strip.
+    Cool palette: deep navy at top → teal mid → sandy amber at floor.
+  -->
+  <defs>
+    <linearGradient id="rWater" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#062A4F"/>
+      <stop offset="40%"  stop-color="#0B4F72"/>
+      <stop offset="75%"  stop-color="#1A7A8A"/>
+      <stop offset="100%" stop-color="#1A8A5A"/>
+    </linearGradient>
+    <linearGradient id="rSand" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#C4A45A"/>
+      <stop offset="60%"  stop-color="#A07840"/>
+      <stop offset="100%" stop-color="#7A5A28"/>
+    </linearGradient>
+    <linearGradient id="rReefFar" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#0A4A5A"/>
+      <stop offset="100%" stop-color="#063545"/>
+    </linearGradient>
+    <radialGradient id="rBubble" cx="50%" cy="50%" r="50%">
+      <stop offset="0%"   stop-color="#AADDFF" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#AADDFF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="rLight" cx="50%" cy="0%" r="80%">
+      <stop offset="0%"   stop-color="#4FC3F7" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#4FC3F7" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- ── Water fill ────────────────────────────────────────────── -->
+  <rect width="800" height="100" fill="url(#rWater)"/>
+
+  <!-- ── Caustic light shafts from surface (subtle) ───────────── -->
+  <rect width="800" height="100" fill="url(#rLight)"/>
+  <!-- Light shaft diagonals -->
+  <polygon points="120,0 140,0 110,60 90,60"  fill="#7ECEF4" opacity="0.06"/>
+  <polygon points="310,0 328,0 300,55 282,55"  fill="#7ECEF4" opacity="0.05"/>
+  <polygon points="520,0 538,0 510,65 492,65"  fill="#7ECEF4" opacity="0.05"/>
+  <polygon points="680,0 698,0 670,60 652,60"  fill="#7ECEF4" opacity="0.06"/>
+
+  <!-- ── Distant reef silhouette (back layer) ──────────────────── -->
+  <path d="M0,52
+    Q40,38 90,44 Q120,34 160,42 Q200,30 250,40
+    Q290,26 340,38 Q380,28 430,38
+    Q470,24 530,36 Q570,28 620,38
+    Q660,24 720,36 Q760,30 800,40
+    L800,100 L0,100 Z"
+    fill="url(#rReefFar)" opacity="0.7"/>
+
+  <!-- ── Sandy floor ───────────────────────────────────────────── -->
+  <path d="M0,80 Q100,75 200,79 Q300,74 400,78 Q500,73 600,77 Q700,74 800,78 L800,100 L0,100 Z"
+    fill="url(#rSand)"/>
+  <!-- Sand ripple lines -->
+  <path d="M20,84 Q80,82 140,84 Q200,82 260,84" stroke="#B89040" stroke-width="0.6" fill="none" opacity="0.5"/>
+  <path d="M300,86 Q360,84 420,86 Q480,84 540,86" stroke="#B89040" stroke-width="0.6" fill="none" opacity="0.5"/>
+  <path d="M600,85 Q660,83 720,85 Q760,83 800,85" stroke="#B89040" stroke-width="0.6" fill="none" opacity="0.5"/>
+
+  <!-- ── Coral clusters ─────────────────────────────────────────── -->
+  <!-- Coral 1 (left) — branching fan coral -->
+  <g transform="translate(60,78)">
+    <line x1="0" y1="0" x2="-6" y2="-14" stroke="#FF6B6B" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="0" y1="0" x2="0"  y2="-18" stroke="#FF6B6B" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="0" y1="0" x2="6"  y2="-14" stroke="#FF6B6B" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="-6" y1="-14" x2="-9"  y2="-20" stroke="#FF8585" stroke-width="1.8" stroke-linecap="round"/>
+    <line x1="-6" y1="-14" x2="-4"  y2="-21" stroke="#FF8585" stroke-width="1.8" stroke-linecap="round"/>
+    <line x1="0"  y1="-18" x2="-2"  y2="-24" stroke="#FF8585" stroke-width="1.8" stroke-linecap="round"/>
+    <line x1="0"  y1="-18" x2="2"   y2="-24" stroke="#FF8585" stroke-width="1.8" stroke-linecap="round"/>
+    <line x1="6"  y1="-14" x2="4"   y2="-21" stroke="#FF8585" stroke-width="1.8" stroke-linecap="round"/>
+    <line x1="6"  y1="-14" x2="9"   y2="-20" stroke="#FF8585" stroke-width="1.8" stroke-linecap="round"/>
+    <!-- Polyp tips -->
+    <circle cx="-9"  cy="-21" r="2"   fill="#FFAAAA"/>
+    <circle cx="-4"  cy="-22" r="2"   fill="#FFAAAA"/>
+    <circle cx="-2"  cy="-25" r="2"   fill="#FF8080"/>
+    <circle cx="2"   cy="-25" r="2"   fill="#FF8080"/>
+    <circle cx="4"   cy="-22" r="2"   fill="#FFAAAA"/>
+    <circle cx="9"   cy="-21" r="2"   fill="#FFAAAA"/>
+  </g>
+
+  <!-- Coral 2 (centre-left) — round brain-coral mound -->
+  <g transform="translate(210,78)">
+    <ellipse cx="0" cy="-7" rx="12" ry="8" fill="#E8954A"/>
+    <!-- Brain coral grooves -->
+    <path d="M-10,-7 Q-5,-11 0,-7 Q5,-11 10,-7" stroke="#C47030" stroke-width="1" fill="none"/>
+    <path d="M-11,-5 Q-5,-9 0,-5 Q5,-9 11,-5" stroke="#C47030" stroke-width="1" fill="none"/>
+    <path d="M-10,-9 Q-5,-13 0,-9 Q5,-13 10,-9" stroke="#C47030" stroke-width="1" fill="none"/>
+  </g>
+
+  <!-- Coral 3 (centre) — tall branching coral -->
+  <g transform="translate(400,79)">
+    <line x1="0" y1="0" x2="0"   y2="-22" stroke="#E85080" stroke-width="3" stroke-linecap="round"/>
+    <line x1="0" y1="-10" x2="-8"  y2="-20" stroke="#E85080" stroke-width="2" stroke-linecap="round"/>
+    <line x1="0" y1="-10" x2="8"   y2="-20" stroke="#E85080" stroke-width="2" stroke-linecap="round"/>
+    <line x1="-8" y1="-20" x2="-11" y2="-26" stroke="#F070A0" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="8"  y1="-20" x2="11"  y2="-26" stroke="#F070A0" stroke-width="1.5" stroke-linecap="round"/>
+    <circle cx="0"   cy="-23" r="2.5" fill="#FF90C0"/>
+    <circle cx="-11" cy="-27" r="2"   fill="#FF90C0"/>
+    <circle cx="11"  cy="-27" r="2"   fill="#FF90C0"/>
+  </g>
+
+  <!-- Coral 4 (right) — fan coral -->
+  <g transform="translate(600,78)">
+    <line x1="0" y1="0" x2="-8" y2="-16" stroke="#FF9040" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="0" y1="0" x2="0"  y2="-20" stroke="#FF9040" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="0" y1="0" x2="8"  y2="-16" stroke="#FF9040" stroke-width="2.5" stroke-linecap="round"/>
+    <circle cx="-10" cy="-19" r="2.5" fill="#FFAA60"/>
+    <circle cx="0"   cy="-22" r="2.5" fill="#FFAA60"/>
+    <circle cx="10"  cy="-19" r="2.5" fill="#FFAA60"/>
+  </g>
+
+  <!-- Coral 5 (far-right) — small cluster -->
+  <g transform="translate(750,80)">
+    <line x1="0" y1="0" x2="-4" y2="-10" stroke="#FF6060" stroke-width="2" stroke-linecap="round"/>
+    <line x1="0" y1="0" x2="2"  y2="-12" stroke="#FF6060" stroke-width="2" stroke-linecap="round"/>
+    <circle cx="-5" cy="-12" r="2" fill="#FF8888"/>
+    <circle cx="2"  cy="-14" r="2" fill="#FF8888"/>
+  </g>
+
+  <!-- ── Seagrass / kelp tufts ─────────────────────────────────── -->
+  <!-- Seagrass left -->
+  <g transform="translate(130,80)" opacity="0.85">
+    <path d="M0,0 C-2,-5 1,-10 -1,-16" stroke="#2E9E4E" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M2,0 C4,-4 2,-9 4,-15" stroke="#2E9E4E" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M4,0 C6,-5 3,-11 5,-17" stroke="#3DBB60" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  </g>
+  <!-- Seagrass mid-right -->
+  <g transform="translate(500,80)" opacity="0.85">
+    <path d="M0,0 C-2,-6 1,-12 -1,-18" stroke="#2E9E4E" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M2,0 C3,-5 1,-10 3,-16" stroke="#3DBB60" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M-2,0 C-4,-4 -2,-10 -4,-15" stroke="#2E9E4E" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  </g>
+  <!-- Kelp frond right -->
+  <g transform="translate(680,79)" opacity="0.8">
+    <path d="M0,0 C1,-8 -2,-15 0,-22 C2,-28 -1,-34 1,-40"
+          stroke="#1A7A3A" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <ellipse cx="-3" cy="-22" rx="5" ry="3" fill="#2A9A4A" transform="rotate(-20,-3,-22)" opacity="0.8"/>
+    <ellipse cx="3"  cy="-33" rx="5" ry="3" fill="#2A9A4A" transform="rotate(15,3,-33)" opacity="0.8"/>
+  </g>
+
+  <!-- ── Bubbles ────────────────────────────────────────────────── -->
+  <circle cx="80"  cy="45" r="3"   fill="none" stroke="#AADDFF" stroke-width="0.8" opacity="0.6"/>
+  <circle cx="82"  cy="36" r="2"   fill="none" stroke="#AADDFF" stroke-width="0.7" opacity="0.5"/>
+  <circle cx="85"  cy="28" r="1.5" fill="none" stroke="#AADDFF" stroke-width="0.6" opacity="0.4"/>
+  <circle cx="270" cy="40" r="2.5" fill="none" stroke="#AADDFF" stroke-width="0.8" opacity="0.55"/>
+  <circle cx="274" cy="32" r="1.8" fill="none" stroke="#AADDFF" stroke-width="0.7" opacity="0.45"/>
+  <circle cx="450" cy="42" r="3"   fill="none" stroke="#AADDFF" stroke-width="0.8" opacity="0.6"/>
+  <circle cx="454" cy="33" r="2"   fill="none" stroke="#AADDFF" stroke-width="0.7" opacity="0.5"/>
+  <circle cx="640" cy="38" r="2.5" fill="none" stroke="#AADDFF" stroke-width="0.8" opacity="0.55"/>
+  <circle cx="637" cy="30" r="1.5" fill="none" stroke="#AADDFF" stroke-width="0.6" opacity="0.4"/>
+
+  <!-- ── Small fish silhouettes (mid-distance) ─────────────────── -->
+  <g transform="translate(170,35)" fill="#0A3A5A" opacity="0.35">
+    <ellipse cx="0" cy="0" rx="5" ry="2.5"/>
+    <polygon points="5,0 9,-3 9,3"/>
+  </g>
+  <g transform="translate(360,25)" fill="#0A3A5A" opacity="0.3">
+    <ellipse cx="0" cy="0" rx="4" ry="2"/>
+    <polygon points="4,0 7.5,-2.5 7.5,2.5"/>
+  </g>
+  <g transform="translate(560,32)" fill="#0A3A5A" opacity="0.35">
+    <ellipse cx="0" cy="0" rx="5" ry="2.5"/>
+    <polygon points="5,0 9,-3 9,3"/>
+  </g>
+
+  <!-- ── Shell on sand ──────────────────────────────────────────── -->
+  <g transform="translate(320,80)">
+    <ellipse cx="0" cy="-4" rx="7" ry="5" fill="#D4956A"/>
+    <path d="M-7,-4 Q0,-10 7,-4" stroke="#B07040" stroke-width="0.8" fill="none"/>
+    <path d="M-5,-4 Q0,-8 5,-4"  stroke="#B07040" stroke-width="0.6" fill="none"/>
+    <path d="M-3,-4 Q0,-6 3,-4"  stroke="#B07040" stroke-width="0.5" fill="none"/>
+  </g>
+
+</svg>
