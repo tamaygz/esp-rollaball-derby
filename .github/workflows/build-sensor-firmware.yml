@@ -66,9 +66,16 @@ jobs:
             zip -j "$GITHUB_WORKSPACE/dist/firmware-nodemcu-v3.zip" firmware.bin)
 
           # --- ESP32 DevKit ---
-          cp clients/esp8266-sensor/.pio/build/esp32dev/firmware.bin dist/firmware-esp32dev.bin
-          (cd clients/esp8266-sensor/.pio/build/esp32dev && \
-            zip -j "$GITHUB_WORKSPACE/dist/firmware-esp32-devkit.zip" firmware.bin)
+          # Merge bootloader + partitions + app into a single flash-at-0x0 image.
+          esptool.py --chip esp32 merge_bin -o dist/firmware-esp32dev.bin \
+            --flash_mode dio \
+            --flash_freq 40m \
+            --flash_size 4MB \
+            0x1000 clients/esp8266-sensor/.pio/build/esp32dev/bootloader.bin \
+            0x8000 clients/esp8266-sensor/.pio/build/esp32dev/partitions.bin \
+            0xe000 "$HOME/.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin" \
+            0x10000 clients/esp8266-sensor/.pio/build/esp32dev/firmware.bin
+          zip -j "$GITHUB_WORKSPACE/dist/firmware-esp32-devkit.zip" dist/firmware-esp32dev.bin
 
       - name: Upload firmware artifacts
         uses: actions/upload-artifact@v4
