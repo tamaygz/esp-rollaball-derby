@@ -25,7 +25,6 @@ struct HsbColor {
     HsbColor()                          : h(0), s(0), b(0) {}
     HsbColor(uint8_t h, uint8_t s, uint8_t b) : h(h), s(s), b(b) {}
 };
-using HsvColor = HsbColor;   // NeoPixelBus v2.7+ alias
 
 // ─── Method / feature stubs ───────────────────────────────────────────────────
 // These are referenced as template arguments in LedPlatform.h's using-declarations.
