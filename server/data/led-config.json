@@ -3,8 +3,8 @@
     "ledCount": 8,
     "gpioPin": 2,
     "topology": "strip",
-    "brightness": 55,
-    "defaultEffect": "chase"
+    "brightness": 17,
+    "defaultEffect": "sparkle"
   },
   "sensor-esp32": {
     "ledCount": 8,

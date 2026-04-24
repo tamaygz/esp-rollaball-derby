@@ -198,6 +198,8 @@ Derby.LED = (function () {
         _populateEffectDropdown(_selectedDevice.type);
       }
     }
+
+    _renderDeviceOverrides();
   }
 
   function _createDeviceCard(device) {
@@ -634,6 +636,274 @@ Derby.LED = (function () {
     }
     if (speedEl) params.speed = parseInt(speedEl.value, 10);
     return params;
+  }
+
+  // ── Per-device Override Panel ───────────────────────────────────────────────
+
+  /**
+   * Re-render the per-device overrides section from the current _devices list.
+   * Each device row shows effective config fetched from the server and provides
+   * [Edit override] and [Reset to default] buttons.
+   * XSS: all chipId / chipType strings go through textContent or _esc().
+   */
+  function _renderDeviceOverrides() {
+    var section = _el('led-device-overrides-section');
+    if (!section) return;
+
+    var hardwareDevices = _devices.filter(function (d) {
+      return (d.type === 'sensor' || d.type === 'motor') && d.chipId;
+    });
+
+    if (hardwareDevices.length === 0) {
+      section.innerHTML = '<p class="empty-msg">No LED-capable devices connected.</p>';
+      return;
+    }
+
+    section.innerHTML = '';
+    hardwareDevices.forEach(function (device) {
+      var rowEl = _createOverrideRow(device, null, false);
+      section.appendChild(rowEl);
+
+      // Fetch effective config for this device asynchronously
+      fetch('/api/leds/config/' + encodeURIComponent(device.type) + '/' + encodeURIComponent(device.chipId))
+        .then(function (res) { return res.json(); })
+        .then(function (data) {
+          var newRow = _createOverrideRow(device, data.config || null, !!data.hasOverride);
+          section.replaceChild(newRow, rowEl);
+        })
+        .catch(function (err) {
+          console.error('[LED] Failed to fetch device config for', device.chipId, err);
+        });
+    });
+  }
+
+  /**
+   * Build a single device override row element.
+   * @param {object} device        - device object from _devices
+   * @param {object|null} config   - effective LED config from server (null while loading)
+   * @param {boolean} hasOverride  - whether a per-device override is active
+   */
+  function _createOverrideRow(device, config, hasOverride) {
+    var row = document.createElement('div');
+    row.className = 'led-override-row';
+
+    var header = document.createElement('div');
+    header.className = 'led-override-header';
+
+    var idSpan = document.createElement('span');
+    idSpan.className = 'led-override-chipid';
+    idSpan.textContent = device.chipId;
+
+    var typeSpan = document.createElement('span');
+    typeSpan.className = 'led-override-chiptype';
+    typeSpan.textContent = device.chipType || device.type;
+
+    var statusSpan = document.createElement('span');
+    statusSpan.className = 'led-override-status ' + (hasOverride ? 'led-override-active' : 'led-override-default');
+    statusSpan.textContent = hasOverride ? 'override' : 'default';
+
+    var configSpan = document.createElement('span');
+    configSpan.className = 'led-override-config';
+    if (config) {
+      configSpan.textContent = config.ledCount + ' LEDs · GPIO' + config.gpioPin + ' · ' + config.topology;
+    } else {
+      configSpan.textContent = 'Loading…';
+    }
+
+    var editBtn = document.createElement('button');
+    editBtn.className = 'btn btn-sm';
+    editBtn.textContent = 'Edit override';
+    editBtn.addEventListener('click', function () {
+      _openOverrideForm(device, config || {}, row);
+    });
+
+    var resetBtn = document.createElement('button');
+    resetBtn.className = 'btn btn-sm btn-danger';
+    resetBtn.textContent = 'Reset to default';
+    resetBtn.disabled = !hasOverride;
+    if (!hasOverride) resetBtn.title = 'No override active';
+    resetBtn.addEventListener('click', function () {
+      _handleResetDeviceOverride(device, row);
+    });
+
+    header.appendChild(idSpan);
+    header.appendChild(typeSpan);
+    header.appendChild(statusSpan);
+    header.appendChild(configSpan);
+    header.appendChild(editBtn);
+    header.appendChild(resetBtn);
+    row.appendChild(header);
+
+    return row;
+  }
+
+  /**
+   * Open an inline override form below the given row.
+   * Submitting performs PUT /api/leds/config/:deviceType/:chipId and refreshes the row.
+   */
+  function _openOverrideForm(device, currentConfig, rowEl) {
+    // Remove any existing form (toggle)
+    var existing = rowEl.querySelector('.led-override-form');
+    if (existing) { existing.remove(); return; }
+
+    var chip = _chipFor(device);
+
+    var form = document.createElement('div');
+    form.className = 'led-override-form';
+
+    // LED count
+    var countLabel = document.createElement('label');
+    countLabel.textContent = 'LED Count:';
+    var countInput = document.createElement('input');
+    countInput.type = 'number';
+    countInput.min = '1';
+    countInput.max = String(chip.maxLeds);
+    countInput.value = String(currentConfig.ledCount || chip.maxLeds === 300 ? 30 : 64);
+    if (currentConfig.ledCount) countInput.value = String(currentConfig.ledCount);
+
+    // GPIO pin
+    var pinLabel = document.createElement('label');
+    pinLabel.textContent = 'GPIO Pin:';
+    var pinSelect = document.createElement('select');
+    var pinOptions = chip.pinGroup === 'esp8266'
+      ? [{ val: '2', txt: 'GPIO2 (UART1)' }, { val: '3', txt: 'GPIO3 (DMA)' }]
+      : [{ val: '4', txt: 'GPIO4' }, { val: '13', txt: 'GPIO13' }, { val: '14', txt: 'GPIO14' },
+         { val: '16', txt: 'GPIO16' }, { val: '17', txt: 'GPIO17' }, { val: '18', txt: 'GPIO18' },
+         { val: '19', txt: 'GPIO19' }, { val: '21', txt: 'GPIO21' }];
+    pinOptions.forEach(function (o) {
+      var opt = document.createElement('option');
+      opt.value = o.val;
+      opt.textContent = o.txt;
+      if (String(currentConfig.gpioPin) === o.val) opt.selected = true;
+      pinSelect.appendChild(opt);
+    });
+
+    // Topology
+    var topoLabel = document.createElement('label');
+    topoLabel.textContent = 'Topology:';
+    var topoSelect = document.createElement('select');
+    [['strip', 'Strip'], ['matrix_zigzag', 'Matrix Zigzag'], ['matrix_progressive', 'Matrix Progressive'], ['ring', 'Ring']].forEach(function (pair) {
+      var opt = document.createElement('option');
+      opt.value = pair[0];
+      opt.textContent = pair[1];
+      if (currentConfig.topology === pair[0]) opt.selected = true;
+      topoSelect.appendChild(opt);
+    });
+
+    // Brightness
+    var brightnessLabel = document.createElement('label');
+    brightnessLabel.textContent = 'Brightness (%):';
+    var brightnessInput = document.createElement('input');
+    brightnessInput.type = 'number';
+    brightnessInput.min = '0';
+    brightnessInput.max = '100';
+    brightnessInput.value = String(currentConfig.brightness !== undefined ? currentConfig.brightness : 80);
+
+    // Default effect
+    var effectLabel = document.createElement('label');
+    effectLabel.textContent = 'Default Effect:';
+    var effectInput = document.createElement('input');
+    effectInput.type = 'text';
+    effectInput.value = currentConfig.defaultEffect || 'solid';
+    effectInput.placeholder = 'solid';
+
+    // Buttons
+    var saveBtn = document.createElement('button');
+    saveBtn.className = 'btn btn-success btn-sm';
+    saveBtn.textContent = 'Save override';
+
+    var cancelBtn = document.createElement('button');
+    cancelBtn.className = 'btn btn-sm';
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.addEventListener('click', function () { form.remove(); });
+
+    var formMsg = document.createElement('span');
+    formMsg.className = 'led-override-form-msg';
+
+    saveBtn.addEventListener('click', function () {
+      var count = parseInt(countInput.value, 10);
+      var pin   = parseInt(pinSelect.value, 10);
+      var brt   = parseInt(brightnessInput.value, 10);
+
+      if (isNaN(count) || count < 1 || count > chip.maxLeds) {
+        formMsg.textContent = 'LED count must be 1–' + chip.maxLeds;
+        return;
+      }
+      if (isNaN(brt) || brt < 0 || brt > 100) {
+        formMsg.textContent = 'Brightness must be 0–100';
+        return;
+      }
+
+      var config = {
+        ledCount:      count,
+        gpioPin:       pin,
+        topology:      topoSelect.value,
+        brightness:    brt,
+        defaultEffect: effectInput.value.trim() || 'solid',
+      };
+
+      _handleSaveDeviceOverride(device, config, rowEl, form, formMsg);
+    });
+
+    form.appendChild(countLabel);
+    form.appendChild(countInput);
+    form.appendChild(pinLabel);
+    form.appendChild(pinSelect);
+    form.appendChild(topoLabel);
+    form.appendChild(topoSelect);
+    form.appendChild(brightnessLabel);
+    form.appendChild(brightnessInput);
+    form.appendChild(effectLabel);
+    form.appendChild(effectInput);
+    form.appendChild(saveBtn);
+    form.appendChild(cancelBtn);
+    form.appendChild(formMsg);
+    rowEl.appendChild(form);
+  }
+
+  function _handleSaveDeviceOverride(device, config, rowEl, formEl, msgEl) {
+    fetch('/api/leds/config/' + encodeURIComponent(device.type) + '/' + encodeURIComponent(device.chipId), {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(config),
+    })
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        if (data.error) {
+          if (msgEl) msgEl.textContent = data.error;
+        } else {
+          if (formEl) formEl.remove();
+          // Refresh row with new config
+          var newRow = _createOverrideRow(device, config, true);
+          rowEl.parentNode.replaceChild(newRow, rowEl);
+          _showSuccess('Override saved for ' + device.chipId);
+        }
+      })
+      .catch(function (err) {
+        if (msgEl) msgEl.textContent = 'Save failed: ' + err.message;
+      });
+  }
+
+  function _handleResetDeviceOverride(device, rowEl) {
+    fetch('/api/leds/config/' + encodeURIComponent(device.type) + '/' + encodeURIComponent(device.chipId), {
+      method: 'DELETE',
+    })
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        if (data.error) {
+          _showError(data.error);
+        } else {
+          // Re-fetch effective config and update row
+          fetch('/api/leds/config/' + encodeURIComponent(device.type) + '/' + encodeURIComponent(device.chipId))
+            .then(function (r) { return r.json(); })
+            .then(function (d) {
+              var newRow = _createOverrideRow(device, d.config || null, false);
+              rowEl.parentNode.replaceChild(newRow, rowEl);
+              _showSuccess('Override removed for ' + device.chipId);
+            });
+        }
+      })
+      .catch(function (err) { _showError('Reset failed: ' + err.message); });
   }
 
   // ── UI Helpers ──────────────────────────────────────────────────────────────
