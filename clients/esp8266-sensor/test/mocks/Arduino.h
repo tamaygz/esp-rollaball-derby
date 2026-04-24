@@ -24,6 +24,25 @@ inline void     yield()                   {}
 inline void     delay(uint32_t)           {}
 inline void     delayMicroseconds(uint32_t) {}
 
+// ─── Math / random stubs ──────────────────────────────────────────────────────
+// Arduino's random() and randomSeed() are not available on host — stub them.
+inline long     random(long max)                     { return max > 0 ? (_mock_millis % max) : 0; }
+inline long     random(long min, long max)           { return min < max ? (min + (_mock_millis % (max - min))) : min; }
+inline void     randomSeed(unsigned long)            {}
+// min/max/abs/constrain conflict with <algorithm>; define only if not already present.
+#ifndef min
+#define min(a, b) ((a) < (b) ? (a) : (b))
+#endif
+#ifndef max
+#define max(a, b) ((a) > (b) ? (a) : (b))
+#endif
+#ifndef abs
+#define abs(x)    ((x) < 0 ? -(x) : (x))
+#endif
+#ifndef constrain
+#define constrain(val, lo, hi) ((val) < (lo) ? (lo) : ((val) > (hi) ? (hi) : (val)))
+#endif
+
 // ─── Mock Serial ─────────────────────────────────────────────────────────────
 struct _MockSerial {
     void print(const char*)    {}
