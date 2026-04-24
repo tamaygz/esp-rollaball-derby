@@ -377,6 +377,56 @@ class ConnectionManager {
   }
 
   /**
+   * Get the connected client object for a device identified by chipId + deviceType.
+   * Returns the first open client that matches, or null if not connected.
+   *
+   * @param {string} chipId      - Device chip ID
+   * @param {string} deviceType  - Device type ('sensor', 'motor', …)
+   * @returns {Object|null} Client object or null
+   */
+  getConnectedDevice(chipId, deviceType) {
+    for (const client of this.clients.values()) {
+      if (client.chipId === chipId && client.type === deviceType && client.ws.readyState === 1) {
+        return client;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Send an `led_config` message to a single connected device identified by
+   * chipId + deviceType.  Resolves chiptype-aware defaults and appends
+   * `deviceColor` from the player's colorIndex before sending.
+   *
+   * Centralises all per-device targeted WS sends so routes stay thin.
+   *
+   * @param {string} chipId      - Device chip ID
+   * @param {string} deviceType  - Device type ('sensor', 'motor', …)
+   * @returns {boolean} true if the message was sent; false if device is not connected
+   * @throws {Error} if ledConfigManager has not been wired up (configuration error)
+   */
+  sendLedConfigToDevice(chipId, deviceType) {
+    if (!this.ledConfigManager) {
+      throw new Error('sendLedConfigToDevice: ledConfigManager is not set');
+    }
+    const client = this.getConnectedDevice(chipId, deviceType);
+    if (!client) return false;
+
+    const config = this.ledConfigManager.getConfigForDevice(deviceType, chipId, client.chipType || null);
+    if (!config) return false;
+
+    const payload = { ...config };
+    if (client.playerId) {
+      const player = this.gameState.players.get(client.playerId);
+      if (player && player.colorIndex !== undefined) {
+        payload.deviceColor = this.ledConfigManager.getColorHex(player.colorIndex);
+      }
+    }
+    client.ws.send(JSON.stringify({ type: 'led_config', timestamp: Date.now(), payload }));
+    return true;
+  }
+
+  /**
    * Broadcast a log entry to all connected web and display clients.
    * Called both for server-side log lines (from log.js) and for device log
    * messages received over WebSocket (from _handleLog).
@@ -393,7 +443,9 @@ class ConnectionManager {
         try {
           client.ws.send(msg);
         } catch (error) {
-          console.error('[ConnectionManager] Failed to broadcast log_line to', clientId + ':', error.message);
+          // Use process.stderr directly to avoid re-entering the console interceptor
+          // (console.error is patched by log.js and calls broadcastLog, which would loop).
+          process.stderr.write(`[ConnectionManager] Failed to broadcast log_line to ${clientId}: ${error.message}\n`);
           this.clients.delete(clientId);
         }
       }

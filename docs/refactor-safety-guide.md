@@ -63,7 +63,7 @@ npm test
 All existing tests must pass. Record the count:
 
 ```
-# As of 2026-04-24 (post-PR#27 / T1–T6): 168 pass, 0 fail
+# As of 2026-04-24 (post-T13 code review fixes): 175 pass, 0 fail
 ```
 
 All pre-existing failures were resolved. Each subsequent phase must maintain or improve on this count — never regress it.
@@ -268,7 +268,7 @@ As Phase 3 integration (T9) progresses, extend the AnimationManager test file wi
 
 ### 4.2 Server Unit Tests
 
-Server uses Node.js built-in test runner (`node --test`). Current baseline: **168/168 pass** (post-PR#27).
+Server uses Node.js built-in test runner (`node --test`). Current baseline: **175/175 pass** (post-T13 code review fixes).
 
 For Phase 5 (sequence numbers), add:
 

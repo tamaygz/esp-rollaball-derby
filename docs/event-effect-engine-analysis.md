@@ -454,12 +454,16 @@ The original design note referenced NVS (ESP32 Preferences library) but the impl
 - [x] Add per-`chipId` override storage in `LedConfigManager` **(P4 — fixed)**
 - [x] Add `GET/PUT/DELETE /api/leds/config/:deviceType/:chipId` REST endpoints **(P4 — fixed)**
 - [x] Update `broadcastLedConfig` to resolve per-device config **(P4 — fixed)**
-- [ ] Update LED admin page to expose per-device overrides
+- [x] `ConnectionManager.sendLedConfigToDevice()` helper — routes no longer iterate clients directly **(T13 — fixed)**
+- [x] `GET /api/leds/config/:deviceType/:chipId` resolves chipType from connected client **(T13 — fixed)**
+- [x] `DELETE /api/leds/config/:deviceType/:chipId` reverts to chiptype-aware type default **(T13 — fixed)**
+- [ ] Update LED admin page to expose per-device overrides **(T10)**
 
 ### Phase 5 — Sequence numbers and event log
-- [ ] Add `seq` counter to `GameState`
-- [ ] Add `seq` to all WS broadcasts
-- [ ] Accept `lastSeq` in `register` for reconnect
+- [x] Add `seq` counter to `GameState` **(T11 — done)**
+- [x] Add `seq` to all WS broadcasts **(T11 — done)**
+- [x] Accept `lastSeq` in `register` for reconnect (gap warning emitted) **(T11 — done)**
+- [x] Display client deduplicates on `msg.seq <= _lastSeenSeq`; resets on `registered` / server rollover **(T11 — done)**
 - [ ] (Optional) ring-buffer last N events in server for replay
 
 ---
@@ -479,6 +483,8 @@ The original design note referenced NVS (ESP32 Preferences library) but the impl
 | `EventQueue<T,N>` | ✅ created in `clients/shared/leds/EventQueue.h` **(T5 — PR#27)** | Bounded FIFO with priority-based overflow eviction; native tests pass |
 | `EffectLayer` | ❌ not needed as a class — superseded by priority gate in `AnimationManager` (Option A, T6) | Priority constants `PRIORITY_AMBIENT/GAME/ADMIN` live in `AnimationManager.h` |
 | `GameEvents.js` string constants | ✅ created in `clients/shared/js/gameEvents.js` **(T3 — PR#27)** | Dual-format shim; used by display client and server SoundManager |
+| `AudioPlayer.js` browser audio | ✅ created in `clients/shared/js/AudioPlayer.js` **(T12)** | `DerbyAudio` singleton; portable to esp-buzzwire display |
+| `soundDecision.js` sound picker | ✅ created in `clients/shared/js/soundDecision.js` **(T12)** | Shared between server `SoundManager` and display client; dual-format shim |
 | `LedConfigDefaults.h` (chiptype map) | ❌ not yet created | Could centralise defaults; or expose same data as a server-side JSON schema so JS and firmware stay in sync |
 
 ---
@@ -835,5 +841,49 @@ The original §4.4 proposed an `EffectLayer` class. After T6 landed, the archite
 
 ---
 
-*Last updated: 2026-04-24 (§10 post-PR#24 `2f22a31`; §11 post-PR#27 `c12b9b1`).*  
+## 12. Codebase Baseline Update — changes post-PR#27 (audio layer + code review fixes)
+
+> **Context:** Between PR#27 (`c12b9b1`) and the current HEAD, @tamaygz added a browser-side audio layer (commits `0aa86cf`, `864e2df`, plus the sound-config work in `2b5c026`), and code review comments on the LED routes were addressed (commit in this PR). This section records what changed.
+
+### 12.1 New shared JS modules
+
+| Module | File | Notes |
+|---|---|---|
+| `AudioPlayer.js` | `clients/shared/js/AudioPlayer.js` | `DerbyAudio` singleton; Web Audio API; mute toggle; loads `.wav` from shared sound library. Portable to esp-buzzwire. |
+| `soundDecision.js` | `clients/shared/js/soundDecision.js` | `SoundDecision.pickScoredSound({events, points})` — shared between server `SoundManager` and display client; dual-format shim. Replaces duplicated priority logic. |
+
+### 12.2 Display client audio wiring
+
+`clients/display/js/main.js` now calls:
+- `_handleScored` → `SoundDecision.pickScoredSound` → `DerbyAudio.play`
+- `_handleWinner` → `DerbyAudio.play(GameEvents.WINNER)`
+- `_handleCountdown` → `DerbyAudio.play(count > 0 ? GameEvents.COUNTDOWN_TICK : 'countdown_go')`
+- New `_handleGameEvent` → `DerbyAudio.play(payload.event)` (dispatched on `game_event` messages)
+
+Mute toggle button added to the display UI.
+
+### 12.3 Code review fixes (T13)
+
+| Issue | Fix |
+|---|---|
+| `leds.js` error responses inconsistent (`{error, message}` vs `{error}`) | All 4xx/5xx in `leds.js` now use `{ error: '<message>' }` — single field, actionable text. |
+| `log.js` → `broadcastLog()` → `console.error` → `broadcastLog()` infinite loop | Added `_forwarding` re-entrancy guard in `log.js`; `broadcastLog()` internal errors use `process.stderr.write` directly. |
+| `GET /api/leds/config/:deviceType/:chipId` ignores `chipType` | Now resolves `chipType` from the connected client; `getConfigForDevice` returns chiptype-specific defaults correctly. |
+| `DELETE /api/leds/config/:deviceType/:chipId` sends wrong pin after reset-to-default | Uses new `sendLedConfigToDevice(chipId, deviceType)` helper, which resolves chiptype-aware config. |
+| Routes directly iterate `connectionManager.clients` for targeted WS sends | New `ConnectionManager.sendLedConfigToDevice(chipId, deviceType)` helper centralises this; both PUT override and DELETE override routes call it. |
+
+### 12.4 Problems resolved in this update
+
+- **P8 (sequence numbers)** — fully resolved. `GameState._seq` counter, `ConnectionManager._broadcast()` attaches `seq`, display client deduplicates, `register` gap warning. All 175 server tests pass. ✅
+
+### 12.5 Problems still open
+
+- **P1** — single-slot event buffer in firmware (T8)
+- **P2** — global events cancel local effects (T9)
+- **P7** — firmware `websocket.cpp` strcmp strings vs `GameEvents.h` (T7)
+- **T10** — LED admin per-device override UI
+
+---
+
+*Last updated: 2026-04-24 (§12 post-code-review-fixes, T11–T13 complete).*  
 *Authors: @copilot (analysis, critique, baseline updates), @tamaygz (codebase).*

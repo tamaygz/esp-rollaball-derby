@@ -20,7 +20,8 @@ const util = require('node:util');
 
 const SERVER_LOG_BUFFER_MAX = 200;
 
-let _cm      = null;
+let _cm          = null;
+let _forwarding  = false;   // re-entrancy guard: prevents console.error inside broadcastLog from looping
 const _queue = [];   // ring buffer of { source, senderName, senderType, level, message, ts }
 
 const _origLog   = console.log.bind(console);
@@ -46,6 +47,9 @@ function _fmt(...args) {
 }
 
 function _emit(level, ...args) {
+  // Re-entrancy guard: if we're already inside broadcastLog (which can fail and call
+  // console.error), skip forwarding to avoid an infinite loop.
+  if (_forwarding) return;
   const message = _fmt(...args);
   const entry = {
     source:     'server',
@@ -56,7 +60,12 @@ function _emit(level, ...args) {
     ts: Date.now(),
   };
   if (_cm) {
-    _cm.broadcastLog(entry);
+    _forwarding = true;
+    try {
+      _cm.broadcastLog(entry);
+    } finally {
+      _forwarding = false;
+    }
   } else if (_queue.length < SERVER_LOG_BUFFER_MAX) {
     _queue.push(entry);
   } else {

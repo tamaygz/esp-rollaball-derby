@@ -222,23 +222,65 @@ Also: refactor `GameEventMapper::onLocalEvent()` and `onGlobalEvent()` switch st
 
 ## T11 — Sequence numbers (Phase 5)
 
-**Status:** 🔲 To do  
-**Scope:** `server/src/game/GameState.js`, `server/src/ws/ConnectionManager.js`, `clients/display/js/main.js`  
-**Risk:** Low — additive optional field  
-**Prerequisite:** None (independent)
+**Status:** ✅ **Done** — implemented in this PR.  
+**Scope:** `server/src/game/GameState.js`, `server/src/ws/ConnectionManager.js`, `clients/display/js/main.js`
 
-**What:**
-1. Add `_seq = 0` counter to `GameState`; increment on every state-changing event.
-2. Attach `seq` to all WS broadcasts (`scored`, `game_event`, `winner`, `countdown`).
-3. Accept `lastSeq` in `register` message; server logs or skips re-sending known events.
-4. Display client: if `scored.seq <= _lastSeenSeq`, skip rendering (deduplication).
+**What was done:**
+1. `GameState._seq` counter added; `nextSeq()` returns `++_seq`; `reset()` sets `_seq = 0`.
+2. `ConnectionManager._broadcast()` wraps every outbound WS message with `seq: gameState.nextSeq()`.
+3. On `register`, client-reported `lastSeq` is logged; a gap warning is emitted if `lastSeq < serverSeq`.
+4. Display client: `_lastSeenSeq` skips messages with `seq <= _lastSeenSeq`. Resets on `registered` and on server seq-counter rollover (detected by `msg.seq < _lastSeenSeq`).
 
-**Acceptance:**
-- `npm test` → 168/168 pass (add 2 new tests: monotonic counter, dedup on replay).
-- Every `scored`/`game_event`/`winner`/`countdown` carries `"seq": <number>`.
-- Display client re-registration with same `lastSeq` does not trigger duplicate effects.
+**Acceptance:** `npm test` → 175/175 pass ✅. Every `scored`/`game_event`/`winner`/`countdown` carries `"seq"`.
 
 ---
 
-*Last updated: 2026-04-24 (T4–T6 completed; T7–T11 added as next-phase tasks)*  
+## T12 — Audio layer (shared AudioPlayer + SoundDecision + display integration)
+
+**Status:** ✅ **Done** — implemented by @tamaygz in this branch.  
+**Scope:** `clients/shared/js/AudioPlayer.js`, `clients/shared/js/soundDecision.js`, `clients/display/js/main.js`, `clients/display/index.html`, `clients/web/js/sounds.js`, `clients/web/css/style.css`
+
+**What was done:**
+1. `AudioPlayer.js` — browser-side `DerbyAudio` singleton backed by the Web Audio API; loads `.wav` files from the existing sound library; supports mute/unmute toggle; exposes `DerbyAudio.play(eventKey)`.
+2. `soundDecision.js` — shared (browser + Node.js) module that maps event arrays from `scored` payloads to a single sound file key. Mirrors the `SoundManager` priority logic on the server side so both server (OS audio) and display (browser audio) agree on which sound plays.
+3. Display client wired up: `_handleScored` → `SoundDecision.pickScoredSound` → `DerbyAudio.play`; `_handleWinner`, `_handleCountdown`, `_handleGameEvent` each call `DerbyAudio.play`.
+4. Admin page: mute toggle button added; `sounds.js` admin panel allows previewing effects and reloading the audio config.
+
+**Note for esp-buzzwire:** `AudioPlayer.js` and `soundDecision.js` are fully portable. Any browser client in the buzzwire game can `<script src="/shared/js/AudioPlayer.js">` and `<script src="/shared/js/soundDecision.js">` to get the same audio layer.
+
+---
+
+## T13 — Code review fixes (server/routes/leds.js, log.js, ConnectionManager)
+
+**Status:** ✅ **Done** — applied in this PR.  
+**Scope:** `server/src/routes/leds.js`, `server/src/log.js`, `server/src/ws/ConnectionManager.js`
+
+**What was done:**
+1. **Error response standardization** — all 4xx/5xx responses in `leds.js` now use `{ error: '<message>' }` (no separate `message` field). Client `led-admin.js` already reads `data.error`, so it now shows actionable messages.
+2. **Re-entrancy guard in `log.js`** — added `_forwarding` flag: if `broadcastLog()` throws and calls `console.error`, the flag prevents the nested `console.error` → `broadcastLog()` → `console.error` loop.
+3. **`ConnectionManager.broadcastLog()`** — switched internal error logging from `console.error` to `process.stderr.write` to avoid re-entering the patched console.
+4. **`ConnectionManager.sendLedConfigToDevice(chipId, deviceType)`** — new helper method that resolves chiptype-aware config + deviceColor and sends `led_config` to a single connected device. Routes now call this helper instead of directly iterating `connectionManager.clients`.
+5. **`GET /api/leds/config/:deviceType/:chipId`** — now resolves `chipType` from the connected client so chiptype-specific defaults (e.g. `sensor-esp32` gpioPin=4) are reflected in the response.
+6. **`DELETE /api/leds/config/:deviceType/:chipId`** — now uses `sendLedConfigToDevice` which resolves the chiptype-aware type default (was sending the wrong pin for ESP32 sensors after a reset-to-default).
+
+---
+
+## Remaining work before high-fidelity firmware refactor
+
+The following tasks are ready to execute as isolated PRs:
+
+| Task | Description | Risk |
+|---|---|---|
+| **T7** | Firmware `websocket.cpp` string alignment with `GameEvents.h` | Low |
+| **T8** | Integrate `EventQueue<T,N>` into both firmware projects | Medium |
+| **T9** | Wire priority constants (`PRIORITY_AMBIENT/GAME/ADMIN`) into all firmware call sites + table-driven `GameEventMapper` | High |
+| **T10** | LED admin per-device override UI (T4 server work is done; UI is the last step) | Low |
+
+**Recommended order:** T7 → T8 → T10 (parallel with T8) → T9
+
+T9 is the high-fidelity event refactor core. Prerequisites: T7 ✅ (string alignment), T8 ✅ (queue in place), T6 ✅ (priority gate built).
+
+---
+
+*Last updated: 2026-04-24 (T11–T13 completed; T7–T10 remaining)*  
 *Authors: @copilot, @tamaygz*
