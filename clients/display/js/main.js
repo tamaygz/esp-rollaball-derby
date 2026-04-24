@@ -142,9 +142,16 @@
 
   DisplayConnection.onMessage(function (msg) {
     // Deduplicate messages by sequence number (T11).
-    // On reconnect the server starts a fresh seq counter but the client's
-    // _lastSeenSeq is stale; only apply the guard when seq is > 0.
+    // Treat reconnects / server seq resets as a new epoch so fresh state
+    // messages are not dropped after the server counter starts over.
+    if (msg.type === 'registered') {
+      _lastSeenSeq = 0;
+    }
+
     if (typeof msg.seq === 'number' && msg.seq > 0) {
+      if (_lastSeenSeq > 0 && msg.seq < _lastSeenSeq) {
+        _lastSeenSeq = 0;
+      }
       if (msg.seq <= _lastSeenSeq) return;
       _lastSeenSeq = msg.seq;
     }
