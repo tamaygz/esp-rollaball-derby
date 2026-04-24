@@ -1,6 +1,9 @@
 'use strict';
 
 const { randomUUID } = require('crypto');
+const path = require('path');
+
+const GameEvents = require(path.join(__dirname, '..', '..', '..', 'clients', 'shared', 'js', 'gameEvents'));
 
 const VALID_TYPES    = new Set(['sensor', 'web', 'motor', 'display']);
 const HARDWARE_TYPES = new Set(['sensor', 'motor']);
@@ -215,8 +218,19 @@ class ConnectionManager {
 
   broadcastScored(player, points, events) {
     // Play the most significant sound: lead/last/streak events take priority over score.
-    const PRIORITY_EVENTS = ['took_lead', 'became_last', 'streak_three', 'streak_zero'];
-    const soundEvent = (events || []).find((e) => PRIORITY_EVENTS.includes(e)) || `score_${points}`;
+    // Use canonical GameEvents names — these match what the server puts into events[].
+    const PRIORITY_EVENTS = [
+      GameEvents.TOOK_LEAD,
+      GameEvents.BECAME_LAST,
+      GameEvents.STREAK_THREE_2X,
+      GameEvents.STREAK_ZERO_3X,
+    ];
+    // Fall back to the canonical score event name from GameEvents.
+    // GameEvents.ZERO_ROLL for 0-point scores; GameEvents.SCORE_N for 1–3.
+    const scoreFallback = points === 0
+      ? GameEvents.ZERO_ROLL
+      : GameEvents[`SCORE_${points}`] ?? `score_${points}`;
+    const soundEvent = (events || []).find((e) => PRIORITY_EVENTS.includes(e)) || scoreFallback;
     this._soundManager?.play(soundEvent);
 
     this.broadcastAll({
@@ -271,12 +285,11 @@ class ConnectionManager {
     let sentCount = 0;
     for (const client of this.clients.values()) {
       if (client.type === deviceType && client.ws.readyState === 1 /* OPEN */) {
-        // Use per-device override if available, otherwise use the type-wide config
-        let effectiveConfig = config;
-        if (this.ledConfigManager && client.chipId) {
-          const perDevice = this.ledConfigManager.getConfigForDevice(deviceType, client.chipId);
-          if (perDevice) effectiveConfig = perDevice;
-        }
+        // Use per-device override if available, otherwise use the chiptype-aware type config.
+        // getConfigForDevice resolves chiptype-specific defaults (e.g. sensor-esp32) first.
+        let effectiveConfig = this.ledConfigManager
+          ? this.ledConfigManager.getConfigForDevice(deviceType, client.chipId || null, client.chipType || null) || config
+          : config;
         const payload = { ...effectiveConfig };
         // Include per-device color if available
         if (this.ledConfigManager && client.playerId) {
@@ -437,7 +450,7 @@ class ConnectionManager {
 
     // Send LED config to reconnected device (with device color)
     if (this.ledConfigManager && type !== 'display') {
-      const ledConfig = this.ledConfigManager.getConfigForDeviceType(type);
+      const ledConfig = this.ledConfigManager.getConfigForDeviceType(type, existing.chipType || null);
       if (ledConfig && ledConfig.ledCount > 0) {
         const configPayload = { ...ledConfig };
         if (existing.colorIndex !== undefined) {
@@ -626,7 +639,7 @@ class ConnectionManager {
 
     // Send LED config to newly registered device (with device color)
     if (this.ledConfigManager && type !== 'display') {
-      const ledConfig = this.ledConfigManager.getConfigForDevice(type, validatedChipId || null);
+      const ledConfig = this.ledConfigManager.getConfigForDevice(type, validatedChipId || null, chipType || null);
       if (ledConfig && ledConfig.ledCount > 0) {
         const configPayload = { ...ledConfig };
         if (colorIndex !== undefined) {

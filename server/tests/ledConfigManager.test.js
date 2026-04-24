@@ -158,3 +158,63 @@ describe('LedConfigManager — deleteDeviceOverride()', () => {
     assert.equal(result, false);
   });
 });
+
+// ─── Chiptype-aware config resolution (T4) ────────────────────────────────────
+
+describe('LedConfigManager — chiptype-aware getConfigForDeviceType()', () => {
+  test('returns type-wide config when chipType is null', () => {
+    const mgr = makeManager();
+    const config = mgr.getConfigForDeviceType('sensor', null);
+    assert.ok(config);
+    assert.equal(config.gpioPin, mgr.defaultConfig.sensor.gpioPin);
+  });
+
+  test('returns type-wide config when chipType has no matching key', () => {
+    const mgr = makeManager();
+    const config = mgr.getConfigForDeviceType('sensor', 'ESP8266');
+    assert.ok(config);
+    // No "sensor-esp8266" key → falls back to "sensor"
+    assert.equal(config.gpioPin, mgr.defaultConfig.sensor.gpioPin);
+  });
+
+  test('returns chiptype-specific config when key exists (ESP32)', () => {
+    const mgr = makeManager();
+    // defaultConfig includes 'sensor-esp32' with gpioPin: 4
+    const config = mgr.getConfigForDeviceType('sensor', 'ESP32');
+    assert.ok(config);
+    assert.equal(config.gpioPin, mgr.defaultConfig['sensor-esp32'].gpioPin);
+  });
+
+  test('chipType lookup is case-insensitive (lowercase normalisation)', () => {
+    const mgr = makeManager();
+    const configUpper = mgr.getConfigForDeviceType('sensor', 'ESP32');
+    const configLower = mgr.getConfigForDeviceType('sensor', 'esp32');
+    assert.deepEqual(configUpper, configLower);
+  });
+
+  test('ESP32 sensor default gpioPin is 4, ESP8266 sensor default gpioPin is 2', () => {
+    const mgr = makeManager();
+    const esp32 = mgr.getConfigForDeviceType('sensor', 'ESP32');
+    const esp8266 = mgr.getConfigForDeviceType('sensor', 'ESP8266');
+    assert.equal(esp32.gpioPin, 4);
+    assert.equal(esp8266.gpioPin, 2);
+  });
+});
+
+describe('LedConfigManager — chiptype-aware getConfigForDevice()', () => {
+  test('uses chiptype key when chipId is null', () => {
+    const mgr = makeManager();
+    const config = mgr.getConfigForDevice('sensor', null, 'ESP32');
+    assert.equal(config.gpioPin, 4);
+  });
+
+  test('per-device override still wins over chiptype key', () => {
+    const mgr = makeManager();
+    mgr.config.deviceConfigOverrides['sensor/ESP32CHIP'] = { ledCount: 60, gpioPin: 0, topology: 'strip', brightness: 80, defaultEffect: 'solid' };
+    const config = mgr.getConfigForDevice('sensor', 'ESP32CHIP', 'ESP32');
+    // Override gpioPin:0 takes precedence over sensor-esp32 gpioPin:4
+    assert.equal(config.gpioPin, 0);
+    // Non-overridden fields fall back to sensor-esp32 config
+    assert.equal(config.ledCount, 60);
+  });
+});

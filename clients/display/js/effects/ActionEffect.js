@@ -24,7 +24,7 @@
  * Depends on: PIXI (global), gsap (global)
  */
 
-/* global PIXI, gsap */
+/* global PIXI, gsap, GameEvents */
 
 var ActionEffect = (function () {
 
@@ -196,14 +196,14 @@ var ActionEffect = (function () {
   function showEffect(lane, events) {
     if (!lane || !events || !events.length) return;
 
-    var hasZeroRoll      = events.indexOf('zero_roll')       >= 0;
-    var hasScore1        = events.indexOf('score_1')         >= 0;
-    var hasScore2        = events.indexOf('score_2')         >= 0;
-    var hasScore3        = events.indexOf('score_3')         >= 0;
-    var hasStreakZero3x  = events.indexOf('streak_zero_3x')  >= 0;
-    var hasStreakThree2x = events.indexOf('streak_three_2x') >= 0;
-    var hasTookLead      = events.indexOf('took_lead')       >= 0;
-    var hasBecameLast    = events.indexOf('became_last')     >= 0;
+    var hasZeroRoll      = events.indexOf(GameEvents.ZERO_ROLL)       >= 0;
+    var hasScore1        = events.indexOf(GameEvents.SCORE_1)         >= 0;
+    var hasScore2        = events.indexOf(GameEvents.SCORE_2)         >= 0;
+    var hasScore3        = events.indexOf(GameEvents.SCORE_3)         >= 0;
+    var hasStreakZero3x  = events.indexOf(GameEvents.STREAK_ZERO_3X)  >= 0;
+    var hasStreakThree2x = events.indexOf(GameEvents.STREAK_THREE_2X) >= 0;
+    var hasTookLead      = events.indexOf(GameEvents.TOOK_LEAD)       >= 0;
+    var hasBecameLast    = events.indexOf(GameEvents.BECAME_LAST)     >= 0;
 
     // Base effects fire immediately
     if (hasZeroRoll) _fxZeroRoll(lane);

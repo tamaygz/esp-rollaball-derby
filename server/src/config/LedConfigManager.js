@@ -34,6 +34,14 @@ class LedConfigManager extends EventEmitter {
         brightness: 80,
         defaultEffect: 'rainbow'
       },
+      // ESP32 sensors default to GPIO4 (RMT-capable) instead of GPIO2 (UART1-only on ESP8266).
+      'sensor-esp32': {
+        ledCount: 30,
+        topology: 'strip',
+        gpioPin: 4,
+        brightness: 80,
+        defaultEffect: 'rainbow'
+      },
       motor: {
         ledCount: 64,
         topology: 'matrix_zigzag',
@@ -126,15 +134,27 @@ class LedConfigManager extends EventEmitter {
   }
 
   /**
-   * Get configuration for a specific device type
+   * Get configuration for a specific device type, optionally narrowed by chip type.
+   *
+   * Resolution order:
+   *   1. `"${deviceType}-${chipType.toLowerCase()}"` entry (e.g. `"sensor-esp32"`) — chiptype override
+   *   2. `"${deviceType}"` entry — type-wide default
+   *
    * @param {string} deviceType - Device type (sensor, motor, display)
+   * @param {string|null} [chipType] - Chip type string (e.g. 'ESP32', 'ESP8266'), or null
    * @returns {Object|null} Device-specific configuration
    */
-  getConfigForDeviceType(deviceType) {
+  getConfigForDeviceType(deviceType, chipType = null) {
     if (!this.config) {
       throw new Error('Configuration not loaded. Call loadConfig() first.');
     }
-    
+
+    // Check chiptype-specific key first (e.g. "sensor-esp32" for chipType="ESP32")
+    if (chipType) {
+      const chipKey = `${deviceType}-${chipType.toLowerCase()}`;
+      if (this.config[chipKey]) return this.config[chipKey];
+    }
+
     return this.config[deviceType] || null;
   }
 
@@ -165,14 +185,15 @@ class LedConfigManager extends EventEmitter {
 
   /**
    * Get the effective LED config for a specific device.
-   * Returns the per-device override if one exists, otherwise falls back to the
-   * device-type config.
+   * Returns the per-device override if one exists (merged on top of type config),
+   * otherwise falls back to the chiptype-aware type config.
    * @param {string} deviceType - Device type (sensor, motor, display)
    * @param {string|null} chipId - Device chip ID, or null for type-wide lookup
+   * @param {string|null} [chipType] - Chip type (e.g. 'ESP32', 'ESP8266'), or null
    * @returns {Object|null} Effective config, or null if not found
    */
-  getConfigForDevice(deviceType, chipId) {
-    const typeConfig = this.getConfigForDeviceType(deviceType);
+  getConfigForDevice(deviceType, chipId, chipType = null) {
+    const typeConfig = this.getConfigForDeviceType(deviceType, chipType);
     if (!chipId) return typeConfig;
     const overrides = this.config.deviceConfigOverrides || {};
     const key = `${deviceType}/${chipId}`;

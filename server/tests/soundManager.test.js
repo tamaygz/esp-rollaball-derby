@@ -72,7 +72,7 @@ describe('SoundManager', () => {
   test('play() returns silently when disabled', () => {
     const sm = new SoundManager(tempDir, { enabled: false });
     // Should not throw
-    sm.play('score_0');
+    sm.play('zero_roll');
     sm.play('game_started');
   });
 
@@ -84,19 +84,19 @@ describe('SoundManager', () => {
 
   test('play() returns silently when file does not exist', () => {
     const sm = new SoundManager(tempDir, { enabled: true });
-    // score_0.wav does not exist in temp dir
+    // score_0.wav does not exist in temp dir (zero_roll → score_0.wav)
     // Should not throw, just skip silently
-    sm.play('score_0');
+    sm.play('zero_roll');
   });
 
   test('all events in EVENT_FILE_MAP have corresponding file mappings', () => {
     const events = [
-      'score_0', 'score_1', 'score_2', 'score_3',
+      'zero_roll', 'score_1', 'score_2', 'score_3',
       'game_started', 'game_paused', 'game_resumed', 'game_reset',
       'countdown_tick', 'countdown_go',
       'winner',
       'took_lead', 'became_last',
-      'streak_zero', 'streak_three'
+      'streak_zero_3x', 'streak_three_2x',
     ];
     
     const sm = new SoundManager(tempDir);
@@ -120,7 +120,7 @@ describe('SoundManager', () => {
 
   test('play() accepts all documented event types', () => {
     const eventTypes = {
-      'score_0': true,
+      'zero_roll': true,
       'score_1': true,
       'score_2': true,
       'score_3': true,
@@ -133,8 +133,8 @@ describe('SoundManager', () => {
       'winner': true,
       'took_lead': true,
       'became_last': true,
-      'streak_zero': true,
-      'streak_three': true,
+      'streak_zero_3x': true,
+      'streak_three_2x': true,
     };
     
     const sm = new SoundManager(tempDir, { enabled: false });
@@ -152,11 +152,11 @@ describe('SoundManager', () => {
   test('play() with created WAV file references correct file', () => {
     const sm = new SoundManager(tempDir, { enabled: false });
     
-    // Create a WAV file
+    // zero_roll maps to score_0.wav — create it and verify the mapping works
     createTempWav(tempDir, 'score_0.wav');
     
     // Should not throw when file exists (even though disabled)
-    sm.play('score_0');
+    sm.play('zero_roll');
     
     // Verify file was created
     assert.ok(fs.existsSync(path.join(tempDir, 'score_0.wav')));
@@ -178,7 +178,7 @@ describe('SoundManager', () => {
     const sm = new SoundManager(tempDir, { enabled: false });
     
     const start = Date.now();
-    sm.play('score_0');
+    sm.play('zero_roll');
     sm.play('score_1');
     sm.play('score_2');
     const elapsed = Date.now() - start;
@@ -198,12 +198,12 @@ describe('SoundManager', () => {
   test('play() silently handles events with missing files gracefully', () => {
     const sm = new SoundManager(tempDir, { enabled: true });
     
-    // Create only score_0.wav, but try to play others
+    // Create only score_0.wav (mapped from zero_roll), but try to play others
     createTempWav(tempDir, 'score_0.wav');
     
     // Missing files should not throw
-    sm.play('score_1'); // missing
-    sm.play('score_0'); // exists
-    sm.play('score_2'); // missing
+    sm.play('score_1');    // missing
+    sm.play('zero_roll');  // exists (maps to score_0.wav)
+    sm.play('score_2');    // missing
   });
 });
