@@ -136,7 +136,7 @@ void WSClient::_onMessage(WebsocketsMessage msg) {
     if (strcmp(type, "countdown") == 0) {
         int count = doc["payload"]["count"] | 0;
         if (count >= 1) {
-            _pendingGlobalEvent = GlobalEventType::COUNTDOWN_TICK;
+            _globalQueue.push(GlobalEventType::COUNTDOWN_TICK);
         }
         return;
     }
@@ -144,9 +144,9 @@ void WSClient::_onMessage(WebsocketsMessage msg) {
     if (strcmp(type, "winner") == 0) {
         const char* winnerId = doc["payload"]["playerId"];
         if (winnerId) {
-            _pendingGlobalEvent = (_playerId == winnerId)
+            _globalQueue.push((_playerId == winnerId)
                             ? GlobalEventType::WINNER_SELF
-                            : GlobalEventType::WINNER_OTHER;
+                            : GlobalEventType::WINNER_OTHER);
         }
         return;
     }
@@ -154,10 +154,11 @@ void WSClient::_onMessage(WebsocketsMessage msg) {
     if (strcmp(type, "game_event") == 0) {
         const char* event = doc["payload"]["event"];
         if (!event) return;
-        if      (strcmp(event, "game_started") == 0) _pendingGlobalEvent = GlobalEventType::GAME_STARTED;
-        else if (strcmp(event, "game_paused")  == 0) _pendingGlobalEvent = GlobalEventType::GAME_PAUSED;
-        else if (strcmp(event, "game_resumed") == 0) _pendingGlobalEvent = GlobalEventType::GAME_RESUMED;
-        else if (strcmp(event, "game_reset")   == 0) _pendingGlobalEvent = GlobalEventType::GAME_RESET;
+        // Event strings are canonical per clients/shared/leds/GameEvents.h (C++) and clients/shared/js/gameEvents.js (JS).
+        if      (strcmp(event, "game_started") == 0) _globalQueue.push(GlobalEventType::GAME_STARTED);
+        else if (strcmp(event, "game_paused")  == 0) _globalQueue.push(GlobalEventType::GAME_PAUSED);
+        else if (strcmp(event, "game_resumed") == 0) _globalQueue.push(GlobalEventType::GAME_RESUMED);
+        else if (strcmp(event, "game_reset")   == 0) _globalQueue.push(GlobalEventType::GAME_RESET);
         return;
     }
 
@@ -174,6 +175,7 @@ void WSClient::_onMessage(WebsocketsMessage msg) {
         for (JsonVariantConst ev : events) {
             const char* evStr = ev.as<const char*>();
             if (!evStr) continue;
+            // Event strings are canonical per clients/shared/leds/GameEvents.h (C++) and clients/shared/js/gameEvents.js (JS).
             LocalEventType candidate = LocalEventType::NONE;
             if      (strcmp(evStr, "took_lead")      == 0) candidate = LocalEventType::TOOK_LEAD;
             else if (strcmp(evStr, "streak_three_2x") == 0) candidate = LocalEventType::STREAK_THREE;
@@ -189,7 +191,7 @@ void WSClient::_onMessage(WebsocketsMessage msg) {
             }
         }
         if (best != LocalEventType::NONE) {
-            _pendingLocalEvent = best;
+            _localQueue.push(best);
         }
         return;
     }
@@ -266,14 +268,14 @@ void WSClient::_onMessage(WebsocketsMessage msg) {
 }
 
 LocalEventType WSClient::pollLocalEvent() {
-    LocalEventType ev   = _pendingLocalEvent;
-    _pendingLocalEvent  = LocalEventType::NONE;
+    LocalEventType ev = LocalEventType::NONE;
+    _localQueue.pop(ev);
     return ev;
 }
 
 GlobalEventType WSClient::pollGlobalEvent() {
-    GlobalEventType ev   = _pendingGlobalEvent;
-    _pendingGlobalEvent  = GlobalEventType::NONE;
+    GlobalEventType ev = GlobalEventType::NONE;
+    _globalQueue.pop(ev);
     return ev;
 }
 

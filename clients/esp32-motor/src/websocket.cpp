@@ -148,7 +148,7 @@ void WSClient::_onMessage(WebsocketsMessage msg) {
     // ─── countdown ──────────────────────────────────────────────────────────
     if (strcmp(type, "countdown") == 0) {
         int count = doc["payload"]["count"] | 0;
-        if (count >= 1) _pendingGlobalEvent = GlobalEventType::COUNTDOWN_TICK;
+        if (count >= 1) _globalQueue.push(GlobalEventType::COUNTDOWN_TICK);
         return;
     }
 
@@ -156,9 +156,9 @@ void WSClient::_onMessage(WebsocketsMessage msg) {
     if (strcmp(type, "winner") == 0) {
         const char* winnerId = doc["payload"]["playerId"];
         if (winnerId) {
-            _pendingGlobalEvent = (_playerId == winnerId)
+            _globalQueue.push((_playerId == winnerId)
                                 ? GlobalEventType::WINNER_SELF
-                                : GlobalEventType::WINNER_OTHER;
+                                : GlobalEventType::WINNER_OTHER);
         }
         return;
     }
@@ -167,10 +167,11 @@ void WSClient::_onMessage(WebsocketsMessage msg) {
     if (strcmp(type, "game_event") == 0) {
         const char* event = doc["payload"]["event"];
         if (!event) return;
-        if      (strcmp(event, "game_started") == 0) _pendingGlobalEvent = GlobalEventType::GAME_STARTED;
-        else if (strcmp(event, "game_paused")  == 0) _pendingGlobalEvent = GlobalEventType::GAME_PAUSED;
-        else if (strcmp(event, "game_resumed") == 0) _pendingGlobalEvent = GlobalEventType::GAME_RESUMED;
-        else if (strcmp(event, "game_reset")   == 0) _pendingGlobalEvent = GlobalEventType::GAME_RESET;
+        // Event strings are canonical per clients/shared/leds/GameEvents.h (C++) and clients/shared/js/gameEvents.js (JS).
+        if      (strcmp(event, "game_started") == 0) _globalQueue.push(GlobalEventType::GAME_STARTED);
+        else if (strcmp(event, "game_paused")  == 0) _globalQueue.push(GlobalEventType::GAME_PAUSED);
+        else if (strcmp(event, "game_resumed") == 0) _globalQueue.push(GlobalEventType::GAME_RESUMED);
+        else if (strcmp(event, "game_reset")   == 0) _globalQueue.push(GlobalEventType::GAME_RESET);
         return;
     }
 
@@ -259,8 +260,8 @@ bool WSClient::pollPositions(PlayerPosition out[], uint8_t& count) {
 }
 
 GlobalEventType WSClient::pollGlobalEvent() {
-    GlobalEventType ev   = _pendingGlobalEvent;
-    _pendingGlobalEvent  = GlobalEventType::NONE;
+    GlobalEventType ev = GlobalEventType::NONE;
+    _globalQueue.pop(ev);
     return ev;
 }
 

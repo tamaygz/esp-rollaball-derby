@@ -4,6 +4,7 @@
 #include <Arduino.h>
 #include "config.h"
 #include <leds/GameEvents.h>
+#include <leds/EventQueue.h>
 
 // Maximum number of players whose positions we track simultaneously.
 #define WS_MAX_PLAYERS 8
@@ -80,7 +81,7 @@ private:
     unsigned long _lastAttempt   = 0;
     unsigned long _backoffMs     = WS_BACKOFF_MIN_MS;
 
-    GlobalEventType  _pendingGlobalEvent     = GlobalEventType::NONE;
+    EventQueue<GlobalEventType, 4> _globalQueue;
 
     LedConfig    _pendingLedConfig       = {};
     bool         _hasPendingLedConfig    = false;

@@ -4,6 +4,7 @@
 #include <Arduino.h>
 #include "config.h"
 #include <leds/GameEvents.h>
+#include <leds/EventQueue.h>
 
 using namespace websockets;
 
@@ -68,8 +69,8 @@ private:
     unsigned long    _lastAttempt  = 0;
     unsigned long    _backoffMs    = WS_BACKOFF_MIN_MS;
 
-    LocalEventType   _pendingLocalEvent  = LocalEventType::NONE;
-    GlobalEventType  _pendingGlobalEvent = GlobalEventType::NONE;
+    EventQueue<LocalEventType,  4> _localQueue;
+    EventQueue<GlobalEventType, 4> _globalQueue;
 
     // Pending LED config message (from server led_config broadcast)
     LedConfig        _pendingLedConfig      = {};
