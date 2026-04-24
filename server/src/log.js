@@ -1,5 +1,7 @@
 'use strict';
 
+const util = require('node:util');
+
 // ─── Server-side log interceptor ──────────────────────────────────────────────
 // Wraps console.log/warn/error so every server-side log line is also forwarded
 // to connected web/display clients as a `log_line` WebSocket message.
@@ -26,9 +28,21 @@ const _origWarn  = console.warn.bind(console);
 const _origError = console.error.bind(console);
 
 function _fmt(...args) {
-  return args
-    .map((a) => (typeof a === 'object' ? JSON.stringify(a) : String(a)))
-    .join(' ');
+  try {
+    return util.format(...args);
+  } catch (error) {
+    try {
+      return args
+        .map((a) => {
+          if (a instanceof Error) return a.stack || a.message;
+          if (typeof a === 'string') return a;
+          return util.inspect(a, { depth: 2, breakLength: Infinity });
+        })
+        .join(' ');
+    } catch (innerError) {
+      return '[log format error]';
+    }
+  }
 }
 
 function _emit(level, ...args) {

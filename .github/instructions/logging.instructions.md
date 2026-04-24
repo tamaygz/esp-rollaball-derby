@@ -119,6 +119,13 @@ Headers in `clients/shared/leds/` are also compiled by the native (host) unit-te
 // clients/shared/leds/SomeFeature.h
 #ifndef NATIVE_TEST
 #  include <derby_logger.h>
+#else
+#  ifndef DERBY_LOG_F
+#    define DERBY_LOG_F(...) ((void)0)
+#  endif
+#  ifndef DERBY_LOG_LN
+#    define DERBY_LOG_LN(...) ((void)0)
+#  endif
 #endif
 
 void begin() {

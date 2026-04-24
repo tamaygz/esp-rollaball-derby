@@ -52,14 +52,6 @@ Derby.LogViewer = (function () {
 
   // ── Helpers ────────────────────────────────────────────────────────────────
 
-  function _esc(str) {
-    return String(str)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
-  }
-
   function _colorForSender(senderKey, senderType) {
     if (_senderColors[senderKey]) return _senderColors[senderKey];
     var color;
@@ -229,7 +221,7 @@ Derby.LogViewer = (function () {
       }
     });
 
-    Derby.Connection.connect('', 'web');
+    Derby.Connection.connect('', 'display');
 
     // Track WS status via the badge
     // Derby.Connection uses #ws-status internally; we mirror it for the badge

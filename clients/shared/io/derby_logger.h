@@ -3,6 +3,27 @@
 #ifndef NATIVE_TEST
 #include <Arduino.h>
 #include <stdarg.h>
+#else
+#include <stdarg.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <string.h>
+
+// Native toolchains do not consistently provide strlcpy(). Provide a fallback.
+#ifndef strlcpy
+static inline size_t derby_logger_strlcpy(char* dst, const char* src, size_t dstsize) {
+    const size_t src_len = strlen(src);
+
+    if (dstsize != 0) {
+        const size_t copy_len = (src_len >= dstsize) ? (dstsize - 1) : src_len;
+        memcpy(dst, src, copy_len);
+        dst[copy_len] = '\0';
+    }
+
+    return src_len;
+}
+#define strlcpy derby_logger_strlcpy
+#endif
 #endif
 
 // ─── Queue configuration ──────────────────────────────────────────────────────

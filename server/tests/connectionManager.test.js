@@ -183,6 +183,85 @@ describe('ConnectionManager — _handleMessage()', () => {
   });
 });
 
+// ─── _handleLog() ───────────────────────────────────────────────────────────
+
+describe('ConnectionManager — _handleLog()', () => {
+  test('broadcasts hardware log messages as log_line', () => {
+    const gameState = new GameState();
+    const cm = new ConnectionManager(gameState);
+    const wsDevice = makeMockWs();
+    const wsDisplay = makeMockWs();
+
+    cm.handleConnection(wsDevice);
+    cm.handleConnection(wsDisplay);
+
+    const [deviceId, displayId] = cm.clients.keys();
+
+    cm._handleRegister(deviceId, wsDevice, {
+      type: 'sensor',
+      playerName: 'Rider',
+      chipId: 'A1B2',
+    });
+    cm._handleRegister(displayId, wsDisplay, { type: 'display' });
+
+    cm._handleLog(deviceId, { message: 'hello log' });
+
+    const logLine = wsDisplay.sent.find((m) => m.type === 'log_line');
+    assert.ok(logLine);
+    assert.equal(logLine.payload.message, 'hello log');
+    assert.equal(logLine.payload.senderType, 'sensor');
+    assert.equal(logLine.payload.senderName, 'Rider');
+    assert.equal(logLine.payload.source, 'A1B2');
+  });
+
+  test('ignores log messages from non-hardware clients', () => {
+    const gameState = new GameState();
+    const cm = new ConnectionManager(gameState);
+    const wsWeb = makeMockWs();
+    const wsDisplay = makeMockWs();
+
+    cm.handleConnection(wsWeb);
+    cm.handleConnection(wsDisplay);
+
+    const [webId, displayId] = cm.clients.keys();
+
+    cm._handleRegister(webId, wsWeb, { type: 'web' });
+    cm._handleRegister(displayId, wsDisplay, { type: 'display' });
+
+    cm._handleLog(webId, { message: 'nope' });
+
+    const hasLogLine = wsDisplay.sent.some((m) => m.type === 'log_line');
+    assert.equal(hasLogLine, false);
+  });
+
+  test('truncates oversized log messages', () => {
+    const gameState = new GameState();
+    const cm = new ConnectionManager(gameState);
+    const wsDevice = makeMockWs();
+    const wsDisplay = makeMockWs();
+
+    cm.handleConnection(wsDevice);
+    cm.handleConnection(wsDisplay);
+
+    const [deviceId, displayId] = cm.clients.keys();
+
+    cm._handleRegister(deviceId, wsDevice, {
+      type: 'sensor',
+      playerName: 'Rider',
+      chipId: 'A1B2',
+    });
+    cm._handleRegister(displayId, wsDisplay, { type: 'display' });
+
+    const longMessage = 'a'.repeat(400);
+    cm._handleLog(deviceId, { message: longMessage });
+
+    const logLine = wsDisplay.sent.find((m) => m.type === 'log_line');
+    assert.ok(logLine);
+    assert.equal(logLine.payload.message.length, 300);
+    assert.ok(logLine.payload.message.endsWith('...'));
+  });
+});
+
 // ─── _handleDisconnect() ─────────────────────────────────────────────────────
 
 describe('ConnectionManager — _handleDisconnect()', () => {

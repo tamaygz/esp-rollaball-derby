@@ -9,6 +9,7 @@ const VALID_TYPES    = new Set(['sensor', 'web', 'motor', 'display']);
 const HARDWARE_TYPES = new Set(['sensor', 'motor']);
 const HTML_TAG_PATTERN = /<[^>]*>/g;
 const CHIPID_PATTERN   = /^[A-Fa-f0-9]{4,16}$/;
+const LOG_MESSAGE_MAX  = 300;
 
 const AUTO_RESET_DELAY_MS = 15_000;
 const COUNTDOWN_TICK_MS   = 1_000;
@@ -385,12 +386,17 @@ class ConnectionManager {
    */
   broadcastLog(entry) {
     const msg = JSON.stringify({ type: 'log_line', payload: entry });
-    for (const client of this.clients.values()) {
+    for (const [clientId, client] of this.clients.entries()) {
       if (
         (client.type === 'web' || client.type === 'display') &&
         client.ws.readyState === 1 /* OPEN */
       ) {
-        client.ws.send(msg);
+        try {
+          client.ws.send(msg);
+        } catch (error) {
+          console.error('[ConnectionManager] Failed to broadcast log_line to', clientId + ':', error.message);
+          this.clients.delete(clientId);
+        }
       }
     }
   }
@@ -720,19 +726,26 @@ class ConnectionManager {
     // Accept log messages only from hardware devices (sensors, motors).
     if (!HARDWARE_TYPES.has(client.type)) return;
 
-    const message = typeof payload.message === 'string' ? payload.message : '';
-    if (!message) return;
+    const rawMessage = typeof payload.message === 'string' ? payload.message : '';
+    if (!rawMessage) return;
+    let message = rawMessage;
+    if (message.length > LOG_MESSAGE_MAX) {
+      message = message.slice(0, LOG_MESSAGE_MAX - 3) + '...';
+    }
 
     // Resolve a human-readable sender name from the associated player record.
     const player = client.playerId
       ? this.gameState.players.get(client.playerId)
       : null;
     const senderName = player ? player.name : (client.chipType || client.type || 'device');
+    const source = client.chipId || client.playerId || clientId;
+    const level = typeof payload.level === 'string' ? payload.level : undefined;
 
     this.broadcastLog({
-      source:     clientId,
+      source,
       senderName,
       senderType: client.type,
+      level,
       message,
       ts: Date.now(),
     });

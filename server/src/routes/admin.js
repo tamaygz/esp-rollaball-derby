@@ -46,7 +46,7 @@ router.get('/logs', (req, res) => {
   res.render('admin/logs', {
     title: 'Roll-a-Ball Derby — Live Log',
     active: 'logs',
-    wsStatus: false,
+    wsStatus: true,
   });
 });
 
