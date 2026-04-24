@@ -1,10 +1,10 @@
 {
   "sensor": {
     "ledCount": 8,
-    "gpioPin": 2,
+    "gpioPin": 4,
     "topology": "strip",
     "brightness": 80,
-    "defaultEffect": "sparkle"
+    "defaultEffect": "pulse"
   },
   "motor": {
     "ledCount": 256,
