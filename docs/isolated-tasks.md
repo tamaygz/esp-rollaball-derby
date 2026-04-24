@@ -10,72 +10,46 @@
 
 ## T1 — Fix pre-existing server test failures (3 failures)
 
-**Status:** 🔴 Blocked — must merge before any refactor phase begins  
+**Status:** ✅ **Done** — all 161 server tests pass as of 2026-04-24. The 3 pre-existing failures were resolved by prior PRs before this task was executed.  
 **Scope:** Server only (`server/tests/`)  
 **Risk:** Low — isolated test fixes, no production code change expected
 
-**What:** As of 2026-04-24 `npm test` shows 3 pre-existing failures unrelated to the refactor.
-Run `cd server && npm test`, identify the 3 failing tests, fix the root cause (or the test if it is incorrectly written), and verify `npm test` reaches 106/106 pass.
+~~**What:** As of 2026-04-24 `npm test` shows 3 pre-existing failures unrelated to the refactor.
+Run `cd server && npm test`, identify the 3 failing tests, fix the root cause (or the test if it is incorrectly written), and verify `npm test` reaches 106/106 pass.~~
 
-**Acceptance:** `npm test` output shows 0 failures before any Phase 0 work begins.
+**Acceptance:** `npm test` output shows 0 failures before any Phase 0 work begins. ✅
 
 ---
 
 ## T2 — Fix Phase 0 bugs (two remaining items)
 
-**Status:** 🟡 Ready — can be done in one PR  
+**Status:** ✅ **Done** — both items resolved by PR#24 (`copilot/add-esp32-support-to-client`, merged into `refactor-events`).  
 **Scope:** `clients/web/js/led-admin.js`, `server/data/led-config.json`, `clients/esp8266-sensor/README.md`  
 **Risk:** Low — small targeted fixes
 
-**What:**
-1. **P9 — `PLATFORM.motor.defaultTopology` missing in `led-admin.js`:** The `PLATFORM` map points to `CHIP[...]` objects that lack `defaultTopology`. Motor devices silently fall back to `'strip'`. Fix by adding `defaultTopology` to each `CHIP` entry or resolving it at use-site.
-2. **P9 / README — Sensor GPIO pin:** `clients/esp8266-sensor/README.md` still documents the wrong GPIO pin for the LED data line. Update to match the actual firmware default.
+~~**What:**~~
+1. ~~**P9 — `PLATFORM.motor.defaultTopology` missing in `led-admin.js`**~~ → **Resolved:** `led-admin.js` now declares `defaultTopology: 'strip'` on every `CHIP` entry.
+2. ~~**P9 / README — Sensor GPIO pin**~~ → **Resolved:** README corrected in PR#24.
 
-**Acceptance:**
-- `led-admin.js` loads motor topology without console errors.
-- README reflects the correct default GPIO.
-- `npm test` passes (same count as baseline).
+**Acceptance:** Both ✅ verified.
 
 ---
 
 ## T3 — Add `clients/shared/js/gameEvents.js` (Phase 1 single-file quick win)
 
-**Status:** 🟡 Ready — small, self-contained  
-**Scope:** `clients/shared/js/` (new file), `clients/display/js/effects/ActionEffect.js`, `server/src/SoundManager.js`  
-**Risk:** Low
+**Status:** ✅ **Done** — implemented in this PR.  
+**Scope:** `clients/shared/js/` (new file), `clients/display/js/effects/ActionEffect.js`, `clients/display/js/main.js`, `server/src/ws/ConnectionManager.js`, `server/src/sound/SoundManager.js`, `server/tests/soundManager.test.js`
 
-**What:** Create `clients/shared/js/gameEvents.js` with all event string constants as a dual-format shim (works with both `<script src>` and `require()`):
+**What was done:**
+1. Created `clients/shared/js/gameEvents.js` — dual-format shim (browser `<script>` + Node.js `require()`).
+2. Added `/shared` static route to `server/src/index.js` so both display and web admin clients can load it.
+3. Added `<script src="/shared/js/gameEvents.js">` to `clients/display/index.html`.
+4. Replaced all raw event string literals in `ActionEffect.js` and `main.js` with `GameEvents.*` constants.
+5. `SoundManager.js`: switched all `EVENT_FILE_MAP` keys to use `GameEvents.*` constants; added startup validation that warns if a `GameEvents` value has no sound mapping.
+6. **Fixed bug in `ConnectionManager.js`**: `PRIORITY_EVENTS` used `'streak_three'`/`'streak_zero'` (wrong — these never matched `events[]`). Now uses `GameEvents.STREAK_THREE_2X`/`GameEvents.STREAK_ZERO_3X`. Streak sounds now play correctly.
+7. Aligned zero-roll sound lookup: `zero_roll` game event → `score_0.wav`. All tests updated.
 
-```javascript
-// clients/shared/js/gameEvents.js
-var GameEvents = Object.freeze({
-  ZERO_ROLL:       'zero_roll',
-  SCORE_1:         'score_1',
-  SCORE_2:         'score_2',
-  SCORE_3:         'score_3',
-  STREAK_ZERO_3X:  'streak_zero_3x',
-  STREAK_THREE_2X: 'streak_three_2x',
-  TOOK_LEAD:       'took_lead',
-  BECAME_LAST:     'became_last',
-  GAME_STARTED:    'game_started',
-  GAME_PAUSED:     'game_paused',
-  GAME_RESUMED:    'game_resumed',
-  GAME_RESET:      'game_reset',
-  COUNTDOWN_TICK:  'countdown_tick',
-  WINNER:          'winner',
-});
-
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = GameEvents;
-}
-```
-
-Then replace all hardcoded string literals in `ActionEffect.js` and `SoundManager.js` with `GameEvents.*` constants. Add a `console.warn` in `SoundManager.js` startup for any `EVENT_FILE_MAP` key not found in `GameEvents`.
-
-**Acceptance:**
-- No raw event-name string literals remain in `ActionEffect.js` or `SoundManager.js`.
-- `npm test` passes.
-- File is served as static asset by the server (add to static file path if needed).
+**Acceptance:** `npm test` → 161/161 pass ✅
 
 ---
 

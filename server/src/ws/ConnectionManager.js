@@ -1,6 +1,9 @@
 'use strict';
 
 const { randomUUID } = require('crypto');
+const path = require('path');
+
+const GameEvents = require(path.join(__dirname, '..', '..', '..', 'clients', 'shared', 'js', 'gameEvents'));
 
 const VALID_TYPES    = new Set(['sensor', 'web', 'motor', 'display']);
 const HARDWARE_TYPES = new Set(['sensor', 'motor']);
@@ -215,8 +218,19 @@ class ConnectionManager {
 
   broadcastScored(player, points, events) {
     // Play the most significant sound: lead/last/streak events take priority over score.
-    const PRIORITY_EVENTS = ['took_lead', 'became_last', 'streak_three', 'streak_zero'];
-    const soundEvent = (events || []).find((e) => PRIORITY_EVENTS.includes(e)) || `score_${points}`;
+    // Use canonical GameEvents names — these match what the server puts into events[].
+    const PRIORITY_EVENTS = [
+      GameEvents.TOOK_LEAD,
+      GameEvents.BECAME_LAST,
+      GameEvents.STREAK_THREE_2X,
+      GameEvents.STREAK_ZERO_3X,
+    ];
+    // Fall back to the canonical score event name from GameEvents.
+    // GameEvents.ZERO_ROLL for 0-point scores; GameEvents.SCORE_N for 1–3.
+    const scoreFallback = points === 0
+      ? GameEvents.ZERO_ROLL
+      : GameEvents[`SCORE_${points}`] ?? `score_${points}`;
+    const soundEvent = (events || []).find((e) => PRIORITY_EVENTS.includes(e)) || scoreFallback;
     this._soundManager?.play(soundEvent);
 
     this.broadcastAll({
