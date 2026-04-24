@@ -329,7 +329,7 @@ class ConnectionManager {
       client.ws.send(msg);
       return true;
     } catch (error) {
-      console.error(`[ConnectionManager] Failed to send test effect to ${deviceId}:`, error.message);
+      console.error('[ConnectionManager] Failed to send test effect to', deviceId + ':', error.message);
       return false;
     }
   }
@@ -348,7 +348,7 @@ class ConnectionManager {
       client.ws.send(JSON.stringify({ type: 'stop_effect' }));
       return true;
     } catch (error) {
-      console.error(`[ConnectionManager] Failed to send stop_effect to ${deviceId}:`, error.message);
+      console.error('[ConnectionManager] Failed to send stop_effect to', deviceId + ':', error.message);
       return false;
     }
   }

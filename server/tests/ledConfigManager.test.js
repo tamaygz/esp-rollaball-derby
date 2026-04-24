@@ -1,6 +1,6 @@
 'use strict';
 
-const { test, describe, beforeEach } = require('node:test');
+const { test, describe, after } = require('node:test');
 const assert = require('node:assert/strict');
 const path = require('path');
 const fs = require('fs/promises');
@@ -10,14 +10,22 @@ const LedConfigManager = require('../src/config/LedConfigManager');
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+const _tmpFiles = [];
+
 function makeManager() {
   // Use a temp path so each test gets a fresh, isolated file system state.
   const tmpPath = path.join(os.tmpdir(), `led-config-test-${Date.now()}-${Math.random()}.json`);
+  _tmpFiles.push(tmpPath);
   const mgr = new LedConfigManager(tmpPath);
   // Prime the in-memory config without touching the file system
   mgr.config = JSON.parse(JSON.stringify(mgr.defaultConfig));
   return mgr;
 }
+
+after(async () => {
+  // Clean up any temp files created during tests
+  await Promise.all(_tmpFiles.map((f) => fs.unlink(f).catch(() => {})));
+});
 
 // ─── getConfigForDevice ───────────────────────────────────────────────────────
 

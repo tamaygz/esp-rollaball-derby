@@ -27,7 +27,11 @@ try {
     'countdown', 'text', 'winner', 'ballroll', 'clear'];
 }
 
+// Maximum allowed durationMs for test effects (1 hour).
+const MAX_EFFECT_DURATION_MS = 60 * 60 * 1000;
+
 // Rate limiter for effect test endpoint: 1 request per second per device
+
 const effectTestLimiter = rateLimit({
   windowMs: 1000, // 1 second
   max: 1,
@@ -378,10 +382,10 @@ function createLedRoutes(ledConfigManager, connectionManager) {
 
       // Validate durationMs if provided
       const duration = durationMs !== undefined ? Number(durationMs) : 0;
-      if (!Number.isInteger(duration) || duration < 0 || duration > 3600000) {
+      if (!Number.isInteger(duration) || duration < 0 || duration > MAX_EFFECT_DURATION_MS) {
         return res.status(400).json({
           error: 'Bad request',
-          message: 'durationMs must be an integer between 0 and 3600000 (0 = indefinite)'
+          message: `durationMs must be an integer between 0 and ${MAX_EFFECT_DURATION_MS} (0 = indefinite)`
         });
       }
       
