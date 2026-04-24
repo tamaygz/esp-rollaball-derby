@@ -131,6 +131,8 @@ function createLedRoutes(ledConfigManager, connectionManager) {
       
       // Update configuration (validation happens in LedConfigManager)
       await ledConfigManager.updateDeviceConfig(deviceType, deviceConfig);
+
+      console.log(`[LED Routes] Config updated for ${deviceType}`);
       
       // Broadcast new configuration to connected devices
       connectionManager.broadcastLedConfig(deviceType, deviceConfig);
@@ -209,6 +211,8 @@ function createLedRoutes(ledConfigManager, connectionManager) {
       }
 
       await ledConfigManager.updateDeviceOverride(deviceType, chipId, deviceConfig);
+
+      console.log(`[LED Routes] Override set for ${deviceType}/${chipId}`);
 
       // Send the override directly to the specific device (if connected)
       for (const client of connectionManager.clients.values()) {

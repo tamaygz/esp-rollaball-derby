@@ -64,6 +64,7 @@ function createClientsRouter(gameState, connectionManager) {
   router.delete('/:id', (req, res) => {
     const kicked = connectionManager.kickClient(req.params.id);
     if (!kicked) return res.status(404).json({ error: 'Client not found' });
+    console.log(`[Clients] Client kicked: ${req.params.id}`);
     res.json({ kicked: true });
   });
 

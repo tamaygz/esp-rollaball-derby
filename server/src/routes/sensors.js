@@ -101,8 +101,10 @@ function createSensorsRouter({ sensorPort = 80 } = {}) {
     const sensorReq = http.request(options, (sensorRes) => {
       sensorRes.resume(); // drain body — we only care about status code
       if (sensorRes.statusCode === 200) {
+        console.log(`[Sensors] Config pushed to ${trimmedSensorIp}`);
         res.json({ ok: true });
       } else {
+        console.warn(`[Sensors] Sensor ${trimmedSensorIp} returned HTTP ${sensorRes.statusCode}`);
         res.status(502).json({ error: `Sensor returned HTTP ${sensorRes.statusCode}` });
       }
     });
@@ -110,12 +112,14 @@ function createSensorsRouter({ sensorPort = 80 } = {}) {
     sensorReq.on('timeout', () => {
       sensorReq.destroy();
       if (!res.headersSent) {
+        console.warn(`[Sensors] Sensor ${trimmedSensorIp} timed out`);
         res.status(504).json({ error: 'Sensor did not respond within timeout' });
       }
     });
 
     sensorReq.on('error', (e) => {
       if (!res.headersSent) {
+        console.warn(`[Sensors] Sensor ${trimmedSensorIp} request error: ${e.message}`);
         res.status(502).json({ error: `Could not reach sensor: ${e.message}` });
       }
     });

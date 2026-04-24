@@ -105,6 +105,11 @@ class ConnectionManager {
 
     this.clients.set(clientId, { ws, type: null, playerId: null, id: clientId });
 
+    const remote = ws && ws._socket && ws._socket.remoteAddress
+      ? ws._socket.remoteAddress.replace(/^::ffff:/, '')
+      : 'unknown';
+    console.log(`[ConnectionManager] Client connected: ${clientId} (${remote})`);
+
     ws.on('message', (data) => this._handleMessage(clientId, ws, data));
     ws.on('close', () => this._handleDisconnect(clientId));
     ws.on('error', () => this._handleDisconnect(clientId));
@@ -190,7 +195,11 @@ class ConnectionManager {
     const json = JSON.stringify(envelope);
     for (const { ws } of this.clients.values()) {
       if (ws.readyState === 1 /* OPEN */) {
-        ws.send(json);
+        try {
+          ws.send(json);
+        } catch (error) {
+          console.error('[ConnectionManager] Failed to broadcast message:', error.message);
+        }
       }
     }
   }
@@ -497,6 +506,7 @@ class ConnectionManager {
       envelope = JSON.parse(data.toString());
     } catch {
       this._send(ws, { type: 'error', payload: { message: 'Invalid JSON' } });
+      console.warn('[ConnectionManager] Invalid JSON from', clientId);
       return;
     }
 
@@ -504,6 +514,7 @@ class ConnectionManager {
 
     if (typeof type !== 'string') {
       this._send(ws, { type: 'error', payload: { message: 'Missing message type' } });
+      console.warn('[ConnectionManager] Missing message type from', clientId);
       return;
     }
 
@@ -523,9 +534,11 @@ class ConnectionManager {
           break;
         default:
           this._send(ws, { type: 'error', payload: { message: 'Unknown message type' } });
+          console.warn('[ConnectionManager] Unknown message type from', clientId + ':', type);
       }
     } catch (err) {
       this._send(ws, { type: 'error', payload: { message: err.message } });
+      console.error('[ConnectionManager] Handler error for', clientId + ':', err.message);
     }
   }
 
@@ -546,6 +559,7 @@ class ConnectionManager {
         type: 'error',
         payload: { message: `Invalid type. Must be one of: ${[...VALID_TYPES].join(', ')}` },
       });
+      console.warn('[ConnectionManager] Invalid register type from', clientId + ':', type);
       return;
     }
 
@@ -591,6 +605,7 @@ class ConnectionManager {
     if (reconnectId && type !== 'display') {
       const existing = this.gameState.reconnectPlayer(reconnectId);
       if (existing) {
+        console.log(`[ConnectionManager] Client ${clientId} reconnected as ${reconnectId} (${type})`);
         this._finalizeReconnect(ws, client, existing, reconnectId, { type, chipId: validatedChipId, sanitized, ledCount, chipType });
         return;
       }
@@ -604,6 +619,7 @@ class ConnectionManager {
       if (previousPlayerId) {
         const existing = this.gameState.reconnectPlayer(previousPlayerId);
         if (existing) {
+          console.log(`[ConnectionManager] Device ${validatedChipId} reconnected as ${previousPlayerId} (${type})`);
           this._finalizeReconnect(ws, client, existing, previousPlayerId, { type, chipId: validatedChipId, sanitized, ledCount, chipType });
           return;
         }
@@ -656,6 +672,8 @@ class ConnectionManager {
     } else {
       client.playerId = null;
     }
+
+    console.log(`[ConnectionManager] Client registered: ${clientId} (${type})`);
 
     // Build response with LED validation warning if applicable
     const response = {
@@ -820,6 +838,7 @@ class ConnectionManager {
     // client reconnected and the server reused an existing player entry).
     const client = this.clients.get(clientId);
     const playerId = client ? client.playerId : null;
+    const clientType = client ? client.type : null;
     this.clients.delete(clientId);
 
     // Only disconnect the player if no other active client is now responsible for
@@ -834,6 +853,7 @@ class ConnectionManager {
         this.gameState.disconnectPlayer(playerId);
       }
     }
+    console.log(`[ConnectionManager] Client disconnected: ${clientId}${clientType ? ` (${clientType})` : ''}`);
     this.broadcastState();
   }
 }
