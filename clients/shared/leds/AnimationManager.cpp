@@ -8,6 +8,7 @@
 AnimationManager::AnimationManager(LedController* controller) 
   : _controller(controller)
   , _currentEffect(nullptr)
+  , _activePriority(PRIORITY_AMBIENT)
   , _transitionEffect(nullptr)
   , _transitionState(TRANSITION_IDLE)
   , _transitionDurationMs(0)
@@ -66,6 +67,7 @@ void AnimationManager::loop() {
       Serial.println("' completed");
       _currentEffect->reset();
       _currentEffect = nullptr;
+      _activePriority = PRIORITY_AMBIENT;  // reset gate so next request fires
       // Clear strip so LEDs don't stay frozen on the last frame
       _controller->clear();
       _controller->show();
@@ -81,12 +83,25 @@ void AnimationManager::loop() {
   _stats.frameCount++;
 }
 
-void AnimationManager::playEffect(LedEffect* effect) {
+void AnimationManager::playEffect(LedEffect* effect, uint8_t priority) {
   if (effect == nullptr) {
     Serial.println("[AnimationManager] Error: null effect pointer");
     return;
   }
-  
+
+  // ── Priority gate ──────────────────────────────────────────────────────────
+  // Drop the request silently if a higher-priority effect is already running.
+  if (_currentEffect != nullptr && priority < _activePriority) {
+    Serial.print("[AnimationManager] Effect '");
+    Serial.print(effect->getName());
+    Serial.print("' dropped (priority ");
+    Serial.print(priority);
+    Serial.print(" < active ");
+    Serial.print(_activePriority);
+    Serial.println(")");
+    return;
+  }
+
   // Cancel any pending transition
   if (_transitionState != TRANSITION_IDLE) {
     Serial.println("[AnimationManager] Cancelling transition");
@@ -113,6 +128,7 @@ void AnimationManager::playEffect(LedEffect* effect) {
   
   // Start new effect
   _currentEffect = effect;
+  _activePriority = priority;
   _currentEffect->begin();
 }
 
@@ -165,6 +181,7 @@ void AnimationManager::stop() {
     Serial.println("'");
     _currentEffect->reset();
     _currentEffect = nullptr;
+    _activePriority = PRIORITY_AMBIENT;
     _controller->clear();
     _controller->show();
   }

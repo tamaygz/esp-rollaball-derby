@@ -65,6 +65,14 @@ public:
    */
   AnimationManager(LedController* controller);
   
+  // ─── Effect priority constants ─────────────────────────────────────────────
+  // Match the 3-layer model (Ambient / Game / Admin). Higher value = higher
+  // priority. Any uint8_t can be used; these three values map to the standard
+  // layers defined in event-effect-engine-analysis.md §8.
+  static constexpr uint8_t PRIORITY_AMBIENT = 0;  ///< Idle / ambient effects
+  static constexpr uint8_t PRIORITY_GAME    = 1;  ///< Normal game event effects
+  static constexpr uint8_t PRIORITY_ADMIN   = 2;  ///< Admin test / override effects
+
   /**
    * Initialize animator
    * Call once in setup() before using
@@ -87,19 +95,27 @@ public:
    */
   void loop();
   
-  /**
-   * Play an effect
-   * @param effect Pointer to effect instance (must remain valid until complete)
-   * 
-   * If an effect is already playing, it will be replaced immediately.
-   * For smooth transitions, use transitionTo() instead.
-   * 
-   * Effect lifecycle:
-   * 1. Calls effect->begin()
-   * 2. Calls effect->update(deltaMs) every frame
-   * 3. When effect->isComplete() returns true, stops and cleans up
-   */
-  void playEffect(LedEffect* effect);
+/**
+ * Play an effect, subject to a priority gate.
+ *
+ * @param effect   Pointer to effect instance (must remain valid until complete)
+ * @param priority Effect priority — one of PRIORITY_AMBIENT / PRIORITY_GAME /
+ *                 PRIORITY_ADMIN, or any uint8_t value (higher = more urgent).
+ *
+ * If an effect is already playing AND its priority is strictly higher than
+ * `priority`, the request is dropped silently (the running effect continues).
+ * Otherwise the new effect preempts the current one immediately.
+ *
+ * Default priority is PRIORITY_GAME so existing call sites without a second
+ * argument behave exactly as before.
+ *
+ * Effect lifecycle:
+ * 1. Calls effect->begin()
+ * 2. Calls effect->update(deltaMs) every frame
+ * 3. When effect->isComplete() returns true, stops, resets _activePriority to
+ *    PRIORITY_AMBIENT so the next request fires regardless of priority.
+ */
+void playEffect(LedEffect* effect, uint8_t priority = PRIORITY_GAME);
   
   /**
    * Transition to a new effect with crossfade
@@ -174,6 +190,7 @@ public:
 private:
   LedController* _controller;     // LED controller instance
   LedEffect* _currentEffect;      // Active effect (nullptr if idle)
+  uint8_t _activePriority;        // Priority of the currently running effect
   
   // Transition state
   LedEffect* _transitionEffect;   // Pending effect during transition (nullptr if no transition)
