@@ -672,7 +672,7 @@ void loop() {
 
     // ── Stop test effect ─────────────────────────────────────────────────────
     if (wsClient.pollStopEffect()) {
-        matrixDisplay.clear();
+        matrixDisplay.showIdle();
     }
 
     // ── Position updates from state broadcast ─────────────────────────────────
