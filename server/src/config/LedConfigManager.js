@@ -176,7 +176,12 @@ class LedConfigManager extends EventEmitter {
     if (!chipId) return typeConfig;
     const overrides = this.config.deviceConfigOverrides || {};
     const key = `${deviceType}/${chipId}`;
-    return overrides[key] ? { ...typeConfig, ...overrides[key] } : typeConfig;
+    const overrideConfig = overrides[key];
+
+    if (!overrideConfig) return typeConfig;
+    if (!typeConfig) return overrideConfig;
+
+    return { ...typeConfig, ...overrideConfig };
   }
 
   /**
