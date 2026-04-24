@@ -3,8 +3,8 @@
     "ledCount": 8,
     "gpioPin": 4,
     "topology": "strip",
-    "brightness": 80,
-    "defaultEffect": "pulse"
+    "brightness": 55,
+    "defaultEffect": "chase"
   },
   "motor": {
     "ledCount": 256,
