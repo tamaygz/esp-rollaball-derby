@@ -31,15 +31,7 @@
     "brightness": 0,
     "defaultEffect": "solid"
   },
-  "deviceColorMap": {
-    "00B7F33C": 15,
-    "701C34FE8CE0": 9,
-    "0000307F33FE8CE0": 13
-  },
-  "deviceNameMap": {
-    "00B7F33C": "Gallop Poll",
-    "701C34FE8CE0": "Thunderhooves",
-    "0000307F33FE8CE0": "tg15"
-  },
+  "deviceColorMap": {},
+  "deviceNameMap": {},
   "deviceConfigOverrides": {}
 }
