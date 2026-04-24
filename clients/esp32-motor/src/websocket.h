@@ -2,6 +2,7 @@
 #include <Arduino.h>
 #include "config.h"
 #include <leds/GameEvents.h>
+#include <leds/EventQueue.h>
 #include <ws_client_base.h>
 
 // Maximum number of players whose positions we track simultaneously.
@@ -22,14 +23,20 @@ struct PlayerPosition {
 class WSClient : public WSClientBase {
 public:
     // Call once in setup() after WiFi connects.
+    // motorCount: number of stepper motors on this device
+    // motorColors: array of colorIndex values (one per motor/player lane, up to 8)
+    // persistedPlayerId: optional saved device UUID
     void begin(const char* host, uint16_t port, const char* playerName,
                uint8_t motorCount, const uint8_t* motorColors,
                const char* persistedPlayerId = nullptr);
 
     // Send a button event to the server.
+    // buttonIdx: hardware button index (0 = BUTTON_1, 1 = BUTTON_2)
+    // action: "start" | "reset" | "pause" | "resume"
     void sendButton(uint8_t buttonIdx, const char* action);
 
     // Poll for updated player positions (from latest `state` message).
+    // Returns true and fills out[] with up to WS_MAX_PLAYERS entries if positions changed.
     bool pollPositions(PlayerPosition out[], uint8_t& count);
 
 protected:

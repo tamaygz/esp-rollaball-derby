@@ -113,7 +113,22 @@ public:
 };
 ```
 
-> **Never** include `<derby_logger.h>` from `clients/shared/leds/` headers — leds headers must stay application-free (they're also compiled by the native test runner which has no Arduino).
+Headers in `clients/shared/leds/` are also compiled by the native (host) unit-test runner which has no Arduino environment. Guard the include with `NATIVE_TEST`:
+
+```cpp
+// clients/shared/leds/SomeFeature.h
+#ifndef NATIVE_TEST
+#  include <derby_logger.h>
+#endif
+
+void begin() {
+    DERBY_LOG_LN("[FEATURE] Initialized");  // no-op in native tests; logs on device
+}
+```
+
+`GameEventMapper.h` follows this pattern and is the canonical example.
+
+> **Never** include `<derby_logger.h>` from `clients/shared/leds/` headers without the `NATIVE_TEST` guard — the native test runner will fail to compile.
 
 ---
 

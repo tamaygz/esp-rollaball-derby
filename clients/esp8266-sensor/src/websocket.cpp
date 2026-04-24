@@ -27,8 +27,8 @@ void WSClient::sendScore(int points) {
 }
 
 LocalEventType WSClient::pollLocalEvent() {
-    LocalEventType ev  = _pendingLocalEvent;
-    _pendingLocalEvent = LocalEventType::NONE;
+    LocalEventType ev = LocalEventType::NONE;
+    _localQueue.pop(ev);
     return ev;
 }
 
@@ -61,9 +61,9 @@ void WSClient::_onAppMessage(const char* type, JsonDocument& doc) {
     const char* scoredId = doc["payload"]["playerId"];
     if (!scoredId || _playerId.isEmpty() || _playerId != scoredId) return;
 
-    // Pick the highest-priority event from the events array.
-    // Priority (high→low): took_lead > streak_three > score_3 > score_2
-    //   > score_1 > streak_zero > zero_roll > became_last
+    // Pick the highest-priority event from the events array, then push it to the
+    // local queue (priority-based eviction protects high-value events on overflow).
+    // Event strings are canonical per clients/shared/leds/GameEvents.h.
     LocalEventType best = LocalEventType::NONE;
     JsonArrayConst events = doc["payload"]["events"].as<JsonArrayConst>();
     for (JsonVariantConst ev : events) {
@@ -80,5 +80,7 @@ void WSClient::_onAppMessage(const char* type, JsonDocument& doc) {
         else if (strcmp(evStr, "became_last")      == 0) candidate = LocalEventType::BECAME_LAST;
         if (static_cast<int>(candidate) > static_cast<int>(best)) best = candidate;
     }
-    if (best != LocalEventType::NONE) _pendingLocalEvent = best;
+    if (best != LocalEventType::NONE) {
+        _localQueue.push(best);
+    }
 }

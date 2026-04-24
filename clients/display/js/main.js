@@ -138,7 +138,17 @@
 
   // ── WebSocket routing ─────────────────────────────────────────────────────────
 
+  var _lastSeenSeq = 0;
+
   DisplayConnection.onMessage(function (msg) {
+    // Deduplicate messages by sequence number (T11).
+    // On reconnect the server starts a fresh seq counter but the client's
+    // _lastSeenSeq is stale; only apply the guard when seq is > 0.
+    if (typeof msg.seq === 'number' && msg.seq > 0) {
+      if (msg.seq <= _lastSeenSeq) return;
+      _lastSeenSeq = msg.seq;
+    }
+
     switch (msg.type) {
       case 'state':      _handleState(msg.payload);    break;
       case 'scored':     _handleScored(msg.payload);   break;

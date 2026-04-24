@@ -66,20 +66,23 @@ void WSClient::_sendRegister() {
 }
 
 void WSClient::_onAppMessage(const char* type, JsonDocument& doc) {
-    if (strcmp(type, "state") != 0) return;
-
-    JsonArrayConst players = doc["payload"]["state"]["players"].as<JsonArrayConst>();
-    uint8_t count = 0;
-    for (JsonVariantConst p : players) {
-        if (count >= WS_MAX_PLAYERS) break;
-        const char* id = p["id"]         | "";
-        float pos      = p["position"]   | 0.0f;
-        uint8_t ci     = p["colorIndex"] | 0;
-        strlcpy(_positions[count].playerId, id, sizeof(_positions[count].playerId));
-        _positions[count].position   = pos;
-        _positions[count].colorIndex = ci;
-        count++;
+    // ─── state (player positions for motor control) ──────────────────────────
+    if (strcmp(type, "state") == 0) {
+        JsonArrayConst players = doc["payload"]["state"]["players"].as<JsonArrayConst>();
+        uint8_t count = 0;
+        for (JsonVariantConst p : players) {
+            if (count >= WS_MAX_PLAYERS) break;
+            const char* id = p["id"]         | "";
+            float pos      = p["position"]   | 0.0f;
+            uint8_t ci     = p["colorIndex"] | 0;
+            strlcpy(_positions[count].playerId, id, sizeof(_positions[count].playerId));
+            _positions[count].position   = pos;
+            _positions[count].colorIndex = ci;
+            count++;
+        }
+        _positionCount  = count;
+        _positionsDirty = (count > 0);
+        return;
     }
-    _positionCount  = count;
-    _positionsDirty = (count > 0);
+    // All other unrecognised types silently ignored.
 }

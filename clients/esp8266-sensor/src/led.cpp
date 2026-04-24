@@ -136,26 +136,26 @@ void LedManager::playTestEffect(const LedTestEffectMessage& msg) {
         uint16_t half = (msg.speedMs > 0) ? (msg.speedMs / 2) : 500;
         _blinkEffect.setParams(p);
         _blinkEffect.setBlinkParams(half, half, 0);
-        _animator.playEffect(&_blinkEffect);
+        _animator.playEffect(&_blinkEffect, AnimationManager::PRIORITY_ADMIN);
 
     } else if (strcmp(msg.effectName, "pulse") == 0) {
         uint16_t period = (msg.speedMs > 0) ? msg.speedMs : 1000;
         _pulseEffect.setParams(p);
         _pulseEffect.setPeriod(period);
-        _animator.playEffect(&_pulseEffect);
+        _animator.playEffect(&_pulseEffect, AnimationManager::PRIORITY_ADMIN);
 
     } else if (strcmp(msg.effectName, "rainbow") == 0) {
         uint16_t speed = (msg.speedMs > 0) ? msg.speedMs : 3000;
         p.brightness = (msg.brightness > 0) ? msg.brightness : 180;
         _rainbowEffect.setParams(p);
         _rainbowEffect.setCycleSpeed(speed);
-        _animator.playEffect(&_rainbowEffect);
+        _animator.playEffect(&_rainbowEffect, AnimationManager::PRIORITY_ADMIN);
 
     } else if (strcmp(msg.effectName, "chase") == 0) {
         uint8_t speed = (msg.speedMs > 0) ? min((uint16_t)100, (uint16_t)(1000 / msg.speedMs * 10)) : 20;
         _chaseEffect.setParams(p);
         _chaseEffect.setChaseParams(5, speed);
-        _animator.playEffect(&_chaseEffect);
+        _animator.playEffect(&_chaseEffect, AnimationManager::PRIORITY_ADMIN);
 
     } else if (strcmp(msg.effectName, "sparkle") == 0) {
         // Use the requested color as sparkle color; background stays dark.
@@ -166,12 +166,12 @@ void LedManager::playTestEffect(const LedTestEffectMessage& msg) {
             0.08f,                                  // 8% density per frame
             8                                       // fade speed
         );
-        _animator.playEffect(&_sparkleEffect);
+        _animator.playEffect(&_sparkleEffect, AnimationManager::PRIORITY_ADMIN);
 
     } else {
         // "solid" and any unknown effect name → solid color
         _solidEffect.setParams(p);
-        _animator.playEffect(&_solidEffect);
+        _animator.playEffect(&_solidEffect, AnimationManager::PRIORITY_ADMIN);
     }
 }
 
@@ -216,7 +216,7 @@ void LedManager::_playAmbient(LedState state) {
             p.brightness = _config.brightness;
             _blinkEffect.setParams(p);
             _blinkEffect.setBlinkParams(100, 100, 0);
-            _animator.playEffect(&_blinkEffect);
+            _animator.playEffect(&_blinkEffect, AnimationManager::PRIORITY_AMBIENT);
             break;
 
         case LedState::WIFI_ONLY:
@@ -225,7 +225,7 @@ void LedManager::_playAmbient(LedState state) {
             p.brightness = _config.brightness;
             _blinkEffect.setParams(p);
             _blinkEffect.setBlinkParams(500, 500, 0);
-            _animator.playEffect(&_blinkEffect);
+            _animator.playEffect(&_blinkEffect, AnimationManager::PRIORITY_AMBIENT);
             break;
 
         case LedState::WS_CONNECTED:
@@ -234,7 +234,7 @@ void LedManager::_playAmbient(LedState state) {
             p.brightness = _config.brightness;
             _pulseEffect.setParams(p);
             _pulseEffect.setPeriod(2000);
-            _animator.playEffect(&_pulseEffect);
+            _animator.playEffect(&_pulseEffect, AnimationManager::PRIORITY_AMBIENT);
             break;
     }
 }

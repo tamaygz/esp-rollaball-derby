@@ -185,7 +185,8 @@ class ConnectionManager {
   }
 
   broadcastAll(msg) {
-    const json = JSON.stringify(msg);
+    const envelope = { ...msg, seq: this.gameState.nextSeq() };
+    const json = JSON.stringify(envelope);
     for (const { ws } of this.clients.values()) {
       if (ws.readyState === 1 /* OPEN */) {
         ws.send(json);
@@ -523,7 +524,16 @@ class ConnectionManager {
   }
 
   _handleRegister(clientId, ws, payload) {
-    const { type, playerName, playerId: reconnectId, ledCount, chipType, chipId, motorCount, motorColors, capabilities } = payload;
+    const { type, playerName, playerId: reconnectId, ledCount, chipType, chipId, motorCount, motorColors, capabilities, lastSeq } = payload;
+
+    // If the client reports the last seq it saw, log a gap warning so we can
+    // detect missed messages during reconnects (non-blocking, informational only).
+    if (typeof lastSeq === 'number') {
+      const currentSeq = this.gameState.getSeq();
+      if (lastSeq < currentSeq - 1) {
+        console.warn(`[WS] seq gap on register: client lastSeq=${lastSeq}, server seq=${currentSeq}`);
+      }
+    }
 
     if (!VALID_TYPES.has(type)) {
       this._send(ws, {

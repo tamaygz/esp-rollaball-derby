@@ -21,6 +21,7 @@
 #include <ArduinoJson.h>
 #include <Arduino.h>
 #include <leds/GameEvents.h>
+#include <leds/EventQueue.h>
 #include <color_utils.h>
 #include <derby_logger.h>
 
@@ -75,8 +76,8 @@ public:
     // ─── Common poll methods ──────────────────────────────────────────────────
 
     GlobalEventType pollGlobalEvent() {
-        GlobalEventType ev  = _pendingGlobalEvent;
-        _pendingGlobalEvent = GlobalEventType::NONE;
+        GlobalEventType ev = GlobalEventType::NONE;
+        _globalQueue.pop(ev);
         return ev;
     }
 
@@ -113,7 +114,11 @@ protected:
     unsigned long    _backoffMs         = WS_BACKOFF_MIN_MS;
     uint16_t         _ledMetadataCount  = 0;
 
-    GlobalEventType       _pendingGlobalEvent    = GlobalEventType::NONE;
+    // Global event queue — bounded FIFO with priority-based overflow eviction.
+    // Capacity of 4 is sufficient: at most one event fires per WS message,
+    // and loop() drains it every iteration.
+    EventQueue<GlobalEventType, 4> _globalQueue;
+
     LedConfig             _pendingLedConfig       = {};
     bool                  _hasPendingLedConfig    = false;
     LedTestEffectMessage  _pendingTestEffect      = {};
@@ -208,16 +213,16 @@ private:
 
         if (strcmp(type, "countdown") == 0) {
             const int count = doc["payload"]["count"] | 0;
-            if (count >= 1) _pendingGlobalEvent = GlobalEventType::COUNTDOWN_TICK;
+            if (count >= 1) _globalQueue.push(GlobalEventType::COUNTDOWN_TICK);
             return;
         }
 
         if (strcmp(type, "winner") == 0) {
             const char* winnerId = doc["payload"]["playerId"];
             if (winnerId) {
-                _pendingGlobalEvent = (_playerId == winnerId)
-                                    ? GlobalEventType::WINNER_SELF
-                                    : GlobalEventType::WINNER_OTHER;
+                _globalQueue.push((_playerId == winnerId)
+                                ? GlobalEventType::WINNER_SELF
+                                : GlobalEventType::WINNER_OTHER);
             }
             return;
         }
@@ -225,10 +230,10 @@ private:
         if (strcmp(type, "game_event") == 0) {
             const char* event = doc["payload"]["event"];
             if (!event) return;
-            if      (strcmp(event, "game_started") == 0) _pendingGlobalEvent = GlobalEventType::GAME_STARTED;
-            else if (strcmp(event, "game_paused")  == 0) _pendingGlobalEvent = GlobalEventType::GAME_PAUSED;
-            else if (strcmp(event, "game_resumed") == 0) _pendingGlobalEvent = GlobalEventType::GAME_RESUMED;
-            else if (strcmp(event, "game_reset")   == 0) _pendingGlobalEvent = GlobalEventType::GAME_RESET;
+            if      (strcmp(event, "game_started") == 0) _globalQueue.push(GlobalEventType::GAME_STARTED);
+            else if (strcmp(event, "game_paused")  == 0) _globalQueue.push(GlobalEventType::GAME_PAUSED);
+            else if (strcmp(event, "game_resumed") == 0) _globalQueue.push(GlobalEventType::GAME_RESUMED);
+            else if (strcmp(event, "game_reset")   == 0) _globalQueue.push(GlobalEventType::GAME_RESET);
             return;
         }
 
