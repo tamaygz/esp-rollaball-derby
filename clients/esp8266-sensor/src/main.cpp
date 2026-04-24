@@ -602,6 +602,11 @@ void loop() {
         ledManager.playTestEffect(pendingEffect);
     }
 
+    // ── Stop test effect ─────────────────────────────────────────────────────
+    if (wsClient.pollStopEffect()) {
+        ledManager.restoreAmbient();
+    }
+
     int points          = sensors.check();
     LocalEventType  lev = wsClient.pollLocalEvent();
     GlobalEventType gev = wsClient.pollGlobalEvent();

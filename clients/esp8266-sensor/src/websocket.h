@@ -42,6 +42,9 @@ public:
     // has arrived since the last call; false otherwise.
     bool pollTestEffect(LedTestEffectMessage& out);
 
+    // Returns true (once) if a stop_effect message arrived since the last call.
+    bool pollStopEffect();
+
     // Inform the client of the current LED count to include in the registration
     // message (and in re-registrations after reconnect).
     void setLedMetadata(uint16_t ledCount);
@@ -75,6 +78,7 @@ private:
     // Pending LED test-effect message (from server test_effect command)
     LedTestEffectMessage _pendingTestEffect    = {};
     bool                 _hasPendingTestEffect = false;
+    bool                 _pendingStopEffect    = false;
 
     // LED metadata sent in registration
     uint16_t         _ledMetadataCount = LED_DEFAULT_COUNT;

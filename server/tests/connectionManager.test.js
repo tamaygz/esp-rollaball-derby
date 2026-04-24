@@ -537,3 +537,63 @@ describe('ConnectionManager — stale socket cleanup', () => {
     assert.equal(cm.clients.get(clientId2).playerId, playerId);
   });
 });
+
+// ─── sendTestEffect / sendStopEffect ─────────────────────────────────────────
+
+describe('ConnectionManager — sendTestEffect / sendStopEffect', () => {
+  test('sendTestEffect includes durationMs in test_effect payload', () => {
+    const gameState = new GameState();
+    const cm = new ConnectionManager(gameState);
+    const ws = makeMockWs();
+
+    cm.handleConnection(ws);
+    const [clientId] = cm.clients.keys();
+
+    const success = cm.sendTestEffect(clientId, 'rainbow', { brightness: 200 }, 3000);
+    assert.equal(success, true);
+
+    const msg = ws.lastMessage();
+    assert.equal(msg.type, 'test_effect');
+    assert.equal(msg.payload.effectName, 'rainbow');
+    assert.equal(msg.payload.durationMs, 3000);
+  });
+
+  test('sendTestEffect defaults durationMs to 0 when not provided', () => {
+    const gameState = new GameState();
+    const cm = new ConnectionManager(gameState);
+    const ws = makeMockWs();
+
+    cm.handleConnection(ws);
+    const [clientId] = cm.clients.keys();
+
+    cm.sendTestEffect(clientId, 'solid', {});
+    const msg = ws.lastMessage();
+    assert.equal(msg.payload.durationMs, 0);
+  });
+
+  test('sendStopEffect sends stop_effect message to device', () => {
+    const gameState = new GameState();
+    const cm = new ConnectionManager(gameState);
+    const ws = makeMockWs();
+
+    cm.handleConnection(ws);
+    const [clientId] = cm.clients.keys();
+
+    const success = cm.sendStopEffect(clientId);
+    assert.equal(success, true);
+    const msg = ws.lastMessage();
+    assert.equal(msg.type, 'stop_effect');
+  });
+
+  test('sendStopEffect returns false for unknown deviceId', () => {
+    const gameState = new GameState();
+    const cm = new ConnectionManager(gameState);
+    assert.equal(cm.sendStopEffect('no-such-id'), false);
+  });
+
+  test('sendTestEffect returns false for unknown deviceId', () => {
+    const gameState = new GameState();
+    const cm = new ConnectionManager(gameState);
+    assert.equal(cm.sendTestEffect('no-such-id', 'rainbow', {}), false);
+  });
+});

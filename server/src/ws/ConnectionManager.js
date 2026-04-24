@@ -271,7 +271,13 @@ class ConnectionManager {
     let sentCount = 0;
     for (const client of this.clients.values()) {
       if (client.type === deviceType && client.ws.readyState === 1 /* OPEN */) {
-        const payload = { ...config };
+        // Use per-device override if available, otherwise use the type-wide config
+        let effectiveConfig = config;
+        if (this.ledConfigManager && client.chipId) {
+          const perDevice = this.ledConfigManager.getConfigForDevice(deviceType, client.chipId);
+          if (perDevice) effectiveConfig = perDevice;
+        }
+        const payload = { ...effectiveConfig };
         // Include per-device color if available
         if (this.ledConfigManager && client.playerId) {
           const player = this.gameState.players.get(client.playerId);
@@ -301,9 +307,10 @@ class ConnectionManager {
    * @param {string} deviceId - Device client ID
    * @param {string} effectName - Effect name
    * @param {Object} params - Effect parameters
+   * @param {number} [durationMs=0] - Auto-stop duration in ms (0 = indefinite)
    * @returns {boolean} Success status
    */
-  sendTestEffect(deviceId, effectName, params) {
+  sendTestEffect(deviceId, effectName, params, durationMs = 0) {
     const client = this.clients.get(deviceId);
     if (!client || client.ws.readyState !== 1 /* OPEN */) {
       return false;
@@ -313,6 +320,7 @@ class ConnectionManager {
       type: 'test_effect',
       payload: {
         effectName,
+        durationMs,
         params
       }
     });
@@ -321,7 +329,26 @@ class ConnectionManager {
       client.ws.send(msg);
       return true;
     } catch (error) {
-      console.error(`[ConnectionManager] Failed to send test effect to ${deviceId}:`, error.message);
+      console.error('[ConnectionManager] Failed to send test effect to', deviceId + ':', error.message);
+      return false;
+    }
+  }
+
+  /**
+   * Send stop_effect to a specific device, ending any active test effect.
+   * @param {string} deviceId - Device client ID
+   * @returns {boolean} Success status
+   */
+  sendStopEffect(deviceId) {
+    const client = this.clients.get(deviceId);
+    if (!client || client.ws.readyState !== 1 /* OPEN */) {
+      return false;
+    }
+    try {
+      client.ws.send(JSON.stringify({ type: 'stop_effect' }));
+      return true;
+    } catch (error) {
+      console.error('[ConnectionManager] Failed to send stop_effect to', deviceId + ':', error.message);
       return false;
     }
   }
@@ -599,7 +626,7 @@ class ConnectionManager {
 
     // Send LED config to newly registered device (with device color)
     if (this.ledConfigManager && type !== 'display') {
-      const ledConfig = this.ledConfigManager.getConfigForDeviceType(type);
+      const ledConfig = this.ledConfigManager.getConfigForDevice(type, validatedChipId || null);
       if (ledConfig && ledConfig.ledCount > 0) {
         const configPayload = { ...ledConfig };
         if (colorIndex !== undefined) {
@@ -698,7 +725,9 @@ class ConnectionManager {
     try {
       this.gameState.setPlayerColorIndex(client.playerId, firstLaneColor);
       if (this.ledConfigManager && client.chipId) {
-        this.ledConfigManager.assignColor(client.chipId, firstLaneColor);
+        this.ledConfigManager.updateDeviceColor(client.chipId, firstLaneColor).catch((err) => {
+          console.error('[ConnectionManager] Failed to persist motor lane color:', err.message);
+        });
       }
     } catch (_) { /* player may not exist yet — ignore */ }
   }

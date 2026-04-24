@@ -245,13 +245,20 @@ void WSClient::_onMessage(WebsocketsMessage msg) {
 
         msg.speedMs   = static_cast<uint16_t>(doc["payload"]["params"]["speed"]      | 1000);
         msg.brightness = static_cast<uint8_t>(doc["payload"]["params"]["brightness"] | 255);
+        msg.durationMs = static_cast<uint32_t>(doc["payload"]["durationMs"]          | 0);
         const char* text = doc["payload"]["params"]["text"] | "";
         strlcpy(msg.text, text, sizeof(msg.text));
 
         _pendingTestEffect    = msg;
         _hasPendingTestEffect = true;
-        Serial.printf("[WS] test_effect: effect=%s rgb=(%u,%u,%u) speed=%u\n",
-                      msg.effectName, msg.r, msg.g, msg.b, msg.speedMs);
+        Serial.printf("[WS] test_effect: effect=%s rgb=(%u,%u,%u) speed=%u duration=%u\n",
+                      msg.effectName, msg.r, msg.g, msg.b, msg.speedMs, msg.durationMs);
+        return;
+    }
+
+    if (strcmp(type, "stop_effect") == 0) {
+        _pendingStopEffect = true;
+        Serial.println("[WS] stop_effect received");
         return;
     }
 
@@ -281,6 +288,12 @@ bool WSClient::pollTestEffect(LedTestEffectMessage& out) {
     if (!_hasPendingTestEffect) return false;
     out                   = _pendingTestEffect;
     _hasPendingTestEffect = false;
+    return true;
+}
+
+bool WSClient::pollStopEffect() {
+    if (!_pendingStopEffect) return false;
+    _pendingStopEffect = false;
     return true;
 }
 
