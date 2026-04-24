@@ -231,7 +231,7 @@ describe('GameState — auto-theme resolution', () => {
     addConnectedPlayer(game);
     game.start();
     assert.notEqual(game.config.theme, 'auto');
-    assert.ok(['horse', 'camel', 'reef'].includes(game.config.theme));
+    assert.ok(['horse', 'camel', 'reef', 'aliens'].includes(game.config.theme));
   });
 
   test('start() preserves explicit theme unchanged', () => {

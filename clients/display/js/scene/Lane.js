@@ -104,7 +104,7 @@ class Lane extends PIXI.Container {
     // Aspect ratio comes from the loaded texture (consistent with flagAspect approach above).
     // Falls back to ThemeManager.getSpriteAspect() (parsed from theme.json viewBox) when
     // the texture is not yet available — both methods yield the same ratio.
-    var spriteTex  = ThemeManager.getTexture('sprite');
+    var spriteTex  = ThemeManager.getSpriteTexture(this._player.spriteVariantIndex);
     var aspect     = (spriteTex && spriteTex.width && spriteTex.height)
       ? spriteTex.width / spriteTex.height
       : ThemeManager.getSpriteAspect();

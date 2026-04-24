@@ -1,0 +1,222 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 90 72" fill="white">
+  <!--
+    Alien UFO v2 — high-fidelity cartoon racer, faces right.
+    PIXI.js tint-ready: root fill="white" → RGB-multiply = player colour.
+    SVG gradients (all white/grey) create genuine 3-D depth on every surface.
+    Dark values (#181818–#484848) on pupils/outlines stay readable under any tint.
+  -->
+  <defs>
+    <!-- Dome: top-left lit radial → convex glass-sphere illusion -->
+    <radialGradient id="dG" cx="36%" cy="26%" r="66%">
+      <stop offset="0%"   stop-color="#f8f8f8"/>
+      <stop offset="38%"  stop-color="#d6d6d6"/>
+      <stop offset="80%"  stop-color="#aaaaaa"/>
+      <stop offset="100%" stop-color="#909090"/>
+    </radialGradient>
+    <!-- Alien skin: top-left lit → soft round body -->
+    <radialGradient id="aG" cx="32%" cy="22%" r="76%">
+      <stop offset="0%"   stop-color="#ffffff"/>
+      <stop offset="50%"  stop-color="#ebebeb"/>
+      <stop offset="100%" stop-color="#c6c6c6"/>
+    </radialGradient>
+    <!-- Hull top: lit from above → metallic disc -->
+    <linearGradient id="htG" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#f4f4f4"/>
+      <stop offset="55%"  stop-color="#d2d2d2"/>
+      <stop offset="100%" stop-color="#b2b2b2"/>
+    </linearGradient>
+    <!-- Hull underside: dark shadow belly -->
+    <linearGradient id="huG" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#c2c2c2"/>
+      <stop offset="100%" stop-color="#7e7e7e"/>
+    </linearGradient>
+    <!-- Equatorial ridge: bright-top / dark-mid / lighter-base = raised-ridge look -->
+    <linearGradient id="rG" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#e6e6e6"/>
+      <stop offset="35%"  stop-color="#a8a8a8"/>
+      <stop offset="70%"  stop-color="#c6c6c6"/>
+      <stop offset="100%" stop-color="#aeaeae"/>
+    </linearGradient>
+    <!-- Cockpit collar: dark metallic ring -->
+    <linearGradient id="cG" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#d4d4d4"/>
+      <stop offset="100%" stop-color="#909090"/>
+    </linearGradient>
+    <!-- Tractor beam: hot-white centre → transparent edges -->
+    <radialGradient id="bG" cx="50%" cy="0%" r="100%">
+      <stop offset="0%"   stop-color="#ffffff"/>
+      <stop offset="55%"  stop-color="#f2f2f2"/>
+      <stop offset="100%" stop-color="#eeeeee" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Antenna orb: glossy ball lit top-left -->
+    <radialGradient id="anG" cx="33%" cy="28%" r="68%">
+      <stop offset="0%"   stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#c2c2c2"/>
+    </radialGradient>
+    <!-- Eye iris: mid-grey ring gives eye depth -->
+    <radialGradient id="irG" cx="50%" cy="50%" r="50%">
+      <stop offset="0%"   stop-color="#d8d8d8"/>
+      <stop offset="100%" stop-color="#b8b8b8"/>
+    </radialGradient>
+    <!-- Eye pupil: dark gradient (stays dark under ALL tint colours) -->
+    <radialGradient id="pG" cx="32%" cy="28%" r="72%">
+      <stop offset="0%"   stop-color="#484848"/>
+      <stop offset="100%" stop-color="#161616"/>
+    </radialGradient>
+  </defs>
+
+  <!-- ════ SPEED LINES ════════════════════════════════════════════ -->
+  <rect x="1"  y="44"   width="17" height="3"   rx="1.5" fill="#d8d8d8"/>
+  <rect x="1"  y="50"   width="13" height="2.4" rx="1.2" fill="#d0d0d0"/>
+  <rect x="1"  y="39.5" width="11" height="2.2" rx="1.1" fill="#c8c8c8"/>
+  <rect x="1"  y="55.5" width="9"  height="2"   rx="1"   fill="#c2c2c2"/>
+  <rect x="1"  y="35.5" width="7"  height="1.6" rx="0.8" fill="#b8b8b8"/>
+  <!-- Motion-blur dot trail -->
+  <circle cx="20" cy="45.5" r="1.5" fill="#d0d0d0"/>
+  <circle cx="20" cy="51"   r="1.2" fill="#c8c8c8"/>
+  <circle cx="18" cy="56.5" r="1"   fill="#c0c0c0"/>
+
+  <!-- ════ TRACTOR BEAM (underside glow) ══════════════════════════ -->
+  <ellipse cx="51" cy="70"   rx="22" ry="3.5"  fill="url(#bG)"/>
+  <ellipse cx="51" cy="68"   rx="13" ry="2.4"  fill="#f4f4f4"/>
+  <ellipse cx="51" cy="67"   rx="6.5" ry="1.5" fill="#ffffff"/>
+
+  <!-- ════ SAUCER HULL ═════════════════════════════════════════════ -->
+  <!-- Shadow belly (dark underside, drawn first) -->
+  <ellipse cx="51" cy="57.5" rx="33"  ry="7.5"  fill="url(#huG)"/>
+  <!-- Main top-face (tinted by player colour via gradient) -->
+  <ellipse cx="51" cy="52"   rx="36"  ry="10.5" fill="url(#htG)"/>
+  <!-- Top-face specular highlight: bright oval on upper-left portion -->
+  <ellipse cx="43" cy="48.5" rx="13"  ry="4"    fill="#f8f8f8" opacity="0.5"/>
+  <!-- Concentric panel-line rings (tech detail = higher perceived fidelity) -->
+  <ellipse cx="51" cy="52"   rx="36"  ry="10.5" fill="none" stroke="#bcbcbc" stroke-width="1.6"/>
+  <ellipse cx="51" cy="52"   rx="28.5" ry="8"   fill="none" stroke="#cacaca" stroke-width="1.0"/>
+  <ellipse cx="51" cy="52"   rx="20"  ry="5.6"  fill="none" stroke="#d6d6d6" stroke-width="0.7"/>
+
+  <!-- ════ EQUATORIAL RIDGE ════════════════════════════════════════ -->
+  <!-- Main ridge band (thick) -->
+  <ellipse cx="51" cy="47.5" rx="27.5" ry="5.8" fill="url(#rG)"/>
+  <!-- Bright highlight on top-edge of ridge -->
+  <ellipse cx="51" cy="45.5" rx="23.5" ry="3.4" fill="#e4e4e4"/>
+  <!-- Shadow at ridge bottom-edge -->
+  <ellipse cx="51" cy="50.5" rx="25"   ry="2.4" fill="#a6a6a6" opacity="0.45"/>
+
+  <!-- ════ DOME GLASS ══════════════════════════════════════════════ -->
+  <!-- Outer dome: radial gradient creates true convex glass-sphere illusion -->
+  <ellipse cx="51" cy="27.5" rx="22"   ry="20.5" fill="url(#dG)"/>
+  <!-- Inner translucent layer (lighter, floated over gradient for extra depth) -->
+  <ellipse cx="51" cy="27"   rx="18"   ry="17"   fill="#e8e8e8" opacity="0.38"/>
+
+  <!-- ════ ALIEN TORSO ════════════════════════════════════════════ -->
+  <ellipse cx="51" cy="44"   rx="11"  ry="7.5"  fill="url(#aG)"/>
+  <!-- Spacesuit neck collar -->
+  <ellipse cx="51" cy="40.5" rx="9"   ry="3.2"  fill="#cccccc"/>
+  <ellipse cx="51" cy="39"   rx="7.5" ry="1.9"  fill="#e4e4e4"/>
+
+  <!-- ════ ALIEN HEAD ══════════════════════════════════════════════ -->
+  <ellipse cx="51" cy="24.5" rx="14"  ry="15"   fill="url(#aG)"/>
+
+  <!-- Pointy ears peeking above dome -->
+  <!-- Left ear outer -->
+  <polygon points="37,19  29.5,3.5  41,17.5" fill="#f0f0f0"/>
+  <!-- Left ear inner shading -->
+  <polygon points="37,19  32,9  39,17.5"     fill="#d2d2d2"/>
+  <!-- Right ear outer -->
+  <polygon points="65,19  72.5,3.5  61,17.5"  fill="#f0f0f0"/>
+  <!-- Right ear inner shading -->
+  <polygon points="65,19  70,9  63,17.5"      fill="#d2d2d2"/>
+
+  <!-- ════ EYES ═══════════════════════════════════════════════════ -->
+  <!-- Eye whites (large bright ovals) -->
+  <ellipse cx="42"  cy="22"   rx="7.2" ry="8.5"  fill="#f4f4f4"/>
+  <ellipse cx="60"  cy="22"   rx="7.2" ry="8.5"  fill="#f4f4f4"/>
+  <!-- Iris ring (gives depth between white and pupil) -->
+  <ellipse cx="42"  cy="22.5" rx="5.6" ry="6.8"  fill="url(#irG)"/>
+  <ellipse cx="60"  cy="22.5" rx="5.6" ry="6.8"  fill="url(#irG)"/>
+  <!-- Pupils (dark gradient — stays dark under ANY player tint) -->
+  <ellipse cx="42.8" cy="23.5" rx="3.9" ry="4.8" fill="url(#pG)"/>
+  <ellipse cx="60.8" cy="23.5" rx="3.9" ry="4.8" fill="url(#pG)"/>
+  <!-- Primary highlight (large, crisp white) -->
+  <circle  cx="40"   cy="19.5" r="2.6" fill="#ffffff"/>
+  <circle  cx="58"   cy="19.5" r="2.6" fill="#ffffff"/>
+  <!-- Secondary highlight (small, lower-right) -->
+  <circle  cx="44.5" cy="27"   r="1.3" fill="#c8c8c8"/>
+  <circle  cx="62.5" cy="27"   r="1.3" fill="#c8c8c8"/>
+
+  <!-- Expressive eyebrows (dark arcs — add character, stay dark under tint) -->
+  <path d="M 35.5,14.5 Q 42,11.5 48.5,14.5"
+        fill="none" stroke="#383838" stroke-width="2.2" stroke-linecap="round"/>
+  <path d="M 53.5,14.5 Q 60,11.5 66.5,14.5"
+        fill="none" stroke="#383838" stroke-width="2.2" stroke-linecap="round"/>
+
+  <!-- Nose -->
+  <ellipse cx="51"  cy="31.5" rx="2.4" ry="1.6" fill="#b6b6b6"/>
+
+  <!-- Big happy smile (W-curve, wide = maximum cuteness) -->
+  <path d="M 40,35.5 Q 45.5,43.5 51,40 Q 56.5,43.5 62,35.5"
+        stroke="#888888" stroke-width="2.4" fill="none"
+        stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Mouth interior fill (adds volume to open smile) -->
+  <path d="M 40,35.5 Q 45.5,43.5 51,40 Q 56.5,43.5 62,35.5
+            L 62.5,37 Q 57,45 51,41.5 Q 45,45 39.5,37 Z"
+        fill="#c8c8c8" opacity="0.28"/>
+
+  <!-- Rosy cheeks -->
+  <ellipse cx="37"  cy="33.5" rx="5"  ry="3"   fill="#d6d6d6" opacity="0.62"/>
+  <ellipse cx="65"  cy="33.5" rx="5"  ry="3"   fill="#d6d6d6" opacity="0.62"/>
+
+  <!-- ════ ANTENNA ══════════════════════════════════════════════════ -->
+  <!-- Stem (angled slightly forward, leaning toward the race direction) -->
+  <line x1="57" y1="22" x2="60" y2="10.5"
+        stroke="#c8c8c8" stroke-width="2.8" stroke-linecap="round"/>
+  <!-- Orb (glossy ball) -->
+  <circle cx="61" cy="9"   r="5.5"  fill="url(#anG)"/>
+  <!-- Orb highlight (top-left bright spot) -->
+  <circle cx="59" cy="7"   r="2.2"  fill="#f8f8f8"/>
+  <!-- Pulse rings -->
+  <circle cx="61" cy="9"   r="9.5"  fill="none" stroke="#d0d0d0" stroke-width="1.4"/>
+  <circle cx="61" cy="9"   r="14"   fill="none" stroke="#c2c2c2" stroke-width="0.9"/>
+
+  <!-- ════ DOME GLASS CRESCENT SHINE ══════════════════════════════ -->
+  <!-- Large crescent reflection (upper-left, bright zone = glass bubble) -->
+  <path d="M 32,26 Q 33,11 49,9.5 Q 43,14.5 36,27 Z" fill="#f8f8f8" opacity="0.80"/>
+  <!-- Primary glint dot -->
+  <circle cx="37.5" cy="16.5" r="3.4" fill="#ffffff" opacity="0.88"/>
+  <!-- Secondary glint dot -->
+  <circle cx="44.5" cy="11.5" r="1.8" fill="#f6f6f6" opacity="0.82"/>
+  <!-- Lower-right shadow crescent (adds convex dimension) -->
+  <path d="M 67,28.5 Q 67,43 51,46 Q 59,41 65,30 Z" fill="#a8a8a8" opacity="0.20"/>
+
+  <!-- ════ COCKPIT COLLAR ════════════════════════════════════════════ -->
+  <!-- Dark ring base (sits between dome and hull) -->
+  <ellipse cx="51" cy="48.5" rx="24.5" ry="5.8"  fill="url(#cG)"/>
+  <!-- Bright highlight on top edge of collar -->
+  <ellipse cx="51" cy="46.5" rx="21.5" ry="3.8"  fill="#d2d2d2"/>
+  <!-- Tech bolt nubs -->
+  <circle cx="31"  cy="47.5" r="1.6" fill="#e6e6e6"/>
+  <circle cx="51"  cy="49.5" r="1.6" fill="#e6e6e6"/>
+  <circle cx="71"  cy="47.5" r="1.6" fill="#e6e6e6"/>
+
+  <!-- ════ RIM LIGHTS (5 glowing orbs along hull equator) ══════════ -->
+  <!-- Pattern: outer glow halo → bright white core → inner highlight spot -->
+  <!-- Far-left orb -->
+  <circle cx="16.5" cy="53.5" r="5.8" fill="#d6d6d6"/>
+  <circle cx="16.5" cy="53.5" r="4"/>
+  <circle cx="15.5" cy="51.8" r="1.6" fill="#f6f6f6"/>
+  <!-- Left-centre orb -->
+  <circle cx="32"   cy="58.5" r="5"   fill="#d6d6d6"/>
+  <circle cx="32"   cy="58.5" r="3.4"/>
+  <circle cx="31"   cy="57"   r="1.4" fill="#f6f6f6"/>
+  <!-- Centre orb -->
+  <circle cx="51"   cy="61"   r="5"   fill="#d6d6d6"/>
+  <circle cx="51"   cy="61"   r="3.4"/>
+  <circle cx="50"   cy="59.5" r="1.4" fill="#f6f6f6"/>
+  <!-- Right-centre orb -->
+  <circle cx="70"   cy="58.5" r="5"   fill="#d6d6d6"/>
+  <circle cx="70"   cy="58.5" r="3.4"/>
+  <circle cx="69"   cy="57"   r="1.4" fill="#f6f6f6"/>
+  <!-- Far-right orb -->
+  <circle cx="85.5" cy="53.5" r="5.8" fill="#d6d6d6"/>
+  <circle cx="85.5" cy="53.5" r="4"/>
+  <circle cx="84.5" cy="51.8" r="1.6" fill="#f6f6f6"/>
+</svg>

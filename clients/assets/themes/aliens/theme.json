@@ -1,27 +1,28 @@
 {
-  "id": "reef",
-  "name": "Reef Race",
-  "description": "Underwater reef race through coral gardens and sea creatures",
-  "environment": "Ocean",
+  "id": "aliens",
+  "name": "Alien Invasion",
+  "description": "Race through the cosmos in UFOs — dodge asteroids, fly past warp portals and gas giants!",
+  "environment": "Space",
   "assets": {
     "sprite":     "sprite.svg",
     "trackBg":    "track-bg.svg",
     "finishFlag": "finish-flag.svg"
   },
   "spriteVariants": ["sprite.svg", "sprite-b.svg", "sprite-c.svg", "sprite-d.svg"],
-  "spriteViewBox": "0 0 80 80",
+  "spriteViewBox": "0 0 90 72",
   "palette": {
-    "deepWater":  "#062A4F",
-    "water":      "#0B4F72",
-    "teal":       "#1A7A8A",
-    "sand":       "#C4A45A",
-    "coral":      "#FF6B6B",
-    "seagrass":   "#2E9E4E",
-    "finishLine": "#00B5D8"
+    "deepSpace":  "#03001C",
+    "nebulaPurple": "#8B2BE2",
+    "nebulaBlue": "#0077FF",
+    "warpTeal":   "#00FFCC",
+    "alienGreen": "#00FF7A",
+    "gasGiant":   "#FF9B4A",
+    "starWhite":  "#FFFFFF",
+    "finishLine": "#00FFCC"
   },
   "finishLine": {
-    "pattern": "anchor",
-    "color":   "#00B5D8"
+    "pattern": "warp-beacon",
+    "color":   "#00FFCC"
   },
   "playerColors": [
     { "index": 0,  "hex": "#E53E3E", "name": "Scarlet",      "pixi": "0xE53E3E" },

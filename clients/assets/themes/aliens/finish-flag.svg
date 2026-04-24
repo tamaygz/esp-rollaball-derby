@@ -1,0 +1,122 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 90" width="416" height="720">
+  <!--
+    Aliens Finish Marker — Warp-beacon signal pole
+    Pole: dark-metal sci-fi strut with glowing joints.
+    Flag: electric teal pennant bearing a cute UFO silhouette.
+    Energy rings pulse outward from the top beacon orb.
+  -->
+  <defs>
+    <linearGradient id="aPole" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"   stop-color="#1A1A3A"/>
+      <stop offset="35%"  stop-color="#3A3A6A"/>
+      <stop offset="100%" stop-color="#1A1A3A"/>
+    </linearGradient>
+    <linearGradient id="aBanner" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"   stop-color="#006688"/>
+      <stop offset="45%"  stop-color="#00AACC"/>
+      <stop offset="100%" stop-color="#0088AA"/>
+    </linearGradient>
+    <linearGradient id="aBannerShine" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#AAFFEE" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#AAFFEE" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="aBeacon" cx="50%" cy="50%" r="50%">
+      <stop offset="0%"   stop-color="#FFFFFF"/>
+      <stop offset="35%"  stop-color="#00FFCC"/>
+      <stop offset="100%" stop-color="#008866"/>
+    </radialGradient>
+    <radialGradient id="aBeaconGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%"   stop-color="#00FFCC" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#00FFCC" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- ── Pole ─────────────────────────────────────────────────── -->
+  <rect x="23" y="6"  width="5"   height="84" rx="2.5" fill="url(#aPole)"/>
+  <!-- Pole highlight (metallic sheen) -->
+  <rect x="24.5" y="6" width="1.5" height="84" rx="0.75" fill="#6666AA" opacity="0.35"/>
+
+  <!-- ── Pole joint rings (tech segmented look) ─────────────── -->
+  <rect x="21.5" y="24" width="8" height="3.5" rx="1.75" fill="#2A2A5A"/>
+  <rect x="22"   y="25" width="7" height="2"   rx="1"    fill="#4444AA" opacity="0.5"/>
+  <rect x="21.5" y="42" width="8" height="3.5" rx="1.75" fill="#2A2A5A"/>
+  <rect x="22"   y="43" width="7" height="2"   rx="1"    fill="#4444AA" opacity="0.5"/>
+  <rect x="21.5" y="60" width="8" height="3.5" rx="1.75" fill="#2A2A5A"/>
+  <rect x="22"   y="61" width="7" height="2"   rx="1"    fill="#4444AA" opacity="0.5"/>
+
+  <!-- ── Base anchor plate ──────────────────────────────────── -->
+  <rect x="17" y="84" width="17" height="5"  rx="2"   fill="#1A1A3A"/>
+  <rect x="19" y="82" width="13" height="4"  rx="1.5" fill="#2A2A5A"/>
+  <!-- Base indicator lights -->
+  <circle cx="22" cy="86.5" r="1.5" fill="#00FFCC" opacity="0.9"/>
+  <circle cx="29" cy="86.5" r="1.5" fill="#00DDFF" opacity="0.85"/>
+  <!-- Base glow strip -->
+  <rect x="19" y="86" width="13" height="1.5" rx="0.75" fill="#00AACC" opacity="0.4"/>
+
+  <!-- ── Beacon orb at top of pole ──────────────────────────── -->
+  <!-- Outer glow halo (wide, faint) -->
+  <circle cx="25.5" cy="10" r="12"  fill="url(#aBeaconGlow)" opacity="0.4"/>
+  <!-- Mid glow ring -->
+  <circle cx="25.5" cy="10" r="9"   fill="none" stroke="#00FFCC" stroke-width="1.2" opacity="0.4"/>
+  <!-- Energy ring 1 -->
+  <circle cx="25.5" cy="10" r="7"   fill="none" stroke="#00FFCC" stroke-width="1.8" opacity="0.7"/>
+  <!-- Energy ring 2 -->
+  <circle cx="25.5" cy="10" r="5"   fill="none" stroke="#AAFFEE" stroke-width="1.4" opacity="0.6"/>
+  <!-- Beacon sphere body -->
+  <circle cx="25.5" cy="10" r="4"   fill="url(#aBeacon)"/>
+  <!-- Bright core dot -->
+  <circle cx="25.5" cy="10" r="1.8" fill="#FFFFFF" opacity="0.95"/>
+  <!-- Lens flare / spark -->
+  <line x1="25.5" y1="4"  x2="25.5" y2="2"  stroke="#AAFFEE" stroke-width="1.2" opacity="0.7" stroke-linecap="round"/>
+  <line x1="25.5" y1="16" x2="25.5" y2="18" stroke="#AAFFEE" stroke-width="1.2" opacity="0.7" stroke-linecap="round"/>
+  <line x1="19.5" y1="10" x2="17.5" y2="10" stroke="#AAFFEE" stroke-width="1.2" opacity="0.7" stroke-linecap="round"/>
+  <line x1="31.5" y1="10" x2="33.5" y2="10" stroke="#AAFFEE" stroke-width="1.2" opacity="0.7" stroke-linecap="round"/>
+  <!-- Diagonal sparks -->
+  <line x1="21.5" y1="6"  x2="20"   y2="4.5"  stroke="#00FFCC" stroke-width="0.9" opacity="0.55" stroke-linecap="round"/>
+  <line x1="29.5" y1="6"  x2="31"   y2="4.5"  stroke="#00FFCC" stroke-width="0.9" opacity="0.55" stroke-linecap="round"/>
+  <line x1="29.5" y1="14" x2="31"   y2="15.5" stroke="#00FFCC" stroke-width="0.9" opacity="0.55" stroke-linecap="round"/>
+  <line x1="21.5" y1="14" x2="20"   y2="15.5" stroke="#00FFCC" stroke-width="0.9" opacity="0.55" stroke-linecap="round"/>
+
+  <!-- ── Pennant flag (flies right from pole) ───────────────── -->
+  <!-- Flag base path — triangular pennant with slight wave -->
+  <path d="M28,16
+    Q36,14 46,18
+    Q50,22 49,28
+    Q48,34 42,36
+    Q36,38 28,36
+    Z"
+    fill="url(#aBanner)"/>
+  <!-- Shine overlay -->
+  <path d="M28,16
+    Q36,14 46,18
+    Q50,22 49,28
+    Q48,34 42,36
+    Q36,38 28,36
+    Z"
+    fill="url(#aBannerShine)"/>
+  <!-- Flag edge highlight (top) -->
+  <path d="M28,16 Q36,14 46,18 Q50,22 49,28"
+    stroke="#88EEFF" stroke-width="0.8" fill="none" opacity="0.55"/>
+
+  <!-- ── UFO silhouette on flag ─────────────────────────────── -->
+  <g transform="translate(39, 27)" fill="white" opacity="0.88">
+    <!-- Dome -->
+    <ellipse cx="0" cy="-6"  rx="5.5" ry="5"   fill="white" opacity="0.75"/>
+    <!-- Alien head inside dome (slightly grey so it reads) -->
+    <ellipse cx="0" cy="-7"  rx="3.5" ry="4"   fill="#dddddd" opacity="0.8"/>
+    <!-- Alien eyes -->
+    <circle  cx="-1.5" cy="-7.5" r="1.2" fill="#333333" opacity="0.85"/>
+    <circle  cx="1.5"  cy="-7.5" r="1.2" fill="#333333" opacity="0.85"/>
+    <!-- Saucer disc -->
+    <ellipse cx="0" cy="-2.5" rx="8"   ry="2.5" fill="white"/>
+    <!-- Saucer underside -->
+    <ellipse cx="0" cy="-1"   rx="6"   ry="1.8" fill="#cccccc" opacity="0.7"/>
+    <!-- Rim lights (3 small circles) -->
+    <circle cx="-4.5" cy="-2.5" r="1" fill="white"/>
+    <circle cx="0"    cy="-1.5" r="0.9" fill="white"/>
+    <circle cx="4.5"  cy="-2.5" r="1" fill="white"/>
+    <!-- Antenna -->
+    <line x1="2" y1="-11" x2="2" y2="-15" stroke="#cccccc" stroke-width="1" stroke-linecap="round" opacity="0.8"/>
+    <circle cx="2" cy="-16" r="1.5" fill="white" opacity="0.85"/>
+  </g>
+</svg>

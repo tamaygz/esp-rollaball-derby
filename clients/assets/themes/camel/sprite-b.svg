@@ -30,8 +30,20 @@
   <path d='M 55,18 C 47,14 38,13 30,18 C 24,22 22,28 24,34 C 28,30 32,23 38,19 C 43,16 50,17 55,18 Z' fill='url(#khG)'/><path d='M 54,19 C 47,16 40,15 34,18 C 30,21 28,25 30,29 Z' fill='#f0f0f0' opacity='0.55'/>
   <path d='M 52,20 C 47,23 44,27 44,32 C 46,29 49,25 52,20 Z' fill='#d6d6d6' opacity='0.55'/>
   <ellipse cx='52' cy='25' rx='9' ry='7' transform='rotate(-18 52 25)' fill='url(#rdG)'/><ellipse cx='49' cy='20' rx='4.5' ry='3' transform='rotate(-18 52 25)' fill='#f4f4f4' opacity='0.55'/><ellipse cx='55' cy='31' rx='6' ry='3.2' transform='rotate(-18 52 25)' fill='#c8c8c8' opacity='0.45'/>
-  <circle cx='58' cy='15' r='5.5' fill='#e8e8e8'/><circle cx='56.5' cy='13' r='2.4' fill='#f4f4f4' opacity='0.78'/>
-  <circle cx='60' cy='17' r='1.4' fill='#2e2e2e'/><circle cx='59.4' cy='16.3' r='0.6' fill='#f0f0f0'/>
+  <circle cx='58' cy='15' r='5.5' fill='#e8e8e8'/>
+  <!-- Floppy sun hat — wide brim + low drooping crown -->
+  <ellipse cx='58' cy='16' rx='11' ry='3' fill='#d0d0d0'/>
+  <path d='M 50,16 Q 52,16 53,10 L 63,10 Q 64,16 66,16 Z' fill='#d8d8d8'/>
+  <ellipse cx='58' cy='10.5' rx='5' ry='2' fill='#c8c8c8'/>
+  <!-- Hat highlight -->
+  <ellipse cx='55' cy='9' rx='2.8' ry='1.3' fill='#f4f4f4' opacity='0.62'/>
+  <!-- Shadow under brim -->
+  <ellipse cx='58' cy='16.8' rx='8' ry='1.5' fill='#a0a0a0' opacity='0.35'/>
+  <!-- Sunglasses — two dark lenses over eye area -->
+  <rect x='55' y='16.5' width='9' height='3.5' rx='1.7' fill='#2e2e2e'/>
+  <ellipse cx='57.5' cy='18.2' rx='2' ry='1.8' fill='#3a3a3a'/><ellipse cx='61.5' cy='18.2' rx='2' ry='1.8' fill='#3a3a3a'/>
+  <line x1='51' y1='18' x2='55' y2='18' stroke='#2e2e2e' stroke-width='1.2'/>
+  <ellipse cx='57' cy='17' rx='1.3' ry='0.8' fill='#484848'/><ellipse cx='61' cy='17' rx='1.3' ry='0.8' fill='#484848'/>
   <path d='M 62,18 C 68,20 74,22 78,24' fill='none' stroke='#d0d0d0' stroke-width='2.4' stroke-linecap='round'/>
   <path d='M 78,24 C 86,26 93,26 97,27' fill='none' stroke='#c4c4c4' stroke-width='1.2' stroke-linecap='round'/>
   <path d='M 27,62 L 33,62 L 31,80 L 25,80 Z' fill='url(#lgG)'/><ellipse cx='28' cy='80.5' rx='5.5' ry='2.2' fill='#2e2e2e'/><ellipse cx='30' cy='71' rx='3.5' ry='3' fill='#d8d8d8'/>

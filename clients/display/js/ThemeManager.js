@@ -17,7 +17,7 @@
 var ThemeManager = (function () {
   var _theme    = null;
   var _themeId  = null;
-  var _textures = {};   // themeId → { sprite, trackBg, finishFlag }
+  var _textures = {};   // themeId → { sprites[], sprite (compat), trackBg, finishFlag }
 
   function load(themeId) {
     if (_themeId === themeId && _theme) {
@@ -33,20 +33,24 @@ var ThemeManager = (function () {
         _themeId = themeId;
 
         var base          = '/assets/themes/' + themeId + '/';
-        var spriteUrl     = base + data.assets.sprite;
         var trackBgUrl    = base + data.assets.trackBg;
         var finishFlagUrl = base + data.assets.finishFlag;
 
-        // Preload all three SVG textures via PIXI Assets so Lane._build() can run synchronously
+        // Load all sprite variants (falls back to single sprite.svg for themes without variants)
+        var variantFiles  = data.spriteVariants || [data.assets.sprite];
+        var variantLoads  = variantFiles.map(function (f) { return PIXI.Assets.load(base + f); });
+
+        // Preload all textures via PIXI Assets so Lane._build() can run synchronously
         return Promise.all([
-          PIXI.Assets.load(spriteUrl),
+          Promise.all(variantLoads),
           PIXI.Assets.load(trackBgUrl),
           PIXI.Assets.load(finishFlagUrl),
-        ]).then(function (textures) {
+        ]).then(function (results) {
           _textures[themeId] = {
-            sprite:     textures[0],
-            trackBg:    textures[1],
-            finishFlag: textures[2],
+            sprites:    results[0],
+            sprite:     results[0][0],   // backward-compat for getTexture('sprite')
+            trackBg:    results[1],
+            finishFlag: results[2],
           };
           return data;
         });
@@ -80,6 +84,19 @@ var ThemeManager = (function () {
     return _textures[_themeId][key] || PIXI.Texture.WHITE;
   }
 
+  /**
+   * Returns the sprite texture for a specific variant index.
+   * Wraps modulo so any index maps to a valid variant regardless of how many exist.
+   * @param {number} variantIndex  - player.spriteVariantIndex from server state
+   * @returns {PIXI.Texture}
+   */
+  function getSpriteTexture(variantIndex) {
+    var cache = _themeId && _textures[_themeId];
+    if (!cache || !cache.sprites || !cache.sprites.length) return PIXI.Texture.WHITE;
+    var idx = (typeof variantIndex === 'number' && variantIndex >= 0) ? variantIndex : 0;
+    return cache.sprites[idx % cache.sprites.length];
+  }
+
   function _assetUrl(key) {
     if (!_theme || !_themeId) return '';
     return '/assets/themes/' + _themeId + '/' + _theme.assets[key];
@@ -90,6 +107,7 @@ var ThemeManager = (function () {
     getPlayerColor:   getPlayerColor,
     getSpriteAspect:  getSpriteAspect,
     getTexture:       getTexture,
+    getSpriteTexture: getSpriteTexture,
     get id()           { return _themeId; },
     get spriteUrl()    { return _assetUrl('sprite'); },
     get trackBgUrl()   { return _assetUrl('trackBg'); },
