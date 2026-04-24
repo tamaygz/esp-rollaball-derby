@@ -65,8 +65,9 @@ The sensor node detects balls passing through scoring holes using IR photodiodes
 > **ESP32 note:** The default data pin was changed from GPIO2 to GPIO4 so that
 > GPIO2 (the DevKit onboard LED) can be used as an explicit secondary status
 > indicator. If you must use GPIO2 for the strip, push `gpioPin: 2` via the
-> admin panel — the status LED will fall back gracefully to the UART1
-> side-effect mode (always-on between frames, same as ESP8266).
+> admin panel — on ESP32 this creates a pin conflict, so explicit status LED
+> control is disabled and the onboard LED may no longer be independently visible
+> as a status indicator.
 
 ### 3. Power Supply
 - **USB**: 5V from USB port (500mA typical)
