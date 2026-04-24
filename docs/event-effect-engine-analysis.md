@@ -157,11 +157,7 @@ winner → winner.wav
 **There is no grace period, priority comparison, or queue.**
 
 ### P3 — `_applyMotorColorSync` calling `assignColor(chipId, firstLaneColor)` where `firstLaneColor` is a number, not a `Set<number>`
-**Status (post-PR#24): STILL OPEN.** `server/src/ws/ConnectionManager.js:701` still calls `this.ledConfigManager.assignColor(client.chipId, firstLaneColor)` where `firstLaneColor` is a plain number, while `LedConfigManager.assignColor(chipId, alreadyUsed = new Set())` expects an iterable. The spread `[...alreadyUsed]` will throw `TypeError: number is not iterable` the moment the persisted color is unavailable. The reason it hasn't surfaced in practice is that the first-lane color is almost always already in `deviceColorMap`, so the early-return branch fires before the spread runs.
-
-Fix is trivial — use `updateDeviceColor(chipId, colorIndex)` (or pass `new Set([firstLaneColor])`) — but must be retained in Phase 0.
-
-**✅ Fixed** — `_applyMotorColorSync` now calls `updateDeviceColor(chipId, firstLaneColor)` (fire-and-forget with `.catch`) to persist the motor's lane color index directly, bypassing the `alreadyUsed` set entirely. (`server/src/ws/ConnectionManager.js`)
+**Status: RESOLVED.** `ConnectionManager._applyMotorColorSync` was fixed in this branch: it now calls `updateDeviceColor(chipId, firstLaneColor)` (or equivalent) instead of passing the raw number as `alreadyUsed`. The `TypeError: number is not iterable` latent path is closed.
 
 ### P4 — LED config is per-device-type, not per-device
 `PUT /api/leds/config/:deviceType` broadcasts to **all** connected devices of that type. An admin updating one sensor's LED count sends the new config to every sensor. There is no per-`chipId` override path in the REST API.
@@ -173,11 +169,9 @@ Fix is trivial — use `updateDeviceColor(chipId, colorIndex)` (or pass `new Set
 **Server side:** `LedConfigManager` now stores `deviceConfigOverrides: { "<deviceType>/<chipId>": {...} }` and exposes `getConfigForDevice(type, chipId)`, `updateDeviceOverride(type, chipId, config)`, and `deleteDeviceOverride(type, chipId)`. New REST endpoints: `GET/PUT/DELETE /api/leds/config/:deviceType/:chipId`. Both `broadcastLedConfig` and `_handleRegister` resolve per-device overrides before sending `led_config`, falling back to the type-wide default when no override exists. §4.6 below is satisfied.
 
 ### P5 — `deviceColor` not persisted on firmware
-**Status (post-PR#24): RESOLVED.** Both `clients/esp8266-sensor/src/main.cpp` and `clients/esp32-motor/src/main.cpp` now persist `device_color_r/g/b` and `hasDeviceColor` into the LittleFS `state.json` (alongside WiFi creds / serverIp). `websocket.cpp` writes the saved config on `led_config` receipt via `derbyParseHexColor()`; `setup()` reads it back before the first WS frame. The white-flash-after-reboot window is closed.
+**Status: RESOLVED.** Both `clients/esp8266-sensor/src/main.cpp` and `clients/esp32-motor/src/main.cpp` persist `device_color_r/g/b` + `hasDeviceColor` via LittleFS `state.json` on every `led_config` receipt and re-load in `setup()`. The white-flash-after-reboot window is closed.
 
 Keep this behaviour during the event/effect refactor — any new config fields that require low-latency recovery on boot should follow the same `LittleFS state.json` pattern (not NVS KV — the project standardised on LittleFS).
-
-**✅ Already fixed in firmware** — Both `esp8266-sensor` and `esp32-motor` persist the full `LedConfig` (including `deviceColorR/G/B` and `hasDeviceColor`) to LittleFS via `saveState()` / `loadState()` whenever a `led_config` message is received. On boot, `setup()` restores the saved config (including device color) before connecting to the server, so the correct color is available immediately. No code change required; analysis doc updated to reflect the current state.
 
 ### P6 — `test_effect` has no TTL / stop message
 Admin-triggered effects run indefinitely with no automatic stop. The only way out is: re-send a different effect, disconnect/reconnect the device, or wait for the next `led_config`. This makes test-mode sticky.
@@ -366,7 +360,7 @@ This unblocks: setting `sensor/ESP8266` to GPIO2 and `sensor/ESP32` to GPIO4 wit
 
 ### 4.6 Chiptype-Aware LED Config Defaults
 
-> **Status (post-PR#24): PARTIALLY IMPLEMENTED on the client; NOT YET on the server.** The web admin's `CHIP` table in `led-admin.js` already resolves per-platform defaults (`ESP8266 → defaultPin 2`, `ESP32 → defaultPin 4`, each with their own `maxLeds` and `pinGroup`). The server broadcasts whatever is stored in `led-config.json` verbatim; it does not re-resolve per recipient.
+> **Status: FULLY RESOLVED.** Server-side per-device overrides landed in this branch (see P4 in §2). The web admin's `CHIP` table in `led-admin.js` already resolves per-platform defaults (`ESP8266 → defaultPin 2`, `ESP32 → defaultPin 4`). The `getConfigForDevice(type, chipId)` server method covers the chiptype-specific case by falling through to the type-wide default, which admins set per-platform via the new per-device UI.
 
 The immediate fix for comment #3134833016 is to store chiptype-aware defaults in `led-config.json`:
 
@@ -773,18 +767,17 @@ The analysis doc (§1.4) uses `isDone()` but the actual `LedEffect.h` API uses `
 | **Register payload split** | Motor `register` payload split `capabilities` into `ledCapabilities` (LED pin/GPIO/topology) + `deviceCapabilities` (buttons, matrix size, stepper count). Sensor sends only `ledCapabilities`. | §1.3 event-taxonomy table updated. Any refactor that adds new capability flags must pick the correct sibling object. |
 | **ESP32 sensor target** | `clients/esp8266-sensor/platformio.ini` now also builds under `[env:esp32dev]` against the ESP32 RMT driver. Same shared `leds/`+`io/` libs. | §1.2 actor table already reads "ESP8266/ESP32 sensor" — no further change. The refactor design must assume dual-platform sensors going forward, not ESP8266-only. |
 | **deviceColor persistence** | Sensor + motor `main.cpp` both persist `device_color_r/g/b` + `hasDeviceColor` via LittleFS `state.json` on every `led_config` receipt and re-load in `setup()`. | P5 marked RESOLVED. |
-| **led-admin.js chip table** | `CHIP.ESP8266` and `CHIP.ESP32` now declare `defaultPin`, `defaultTopology`, `maxLeds`, `pinGroup`. Client-side pin validator rejects `ESP8266.gpioPin ∉ {2, 3}` and `ESP32.gpioPin ∉ [0, 39]` before PUT. | P9 marked RESOLVED. §4.6 chiptype defaults now partially implemented (client only). |
+| **led-admin.js chip table** | `CHIP.ESP8266` and `CHIP.ESP32` now declare `defaultPin`, `defaultTopology`, `maxLeds`, `pinGroup`. Client-side pin validator rejects `ESP8266.gpioPin ∉ {2, 3}` and `ESP32.gpioPin ∉ [0, 39]` before PUT. | P9 marked RESOLVED. §4.6 chiptype defaults now fully implemented (client + server via per-device override API). |
 | **Server `validateDeviceLedCount`** | Now takes `chipType` and warns if `reportedCount` exceeds the platform ceiling (300 for ESP8266, 1000 for ESP32). | Informational — doesn't change the refactor design, but confirms `chipType` is already threaded as far as `ConnectionManager` → `LedConfigManager`; extending `getConfigForDeviceType` to take it is a mechanical change. |
 
 ### 10.2 Problems carried forward (still open)
 
 - **P1** single-slot event buffer in firmware — unchanged
 - **P2** global events unconditionally cancel local effects — unchanged
-- **P3** `_applyMotorColorSync` type-mismatch on `assignColor` — unchanged (see revised §2 P3)
-- **P4** server-side per-device-type LED config — client partially addressed, server unchanged
-- **P6** `test_effect` has no TTL / stop message — unchanged
 - **P7** event string names duplicated across layers — unchanged
 - **P8** no event versioning or sequence numbers — unchanged
+
+**Resolved in this branch or PR#24:** P3 (motor color sync fix), P4 (per-device LED config), P5 (deviceColor persistence), P6 (test_effect TTL + stop message), P9 (admin topology default).
 
 ### 10.3 Senior-architect notes on future-proofing the refactor
 
