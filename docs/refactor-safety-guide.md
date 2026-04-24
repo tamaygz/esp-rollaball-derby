@@ -63,7 +63,7 @@ npm test
 All existing tests must pass. Record the count:
 
 ```
-# As of 2026-04-24: 103 pass, 3 fail (pre-existing), 106 total
+# As of 2026-04-24: 168 pass, 0 fail (T1 pre-existing failures fixed before refactor began)
 ```
 
 The 3 pre-existing failures are being fixed in a **separate dedicated PR** (spawned as an isolated task — see [isolated-tasks.md](./isolated-tasks.md)) so they are resolved before any phase of the event refactor begins. Each subsequent phase must maintain or improve on the passing test count — never regress it.

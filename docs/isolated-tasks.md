@@ -49,7 +49,7 @@ Run `cd server && npm test`, identify the 3 failing tests, fix the root cause (o
 6. **Fixed bug in `ConnectionManager.js`**: `PRIORITY_EVENTS` used `'streak_three'`/`'streak_zero'` (wrong — these never matched `events[]`). Now uses `GameEvents.STREAK_THREE_2X`/`GameEvents.STREAK_ZERO_3X`. Streak sounds now play correctly.
 7. Aligned zero-roll sound lookup: `zero_roll` game event → `score_0.wav`. All tests updated.
 
-**Acceptance:** `npm test` → 161/161 pass ✅
+**Acceptance:** `npm test` → 168/168 pass ✅
 
 ---
 
