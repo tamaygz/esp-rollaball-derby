@@ -1,5 +1,9 @@
 'use strict';
 
+// Install server log interceptor early so even startup messages are buffered
+// and forwarded to the admin live-log page once the WS hub is ready.
+const serverLog = require('./log');
+
 const http = require('http');
 const path = require('path');
 const os = require('os');
@@ -106,6 +110,9 @@ const wss = new WebSocketServer({ server });
 connectionManager = new ConnectionManager(gameState, ledConfigManager, soundManager);
 botManager = new BotManager(gameState, connectionManager);
 connectionManager.setBotManager(botManager);
+
+// Wire server-side console output to the live-log page.
+serverLog.setConnectionManager(connectionManager);
 
 // Wire config change events to broadcast LED config
 ledConfigManager.on('configChanged', (deviceType, config) => {
