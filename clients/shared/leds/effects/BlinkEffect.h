@@ -76,16 +76,12 @@ public:
     // Start with off state
     turnOff();
     
-    Serial.print("[BlinkEffect] Started: ");
-    Serial.print(_onDurationMs);
-    Serial.print("ms on, ");
-    Serial.print(_offDurationMs);
-    Serial.print("ms off, ");
     if (_blinkCount == 0) {
-      Serial.println("infinite");
+      DERBY_LOG_F("[BlinkEffect] Started: %ums on, %ums off, infinite\n",
+                  _onDurationMs, _offDurationMs);
     } else {
-      Serial.print(_blinkCount);
-      Serial.println(" blinks");
+      DERBY_LOG_F("[BlinkEffect] Started: %ums on, %ums off, %u blinks\n",
+                  _onDurationMs, _offDurationMs, _blinkCount);
     }
   }
   
