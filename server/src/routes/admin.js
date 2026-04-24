@@ -50,4 +50,12 @@ router.get('/logs', (req, res) => {
   });
 });
 
+router.get('/sounds', (req, res) => {
+  res.render('admin/sounds', {
+    title: 'Roll-a-Ball Derby — Sounds',
+    active: 'sounds',
+    wsStatus: false,
+  });
+});
+
 module.exports = router;

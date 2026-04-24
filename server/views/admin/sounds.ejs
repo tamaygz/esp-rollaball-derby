@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../partials/_head') %>
+</head>
+<body>
+
+  <%- include('../partials/_header') %>
+  <%- include('../partials/_nav') %>
+
+  <main class="grid-main">
+
+    <section class="card card-wide" id="card-sounds">
+      <h2>🔊 Sound Configuration</h2>
+      <p class="hint">
+        Per-event audio URLs used by all browser clients (Display, Admin). An override wins over the
+        local <code>server/sounds/</code> file. URLs may be absolute (<code>https://…</code>) or
+        site-relative (<code>/sounds/foo.wav</code>, <code>/assets/sounds/…</code>). Leave blank to
+        fall back to the default.
+      </p>
+
+      <div class="btn-row" style="margin-bottom: 8px;">
+        <button id="btn-sounds-save" class="btn btn-success">Save</button>
+        <button id="btn-sounds-reset" class="btn btn-secondary">Reset unsaved changes</button>
+        <span id="sounds-status" class="muted text-sm"></span>
+      </div>
+      <div id="sounds-error" class="error-msg hidden"></div>
+
+      <table id="sounds-table" class="sounds-table">
+        <thead>
+          <tr>
+            <th>Event</th>
+            <th>Default</th>
+            <th>URL override</th>
+            <th style="width: 90px;">Preview</th>
+          </tr>
+        </thead>
+        <tbody id="sounds-tbody">
+          <tr><td colspan="4" class="muted">Loading…</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+  </main>
+
+  <script src="/shared/js/gameEvents.js"></script>
+  <script src="/shared/js/AudioPlayer.js"></script>
+  <script src="/admin/js/sounds.js"></script>
+</body>
+</html>
