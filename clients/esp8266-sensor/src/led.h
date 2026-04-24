@@ -50,6 +50,10 @@ public:
     // Play an admin-requested test effect from the server.
     void playTestEffect(const LedTestEffectMessage& msg);
 
+    // Stop any active test effect and return to the current ambient state.
+    // No-op if no effect is playing.
+    void restoreAmbient();
+
     // Must be called every loop() iteration.
     void loop();
 

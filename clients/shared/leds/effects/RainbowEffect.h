@@ -55,7 +55,7 @@ public:
   void setCycleSpeed(uint16_t cycleSpeedMs) {
     if (cycleSpeedMs < 100) {
       cycleSpeedMs = 100; // Minimum 100ms cycle
-      Serial.println("[RainbowEffect] Cycle speed clamped to 100ms minimum");
+      DERBY_LOG_LN("[RainbowEffect] Cycle speed clamped to 100ms minimum");
     }
     _cycleSpeedMs = cycleSpeedMs;
   }
@@ -68,10 +68,8 @@ public:
     _elapsedTime = 0;
     _hueOffset = 0;
     
-    Serial.print("[RainbowEffect] Started with cycle speed ");
-    Serial.print(_cycleSpeedMs);
-    Serial.print("ms, direction ");
-    Serial.println(_params.direction == DIRECTION_FORWARD ? "FORWARD" : "REVERSE");
+    DERBY_LOG_F("[RainbowEffect] Started with cycle speed %ums, direction %s\n",
+                _cycleSpeedMs, _params.direction == DIRECTION_FORWARD ? "FORWARD" : "REVERSE");
   }
   
   /**

@@ -1,0 +1,42 @@
+{
+  "urls": {
+    "zero_roll": "https://example.com/sounds/score_0.wav",
+    "score_1": "https://example.com/sounds/score_1.wav",
+    "score_2": "https://example.com/sounds/score_2.wav",
+    "score_3": "https://example.com/sounds/score_3.wav",
+    "streak_zero_3x": "https://example.com/sounds/streak_zero.wav",
+    "streak_three_2x": "https://example.com/sounds/streak_three.wav",
+    "took_lead": "https://example.com/sounds/took_lead.wav",
+    "became_last": "https://example.com/sounds/became_last.wav",
+    "game_started": "https://example.com/sounds/game_started.wav",
+    "game_paused": "https://example.com/sounds/game_paused.wav",
+    "game_resumed": "https://example.com/sounds/game_resumed.wav",
+    "game_reset": "https://example.com/sounds/game_reset.wav",
+    "countdown_tick": "https://example.com/sounds/countdown_tick.wav",
+    "countdown_go": "https://example.com/sounds/countdown_go.wav",
+    "winner": "https://example.com/sounds/winner.wav"
+  },
+  "volumes": {
+    "lobby": 0.6,
+    "game": 0.5,
+    "effects": 0.9
+  },
+  "lobbyMusic": [
+    "https://example.com/music/lobby-ambient.mp3"
+  ],
+  "themeMusic": {
+    "horse": [
+      "https://example.com/music/horse-track-1.mp3",
+      "https://example.com/music/horse-track-2.mp3"
+    ],
+    "camel": [
+      "https://example.com/music/camel-track-1.mp3"
+    ],
+    "reef": [
+      "https://example.com/music/reef-track-1.mp3"
+    ]
+  },
+  "fallbackMusic": [
+    "https://example.com/music/fallback-1.mp3"
+  ]
+}

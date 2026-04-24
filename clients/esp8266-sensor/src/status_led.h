@@ -1,6 +1,7 @@
 #pragma once
 #include <Arduino.h>
 #include "config.h"
+#include <derby_logger.h>
 
 /**
  * StatusLed — Onboard LED indicator for game events.
@@ -43,7 +44,7 @@ public:
         if (_active) {
             pinMode(PIN_STATUS_LED, OUTPUT);
             _write(false);
-            Serial.printf("[StatusLed] Explicit control active on GPIO%u "
+            DERBY_LOG_F("[StatusLed] Explicit control active on GPIO%u "
                           "(strip on GPIO%u)\n", PIN_STATUS_LED, _stripPin);
         }
     }
@@ -60,10 +61,10 @@ public:
         if (_active) {
             pinMode(PIN_STATUS_LED, OUTPUT);
             _write(_ledOn);
-            Serial.printf("[StatusLed] Explicit control active on GPIO%u "
+            DERBY_LOG_F("[StatusLed] Explicit control active on GPIO%u "
                           "(strip moved to GPIO%u)\n", PIN_STATUS_LED, _stripPin);
         } else {
-            Serial.printf("[StatusLed] Explicit control disabled "
+            DERBY_LOG_F("[StatusLed] Explicit control disabled "
                           "(strip now on same GPIO%u as status LED)\n", _stripPin);
         }
     }

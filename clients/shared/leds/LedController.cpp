@@ -1,4 +1,5 @@
 #include "LedController.h"
+#include <derby_logger.h>
 
 // WS2812B timing: requires 50µs reset time between frames
 static constexpr unsigned long WS2812_RESET_TIME_US = 50;
@@ -37,13 +38,13 @@ LedController::~LedController() {
 bool LedController::begin(uint16_t ledCount, uint8_t pin) {
     // Validate parameters
     if (!_validateLedCount(ledCount)) {
-        Serial.printf("[LedController] ERROR: Invalid LED count %u (max %u for %s)\n",
+        DERBY_LOG_F("[LedController] ERROR: Invalid LED count %u (max %u for %s)\n",
                       ledCount, LED_MAX_COUNT, LED_PLATFORM_NAME);
         return false;
     }
 
     if (!_validatePin(pin)) {
-        Serial.printf("[LedController] ERROR: Invalid GPIO pin %u\n", pin);
+        DERBY_LOG_F("[LedController] ERROR: Invalid GPIO pin %u\n", pin);
         return false;
     }
 
@@ -59,7 +60,7 @@ bool LedController::begin(uint16_t ledCount, uint8_t pin) {
         _method   = Esp8266Method::METHOD_DMA;
         _stripDma = new LedStripDma(_ledCount, _pin);
         if (!_stripDma) {
-            Serial.printf("[LedController] ERROR: Failed to allocate DMA strip (%u LEDs)\n", _ledCount);
+            DERBY_LOG_F("[LedController] ERROR: Failed to allocate DMA strip (%u LEDs)\n", _ledCount);
             return false;
         }
     } else {
@@ -67,7 +68,7 @@ bool LedController::begin(uint16_t ledCount, uint8_t pin) {
         _pin        = 2;  // UART1 is hardwired to GPIO2
         _stripUart1 = new LedStripUart1(_ledCount, _pin);
         if (!_stripUart1) {
-            Serial.printf("[LedController] ERROR: Failed to allocate UART1 strip (%u LEDs)\n", _ledCount);
+            DERBY_LOG_F("[LedController] ERROR: Failed to allocate UART1 strip (%u LEDs)\n", _ledCount);
             return false;
         }
     }
@@ -80,7 +81,7 @@ bool LedController::begin(uint16_t ledCount, uint8_t pin) {
     // Create platform-specific NeoPixelBus instance
     _strip = new LedStrip(_ledCount, _pin);
     if (!_strip) {
-        Serial.printf("[LedController] ERROR: Failed to allocate NeoPixelBus (%u LEDs)\n", _ledCount);
+        DERBY_LOG_F("[LedController] ERROR: Failed to allocate NeoPixelBus (%u LEDs)\n", _ledCount);
         return false;
     }
 #endif
@@ -95,7 +96,7 @@ bool LedController::begin(uint16_t ledCount, uint8_t pin) {
 
 void LedController::setPixel(uint16_t index, RgbColor color) {
     if (index >= _ledCount) {
-        Serial.printf("[LedController] ERROR: Pixel index %u out of bounds (count=%u)\n", 
+        DERBY_LOG_F("[LedController] ERROR: Pixel index %u out of bounds (count=%u)\n", 
                       index, _ledCount);
         return;
     }
@@ -105,7 +106,7 @@ void LedController::setPixel(uint16_t index, RgbColor color) {
 #else
     if (!_strip) {
 #endif
-        Serial.println("[LedController] ERROR: setPixel() called before begin()");
+        DERBY_LOG_LN("[LedController] ERROR: setPixel() called before begin()");
         return;
     }
 
@@ -137,7 +138,7 @@ void LedController::clear() {
 #else
     if (!_strip) {
 #endif
-        Serial.println("[LedController] ERROR: clear() called before begin()");
+        DERBY_LOG_LN("[LedController] ERROR: clear() called before begin()");
         return;
     }
 
@@ -152,7 +153,7 @@ void LedController::show() {
 #else
     if (!_strip) {
 #endif
-        Serial.println("[LedController] ERROR: show() called before begin()");
+        DERBY_LOG_LN("[LedController] ERROR: show() called before begin()");
         return;
     }
 
@@ -197,7 +198,7 @@ bool LedController::_validatePin(uint8_t pin) const {
 #ifdef LED_PLATFORM_ESP8266
     // Only GPIO2 (UART1) and GPIO3 (DMA) have hardware-timed output.
     if (pin != 2 && pin != 3) {
-        Serial.printf("[LedController] ERROR: ESP8266 only supports GPIO2 (UART1) or GPIO3 (DMA), got GPIO%u\n", pin);
+        DERBY_LOG_F("[LedController] ERROR: ESP8266 only supports GPIO2 (UART1) or GPIO3 (DMA), got GPIO%u\n", pin);
         return false;
     }
 #endif
@@ -206,7 +207,7 @@ bool LedController::_validatePin(uint8_t pin) const {
     // ESP32 RMT can use any valid GPIO
     // Avoid input-only pins (34-39 on some ESP32 variants)
     if (pin >= 34 && pin <= 39) {
-        Serial.printf("[LedController] WARNING: GPIO%u is input-only on some ESP32 variants\n", pin);
+        DERBY_LOG_F("[LedController] WARNING: GPIO%u is input-only on some ESP32 variants\n", pin);
     }
 #endif
 
@@ -216,18 +217,18 @@ bool LedController::_validatePin(uint8_t pin) const {
 void LedController::_logInit() const {
     size_t ramUsage = _ledCount * 3;  // 3 bytes per LED (RGB)
     
-    Serial.println("[LedController] ====================================");
-    Serial.printf("[LedController] Platform:  %s\n", LED_PLATFORM_NAME);
+    DERBY_LOG_LN("[LedController] ====================================");
+    DERBY_LOG_F("[LedController] Platform:  %s\n", LED_PLATFORM_NAME);
 #ifdef LED_PLATFORM_ESP8266
-    Serial.printf("[LedController] Method:    %s\n",
+    DERBY_LOG_F("[LedController] Method:    %s\n",
                   _method == Esp8266Method::METHOD_DMA ? "DMA (GPIO3/RX)" : "UART1 (GPIO2/D4)");
 #endif
-    Serial.printf("[LedController] LED Count: %u (max %u)\n", _ledCount, LED_MAX_COUNT);
-    Serial.printf("[LedController] GPIO Pin:  %u\n", _pin);
-    Serial.printf("[LedController] RAM Usage: ~%u bytes\n", ramUsage);
-    Serial.printf("[LedController] Power Est: %.1f A @ 100%% brightness\n", 
+    DERBY_LOG_F("[LedController] LED Count: %u (max %u)\n", _ledCount, LED_MAX_COUNT);
+    DERBY_LOG_F("[LedController] GPIO Pin:  %u\n", _pin);
+    DERBY_LOG_F("[LedController] RAM Usage: ~%u bytes\n", ramUsage);
+    DERBY_LOG_F("[LedController] Power Est: %.1f A @ 100%% brightness\n", 
                   (_ledCount * 60.0) / 1000.0);
-    Serial.println("[LedController] ====================================");
+    DERBY_LOG_LN("[LedController] ====================================");
 }
 
 // ─── ESP8266 strip dispatch helpers ───────────────────────────────────────────

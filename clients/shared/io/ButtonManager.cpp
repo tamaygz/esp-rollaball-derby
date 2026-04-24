@@ -1,4 +1,5 @@
 #include "ButtonManager.h"
+#include <derby_logger.h>
 
 bool ButtonManager::begin(const uint8_t* pins, uint8_t count, ButtonCallback onPress,
                           unsigned long debounceMs) {
@@ -7,7 +8,7 @@ bool ButtonManager::begin(const uint8_t* pins, uint8_t count, ButtonCallback onP
     _debounceMs = debounceMs;
 
     if (_count == 0) {
-        Serial.println("[BTN] count=0 — button subsystem inactive");
+        DERBY_LOG_LN("[BTN] count=0 — button subsystem inactive");
         _available = false;
         return false;
     }
@@ -24,8 +25,7 @@ bool ButtonManager::begin(const uint8_t* pins, uint8_t count, ButtonCallback onP
 #if defined(ESP32) && !defined(CONFIG_IDF_TARGET_ESP32S3)
         if (_pins[i] >= 34 && _pins[i] <= 39) {
             pinMode(_pins[i], INPUT);
-            Serial.printf("[BTN] WARNING: GPIO%u is input-only (no internal pull-up). "
-                          "Add external 10k pull-up to 3.3V or move to another pin!\n", _pins[i]);
+            DERBY_LOG_F("[BTN] WARNING: GPIO%u is input-only (no internal pull-up). Add external 10k pull-up to 3.3V or move to another pin!\n", _pins[i]);
         } else {
             pinMode(_pins[i], INPUT_PULLUP);
         }
@@ -35,7 +35,7 @@ bool ButtonManager::begin(const uint8_t* pins, uint8_t count, ButtonCallback onP
     }
 
     _available = true;
-    Serial.printf("[BTN] Initialised: %u buttons\n", _count);
+    DERBY_LOG_F("[BTN] Initialised: %u buttons\n", _count);
     return true;
 }
 
@@ -52,7 +52,7 @@ void ButtonManager::loop() {
             if (state == LOW) {
                 const char* action = _actionForButton(i);
                 if (action && _callback) {
-                    Serial.printf("[BTN] Button %u pressed: %s\n", i + 1, action);
+                    DERBY_LOG_F("[BTN] Button %u pressed: %s\n", i + 1, action);
                     _callback(i + 1, action);
                 }
             }

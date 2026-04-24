@@ -1,5 +1,9 @@
 'use strict';
 
+// Install server log interceptor early so even startup messages are buffered
+// and forwarded to the admin live-log page once the WS hub is ready.
+const serverLog = require('./log');
+
 const http = require('http');
 const path = require('path');
 const os = require('os');
@@ -13,6 +17,8 @@ const BotManager = require('./game/BotManager');
 const ConnectionManager = require('./ws/ConnectionManager');
 const LedConfigManager = require('./config/LedConfigManager');
 const SoundManager = require('./sound/SoundManager');
+const SoundConfigManager = require('./sound/SoundConfigManager');
+const createSoundsRouter = require('./routes/sounds');
 const healthRouter = require('./routes/health');
 const adminRouter = require('./routes/admin');
 const createGameRouter = require('./routes/game');
@@ -31,10 +37,18 @@ const app = express();
 const gameState = new GameState();
 const ledConfigManager = new LedConfigManager();
 const soundManager = new SoundManager(path.join(__dirname, '..', 'sounds'));
+const soundConfigManager = new SoundConfigManager({
+  soundsDir: path.join(__dirname, '..', 'sounds'),
+});
 
 // Load LED configuration on startup
 ledConfigManager.loadConfig().catch(error => {
   console.error('[Derby Server] Failed to load LED config:', error.message);
+});
+
+// Load sound URL overrides on startup (non-fatal if missing).
+soundConfigManager.loadConfig().catch(error => {
+  console.error('[Derby Server] Failed to load sound config:', error.message);
 });
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
@@ -61,6 +75,14 @@ app.use('/display', express.static(path.join(__dirname, '..', '..', 'clients', '
 // Source of truth lives in clients/assets/ — no copy needed.
 app.use('/assets', express.static(path.join(__dirname, '..', '..', 'clients', 'assets')));
 
+// Shared JS utilities (gameEvents.js, AudioPlayer.js, soundDecision.js) served at /shared/
+// Available to both the display client and the web admin client.
+app.use('/shared', express.static(path.join(__dirname, '..', '..', 'clients', 'shared')));
+
+// WAV/MP3 audio assets served at /sounds/ so browser clients can fetch them
+// directly by URL (see SoundConfigManager.getClientConfig).
+app.use('/sounds', express.static(path.join(__dirname, '..', 'sounds')));
+
 // ESP8266 sensor browser flasher (ESP Web Tools) served at /flash-sensor/
 // No toolchain needed — works from Chrome/Edge via Web Serial.
 app.use('/flash-sensor', express.static(path.join(__dirname, '..', '..', 'clients', 'esp8266-sensor', 'web-install')));
@@ -86,6 +108,7 @@ app.use('/api/players', (req, res, next) => createPlayersRouter(gameState, conne
 app.use('/api/clients', (req, res, next) => createClientsRouter(gameState, connectionManager)(req, res, next));
 app.use('/api/bots', (req, res, next) => createBotsRouter(botManager)(req, res, next));
 app.use('/api/sensors', createSensorsRouter());
+app.use('/api/sounds', createSoundsRouter(soundConfigManager));
 
 // ─── Global error handler ─────────────────────────────────────────────────────
 
@@ -102,6 +125,9 @@ const wss = new WebSocketServer({ server });
 connectionManager = new ConnectionManager(gameState, ledConfigManager, soundManager);
 botManager = new BotManager(gameState, connectionManager);
 connectionManager.setBotManager(botManager);
+
+// Wire server-side console output to the live-log page.
+serverLog.setConnectionManager(connectionManager);
 
 // Wire config change events to broadcast LED config
 ledConfigManager.on('configChanged', (deviceType, config) => {

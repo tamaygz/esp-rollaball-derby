@@ -65,13 +65,8 @@ public:
     // Display
     _controller->show();
     
-    Serial.print("[SolidEffect] Started with color RGB(");
-    Serial.print(scaledColor.R);
-    Serial.print(",");
-    Serial.print(scaledColor.G);
-    Serial.print(",");
-    Serial.print(scaledColor.B);
-    Serial.println(")");
+    DERBY_LOG_F("[SolidEffect] Started with color RGB(%u,%u,%u)\n",
+                scaledColor.R, scaledColor.G, scaledColor.B);
   }
   
   /**
