@@ -137,6 +137,7 @@ class ConnectionManager {
         type: client.type,
         name: player ? player.name : (client.chipType || 'Unknown'),
         chipId: client.chipId || null,
+        chipType: client.chipType || null,
         colorIndex: player ? player.colorIndex : null,
         ledCount: client.reportedLedCount || 0,
         connected: client.ws.readyState === 1,
