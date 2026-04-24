@@ -28,10 +28,9 @@ try {
 }
 
 // Maximum allowed durationMs for test effects.
-// Firmware stores/parses test_effect.durationMs as uint16_t, so values must
-// not exceed 65535 ms or they will overflow on-device and produce an
-// unexpected TTL.
-const MAX_EFFECT_DURATION_MS = 65535;
+// Firmware stores test_effect.durationMs as uint32_t (up to ~49 days).
+// Cap server-side at 1 hour to prevent accidental indefinitely-sticky effects.
+const MAX_EFFECT_DURATION_MS = 60 * 60 * 1000;
 
 // Rate limiter for effect test endpoint: 1 request per second per device
 

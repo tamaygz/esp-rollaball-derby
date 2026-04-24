@@ -39,6 +39,10 @@ static const unsigned long STATE_SAVE_DEBOUNCE_MS = 2000;
 
 static uint8_t  g_motorColors[MOTOR_MAX_LANES] = DEFAULT_MOTOR_COLORS;
 
+// ─── Test-effect TTL ──────────────────────────────────────────────────────────
+static unsigned long g_testEffectStartMs = 0;
+static uint32_t      g_testEffectDurationMs = 0;
+
 // ─── WiFiManager ──────────────────────────────────────────────────────────────
 static WiFiManager            wifiManager;
 static WiFiManagerParameter*  param_ip;
@@ -629,6 +633,9 @@ void loop() {
     // ── LED test effect ───────────────────────────────────────────────────────
     LedTestEffectMessage pendingEffect;
     if (wsClient.pollTestEffect(pendingEffect)) {
+        // Record TTL start so the loop can auto-stop after durationMs.
+        g_testEffectStartMs    = millis();
+        g_testEffectDurationMs = pendingEffect.durationMs;
         uint16_t spd = pendingEffect.speedMs > 0 ? pendingEffect.speedMs : 500;
         if (strcmp(pendingEffect.effectName, "countdown") == 0) {
             matrixDisplay.showCountdown(3);
@@ -672,6 +679,14 @@ void loop() {
 
     // ── Stop test effect ─────────────────────────────────────────────────────
     if (wsClient.pollStopEffect()) {
+        g_testEffectDurationMs = 0;  // cancel any pending TTL
+        matrixDisplay.showIdle();
+    }
+
+    // ── Test-effect TTL auto-stop ─────────────────────────────────────────────
+    if (g_testEffectDurationMs > 0 &&
+        (millis() - g_testEffectStartMs) >= g_testEffectDurationMs) {
+        g_testEffectDurationMs = 0;  // prevent repeat fires
         matrixDisplay.showIdle();
     }
 

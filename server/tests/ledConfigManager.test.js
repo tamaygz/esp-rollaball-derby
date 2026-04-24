@@ -111,6 +111,33 @@ describe('LedConfigManager — updateDeviceOverride()', () => {
   });
 });
 
+// ─── _validateConfig with deviceConfigOverrides ───────────────────────────────
+
+describe('LedConfigManager — _validateConfig() override validation', () => {
+  test('throws on invalid override entry during saveConfig', () => {
+    const mgr = makeManager();
+    // Plant an invalid override directly into config (simulates manual file corruption)
+    const badConfig = {
+      ...mgr.config,
+      deviceConfigOverrides: {
+        'sensor/CHIP001': { ledCount: -5, topology: 'strip', gpioPin: 4, brightness: 50, defaultEffect: 'solid' }
+      }
+    };
+    assert.throws(() => mgr._validateConfig(badConfig), /CHIP001/);
+  });
+
+  test('does not throw for valid override entries', () => {
+    const mgr = makeManager();
+    const goodConfig = {
+      ...mgr.config,
+      deviceConfigOverrides: {
+        'sensor/CHIP001': { ledCount: 30, topology: 'strip', gpioPin: 4, brightness: 80, defaultEffect: 'solid' }
+      }
+    };
+    assert.doesNotThrow(() => mgr._validateConfig(goodConfig));
+  });
+});
+
 // ─── deleteDeviceOverride ─────────────────────────────────────────────────────
 
 describe('LedConfigManager — deleteDeviceOverride()', () => {

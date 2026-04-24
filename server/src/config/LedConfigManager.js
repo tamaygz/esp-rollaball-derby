@@ -246,7 +246,19 @@ class LedConfigManager extends EventEmitter {
     for (const [key, value] of Object.entries(config)) {
       if (key === 'deviceColorMap') continue;
       if (key === 'deviceNameMap') continue;
-      if (key === 'deviceConfigOverrides') continue;
+      if (key === 'deviceConfigOverrides') {
+        // Validate each per-device override entry
+        if (value && typeof value === 'object') {
+          for (const [overrideKey, overrideValue] of Object.entries(value)) {
+            try {
+              this._validateDeviceConfig(overrideValue);
+            } catch (error) {
+              throw new Error(`Invalid per-device override for ${overrideKey}: ${error.message}`);
+            }
+          }
+        }
+        continue;
+      }
       try {
         this._validateDeviceConfig(value);
       } catch (error) {

@@ -257,7 +257,7 @@ void WSClient::_onMessage(WebsocketsMessage msg) {
 
         msg.speedMs   = static_cast<uint16_t>(doc["payload"]["params"]["speed"]      | 1000);
         msg.brightness = static_cast<uint8_t>(doc["payload"]["params"]["brightness"] | 255);
-        msg.durationMs = static_cast<uint16_t>(doc["payload"]["durationMs"]          | 0);
+        msg.durationMs = static_cast<uint32_t>(doc["payload"]["durationMs"]          | 0);
         const char* text = doc["payload"]["params"]["text"] | "";
         strlcpy(msg.text, text, sizeof(msg.text));
 

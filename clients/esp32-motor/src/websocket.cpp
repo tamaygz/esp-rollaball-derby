@@ -244,7 +244,7 @@ void WSClient::_onMessage(WebsocketsMessage msg) {
         }
         msg.speedMs    = (uint16_t)(doc["payload"]["params"]["speed"]      | 1000);
         msg.brightness = (uint8_t) (doc["payload"]["params"]["brightness"] | 255);
-        msg.durationMs = (uint16_t)(doc["payload"]["durationMs"]           | 0);
+        msg.durationMs = (uint32_t)(doc["payload"]["durationMs"]           | 0);
         const char* text = doc["payload"]["params"]["text"] | "";
         strlcpy(msg.text, text, sizeof(msg.text));
         _pendingTestEffect    = msg;
