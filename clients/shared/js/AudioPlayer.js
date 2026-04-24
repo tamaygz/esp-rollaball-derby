@@ -48,14 +48,15 @@
   // volume updates, and a smooth fade-out.
 
   function BackgroundPlayer() {
-    this._el       = null;    // current HTMLAudioElement
-    this._tracks   = [];      // current URL list
-    this._order    = [];      // shuffled index array
-    this._orderPos = 0;       // position in _order
-    this._baseVol  = 0.5;     // configured base volume
-    this._ducked   = false;   // is 50% duck active?
-    this._playing  = false;
-    this._fadeId   = null;    // setInterval handle for fade-out
+    this._el         = null;    // current HTMLAudioElement
+    this._elHandlers = null;    // { ended, error } refs so they can be removed
+    this._tracks     = [];      // current URL list
+    this._order      = [];      // shuffled index array
+    this._orderPos   = 0;       // position in _order
+    this._baseVol    = 0.5;     // configured base volume
+    this._ducked     = false;   // is 50% duck active?
+    this._playing    = false;
+    this._fadeId     = null;    // setInterval handle for fade-out
   }
 
   BackgroundPlayer.prototype = {
@@ -82,6 +83,7 @@
       this._playing = false;
       if (this._fadeId) { clearInterval(this._fadeId); this._fadeId = null; }
       if (this._el) {
+        this._detachElListeners();
         try { this._el.pause(); this._el.src = ''; } catch (e) { /* ignore */ }
         this._el = null;
       }
@@ -160,29 +162,35 @@
 
     _playAt: function (orderPos) {
       if (!this._playing || !this._tracks.length) return;
+      this._detachElListeners(); // remove listeners from the outgoing element
       var self = this;
       var idx  = this._order[orderPos % this._order.length];
       var url  = this._tracks[idx];
 
       var el = new Audio();
+
+      // Named handlers so they can be explicitly removed later.
+      var onEnded = function () {
+        if (!self._playing) return;
+        var next = orderPos + 1;
+        if (next >= self._order.length) { self._reshuffle(); next = 0; }
+        self._playAt(next);
+      };
+      var onError = function () {
+        if (!self._playing) return;
+        var next = orderPos + 1;
+        if (next >= self._order.length) { self._reshuffle(); next = 0; }
+        self._playAt(next);
+      };
+
+      el.addEventListener('ended', onEnded);
+      el.addEventListener('error', onError);
+      this._elHandlers = { ended: onEnded, error: onError };
+
       el.src     = url;
       el.preload = 'auto';
       el.volume  = this._ducked ? this._baseVol * 0.5 : this._baseVol;
       this._el   = el;
-
-      el.addEventListener('ended', function () {
-        if (!self._playing) return;
-        var next = orderPos + 1;
-        if (next >= self._order.length) { self._reshuffle(); next = 0; }
-        self._playAt(next);
-      });
-
-      el.addEventListener('error', function () {
-        if (!self._playing) return;
-        var next = orderPos + 1;
-        if (next >= self._order.length) { self._reshuffle(); next = 0; }
-        self._playAt(next);
-      });
 
       var p = el.play();
       if (p && typeof p.catch === 'function') {
@@ -195,6 +203,14 @@
           self._playAt(next);
         });
       }
+    },
+
+    _detachElListeners: function () {
+      if (this._el && this._elHandlers) {
+        try { this._el.removeEventListener('ended', this._elHandlers.ended); } catch (e) { /* ignore */ }
+        try { this._el.removeEventListener('error', this._elHandlers.error); } catch (e) { /* ignore */ }
+      }
+      this._elHandlers = null;
     },
   };
 
@@ -218,13 +234,14 @@
   // ── AudioPlayer ───────────────────────────────────────────────────────────────
 
   function AudioPlayer() {
-    this._urls      = {};     // eventName → effect URL
-    this._pools     = {};     // eventName → [HTMLAudioElement]
-    this._poolIdx   = {};     // eventName → next pool index
-    this._enabled   = true;
-    this._unlocked  = false;
-    this._listeners = [];     // onChange subscribers
-    this._configUrl = '/api/sounds/config';
+    this._urls          = {};     // eventName → effect URL
+    this._pools         = {};     // eventName → [HTMLAudioElement]
+    this._poolIdx       = {};     // eventName → next pool index
+    this._enabled       = true;
+    this._unlocked      = false;
+    this._unlockHandler = null;   // stored so it can be removed and not re-added
+    this._listeners     = [];     // onChange subscribers
+    this._configUrl     = '/api/sounds/config';
 
     // Background music engine
     this._bg           = new BackgroundPlayer();
@@ -461,24 +478,56 @@
     },
 
     _installUnlockHandler: function () {
-      if (this._unlocked) return;
+      if (this._unlocked || this._unlockHandler) return; // already unlocked or registered
       var self = this;
-      var unlock = function () {
+      var handler = function () {
         if (self._unlocked) return;
-        self._unlocked = true;
+        self._unlocked      = true;
+        self._unlockHandler = null;
         try {
           var a = new Audio(SILENT_WAV);
           a.volume = 0;
           var p = a.play();
           if (p && typeof p.catch === 'function') p.catch(function () { /* ignore */ });
         } catch (e) { /* ignore */ }
-        root.removeEventListener('pointerdown', unlock, true);
-        root.removeEventListener('keydown',     unlock, true);
-        root.removeEventListener('touchstart',  unlock, true);
+        root.removeEventListener('pointerdown', handler, true);
+        root.removeEventListener('keydown',     handler, true);
+        root.removeEventListener('touchstart',  handler, true);
       };
-      root.addEventListener('pointerdown', unlock, true);
-      root.addEventListener('keydown',     unlock, true);
-      root.addEventListener('touchstart',  unlock, true);
+      this._unlockHandler = handler;
+      root.addEventListener('pointerdown', handler, true);
+      root.addEventListener('keydown',     handler, true);
+      root.addEventListener('touchstart',  handler, true);
+    },
+
+    /**
+     * Release all resources. Removes DOM listeners, stops background music,
+     * and empties all effect pools. Call when the page is being torn down.
+     * After dispose() the instance should not be used further.
+     */
+    dispose: function () {
+      this._bg.stop();
+      this._bgMode = null;
+
+      if (this._unlockHandler) {
+        root.removeEventListener('pointerdown', this._unlockHandler, true);
+        root.removeEventListener('keydown',     this._unlockHandler, true);
+        root.removeEventListener('touchstart',  this._unlockHandler, true);
+        this._unlockHandler = null;
+      }
+
+      for (var k in this._pools) {
+        if (Object.prototype.hasOwnProperty.call(this._pools, k)) {
+          var pool = this._pools[k];
+          for (var i = 0; i < pool.length; i++) {
+            try { pool[i].src = ''; } catch (e) { /* ignore */ }
+          }
+        }
+      }
+      this._pools     = {};
+      this._poolIdx   = {};
+      this._urls      = {};
+      this._listeners = [];
     },
 
     _notify: function (change) {
