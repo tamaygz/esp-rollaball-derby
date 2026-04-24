@@ -5,10 +5,10 @@ A local-network physical race game. Players roll balls past IR sensors; an ESP82
 ## System Architecture
 
 ```
-ESP8266 Sensors ─────┐
-                      ├──► Node.js Server ──► Display Client (Pixi.js, TV/beamer)
-ESP8266 Motors ──────┘         │
-                               └──► Web Admin Client (browser)
+ESP8266/ESP32 Sensors ───┐
+                          ├──► Node.js Server ──► Display Client (Pixi.js, TV/beamer)
+ESP32 Motor Controller ──┘         │
+                                   └──► Web Admin Client (browser)
 ```
 
 All communication over WebSocket (`ws://`). The server is the single source of truth.
@@ -21,8 +21,9 @@ All communication over WebSocket (`ws://`). The server is the single source of t
 | `clients/assets/` | ✅ Complete | Horse + camel SVG themes |
 | `clients/web/` | ✅ Complete | Admin SPA at `/admin` — game controls, config, bots, score testing |
 | `clients/display/` | ✅ Complete | Pixi.js race visualization at `/display` with action effects |
-| `clients/esp8266-sensor/` | 🚧 In progress | PlatformIO, WiFi, WebSocket, IR sensors via interrupts, status LED, web flashing |
-| `clients/esp8266-motor/` | ⏳ Deferred | Phase 3 |
+| `clients/esp8266-sensor/` | 🚧 In progress | PlatformIO, WiFi, WebSocket, IR sensors via interrupts, status LED, web flashing; ESP8266 + ESP32 DevKit targets |
+| `clients/esp32-motor/` | 🚧 In progress | ESP32 stepper motor controller with LED matrix, buttons, and audio |
+| `clients/esp8266-motor/` | ⏳ Superseded | Replaced by `clients/esp32-motor/` |
 
 ## Key Features
 
@@ -32,7 +33,7 @@ All communication over WebSocket (`ws://`). The server is the single source of t
 - **Theming**: Horse 🐎 and camel 🐪 themes with auto-random selection
 - **Motor control**: ESP32 stepper motor control with track color assignment for physical lane mapping
 - **Reconnect**: Both admin and display clients auto-reconnect with exponential backoff
-- **mDNS autodiscovery**: Server publishes `_derby._tcp` via DNS-SD; ESP8266 sensors find the server automatically on the LAN
+  - **mDNS autodiscovery**: Server publishes `_derby._tcp` via DNS-SD; ESP8266/ESP32 sensors find the server automatically on the LAN
 - **Rate limiting**: 300 ms per player to prevent spam
 
 ## Directory Structure
@@ -89,8 +90,9 @@ The server advertises itself via mDNS as `_derby._tcp`. ESP8266 sensors auto-dis
 | [feature-server-web-1.md](plan/feature-server-web-1.md) | ✅ Completed |
 | [feature-client-web-1.md](plan/feature-client-web-1.md) | ✅ Completed |
 | [feature-client-display-1.md](plan/feature-client-display-1.md) | ✅ Completed |
-| [feature-client-esp8266-sensor-1.md](plan/feature-client-esp8266-sensor-1.md) | 🔲 Planned |
-| [feature-client-esp8266-motor-1.md](plan/feature-client-esp8266-motor-1.md) | ⏳ Deferred |
+| [feature-client-esp8266-sensor-1.md](plan/feature-client-esp8266-sensor-1.md) | � In progress |
+| [feature-client-esp32-motor-2.md](plan/feature-client-esp32-motor-2.md) | 🚧 In progress |
+| [feature-client-esp8266-motor-1.md](plan/feature-client-esp8266-motor-1.md) | ⏳ Superseded |
 
 ## Bill of Materials
 

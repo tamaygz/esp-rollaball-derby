@@ -20,8 +20,8 @@ This shared library provides a platform-abstracted API for controlling WS2812B (
 - **LEDs**: WS2812B addressable RGB LEDs (800kHz protocol)
 - **Power**: External 5V supply (60mA per LED at full brightness)
 - **Data Pin**:
-  - ESP8266: GPIO3 (RX pin) for DMA method
-  - ESP32: Any valid GPIO (RMT method)
+  - ESP8266: GPIO2 (UART1 method — default, leaves RX/Serial free); GPIO3 (RX pin, DMA method — secondary)
+  - ESP32: Any GPIO 0–39 (RMT method)
 - **LED Count Limits**:
   - ESP8266: 1-300 LEDs (256KB RAM)
   - ESP32: 1-1000 LEDs (520KB RAM)
@@ -144,12 +144,31 @@ Get the number of configured LEDs.
 
 ### ESP8266
 
-- **Method**: DMA on GPIO3 (RX pin)
+- **Method**: UART1 on GPIO2 (default) or DMA on GPIO3 (RX pin)
 - **Max LEDs**: 300 (RAM constraint)
-- **Note**: GPIO3 conflicts with Serial debugging when using DMA
-- **Alternative**: UART method for configurable pin (future enhancement)
+- **`LED_GPIO_MAX`**: Not defined — only GPIO2 and GPIO3 are valid data pins
+- **Note**: GPIO3 (DMA) conflicts with Serial debugging
+
+### ESP32
+
+- **Method**: RMT channel 0 — any GPIO
+- **Max LEDs**: 1000 (RAM constraint)
+- **`LED_GPIO_MAX`**: 39 (defined in `LedPlatform.h`)
 
 ---
+
+## Pin Validation
+
+```cpp
+bool ledPinIsValid(int pin)
+```
+
+Runtime pin-validity check defined in `LedPlatform.h`.
+
+- **ESP8266**: returns `true` only for GPIO2 or GPIO3
+- **ESP32**: returns `true` for any `0 ≤ pin ≤ LED_GPIO_MAX` (39)
+
+Called by `LedController::begin()` before allocating hardware resources.
 
 ## Animation Engine (Phase 2)
 

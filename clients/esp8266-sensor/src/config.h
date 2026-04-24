@@ -7,13 +7,15 @@
 #define PIN_SENSOR_2  14          // D5 → GPIO14 → +2 hole IR break-beam
 #define PIN_SENSOR_3  4           // D2 → GPIO4  → +3 hole IR break-beam
 #define PIN_LED       2           // GPIO2 (D4 / TX1) → WS2812B LED strip
+// LED_CAPABILITIES_METHOD is intentionally compile-time: the NeoPixelBus method
+// (UART1/DMA) is determined by the physical wiring of PIN_LED at flash time.
+// If the admin panel moves the active pin via led_config, the registered method
+// name becomes stale until the firmware is reflashed with an updated PIN_LED.
 #if PIN_LED == 3
 #define LED_CAPABILITIES_METHOD "DMA"
 #else
 #define LED_CAPABILITIES_METHOD "UART1"
 #endif
-#define LED_PLATFORM_MAX_LEDS   300
-#define LED_GPIO_MAX            16
 #elif defined(ESP32)
 // ESP32 DevKit defaults (safe interrupt-capable input pins + common LED pin)
 #define PIN_SENSOR_1  25          // GPIO25 → +1 hole IR break-beam
@@ -23,8 +25,6 @@
 // GPIO2 is kept free for the onboard status LED (see PIN_STATUS_LED below).
 #define PIN_LED       4           // GPIO4   → WS2812B LED strip
 #define LED_CAPABILITIES_METHOD "RMT"
-#define LED_PLATFORM_MAX_LEDS   1000
-#define LED_GPIO_MAX            39
 #else
 #error "Unsupported board: define ESP8266 or ESP32 target"
 #endif
@@ -46,15 +46,19 @@
 // panel gpioPin setting), StatusLed detects the conflict at runtime and falls
 // back to the side-effect mode automatically.
 #if defined(ESP8266)
-#  define PIN_STATUS_LED  2         // GPIO2 — same as PIN_LED; UART1 owns this pin (side-effect mode only)
-#  define STATUS_LED_ACTIVE_LOW  true
+#define PIN_STATUS_LED      2    // GPIO2 — same as PIN_LED; UART1 owns this pin (side-effect mode only)
+#define STATUS_LED_ACTIVE_LOW  true   // polarity definition only — actual GPIO control is skipped
+                                      // because PIN_STATUS_LED == PIN_LED (see config.h comment above)
 #elif defined(ESP32)
-#  define PIN_STATUS_LED  2         // GPIO2 — onboard blue LED on most DevKit boards
-#  define STATUS_LED_ACTIVE_LOW  false
+#define PIN_STATUS_LED      2    // GPIO2 — onboard blue LED on most DevKit boards
+#define STATUS_LED_ACTIVE_LOW  false
 #endif
 
 // ─── Sensor Debounce ──────────────────────────────────────────────────────────
-#define DEBOUNCE_MS   500UL       // Minimum ms between valid triggers per sensor
+// Ball-transit guard: minimum ms between accepted triggers on the same sensor.
+// 500 ms prevents double-counting a slow or bouncing ball pass. This is far
+// longer than electrical switch bounce (µs) — it is a mechanical timing window.
+#define DEBOUNCE_MS   500UL
 
 // ─── WebSocket ────────────────────────────────────────────────────────────────
 #define WS_PATH            "/"
@@ -84,4 +88,11 @@
 // ─── LED Config ──────────────────────────────────────────────────────────────
 // LedTopology, LedConfig and ledConfigDefaults() live in the shared leds lib.
 // LED_DEFAULT_* are defined above so the shared header picks them up.
+// LedPlatform.h is also pulled in here so every TU that includes config.h
+// automatically gets LED_MAX_COUNT and LED_GPIO_MAX without reaching into the
+// LED hardware layer directly.
+//
+// CIRCULAR INCLUDE GUARD: nothing included by LedPlatform.h or LedConfig.h
+// should ever include config.h — those platform headers must stay application-free.
+#include <leds/LedPlatform.h>
 #include <leds/LedConfig.h>

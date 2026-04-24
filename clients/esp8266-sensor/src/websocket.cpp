@@ -1,5 +1,7 @@
 #include "websocket.h"
-#include "device_info.h"
+#include <device_info.h>
+#include <color_utils.h>
+// LED_MAX_COUNT and LED_CAPABILITIES_METHOD arrive via websocket.h → config.h → LedPlatform.h
 
 void WSClient::begin(const char* host, uint16_t port, const char* playerName,
                      const char* persistedPlayerId) {
@@ -70,7 +72,7 @@ void WSClient::_sendRegister() {
     derbyChipIdHex(chipIdBuf, sizeof(chipIdBuf));
     payload["chipId"] = chipIdBuf;
     JsonObject ledCaps = payload["ledCapabilities"].to<JsonObject>();
-    ledCaps["maxLeds"] = LED_PLATFORM_MAX_LEDS;
+    ledCaps["maxLeds"] = LED_MAX_COUNT;
     ledCaps["method"]  = LED_CAPABILITIES_METHOD;
     ledCaps["pin"]     = PIN_LED;
 
@@ -200,8 +202,11 @@ void WSClient::_onMessage(WebsocketsMessage msg) {
         cfg.pin        = static_cast<uint8_t> (doc["payload"]["gpioPin"]  | LED_DEFAULT_PIN);
         cfg.brightness = static_cast<uint8_t> (doc["payload"]["brightness"] | LED_DEFAULT_BRIGHTNESS);
         cfg.topology   = LedTopology::STRIP; // default
-        cfg.matrixRows = 8;
-        cfg.matrixCols = 8;
+        cfg.matrixRows = static_cast<uint8_t>(doc["payload"]["matrixRows"] | 8);
+        cfg.matrixCols = static_cast<uint8_t>(doc["payload"]["matrixCols"] | 8);
+        // Clamp matrix dims: 0 rows or cols causes divide-by-zero in address calculations.
+        if (cfg.matrixRows < 1) cfg.matrixRows = 8;
+        if (cfg.matrixCols < 1) cfg.matrixCols = 8;
         cfg.mirrorH    = doc["payload"]["mirrorH"] | false;
         cfg.mirrorV    = doc["payload"]["mirrorV"] | false;
 
@@ -211,17 +216,10 @@ void WSClient::_onMessage(WebsocketsMessage msg) {
         else if (strcmp(topStr, "matrix_progressive") == 0) cfg.topology = LedTopology::MATRIX_PROGRESSIVE;
 
         // Parse device color: "#RRGGBB" hex string from server
-        cfg.hasDeviceColor = false;
-        const char* devColor = doc["payload"]["deviceColor"] | "";
-        if (devColor[0] == '#' && strlen(devColor) == 7) {
-            char hex[3] = {0};
-            hex[0] = devColor[1]; hex[1] = devColor[2];
-            cfg.deviceColorR = static_cast<uint8_t>(strtoul(hex, nullptr, 16));
-            hex[0] = devColor[3]; hex[1] = devColor[4];
-            cfg.deviceColorG = static_cast<uint8_t>(strtoul(hex, nullptr, 16));
-            hex[0] = devColor[5]; hex[1] = devColor[6];
-            cfg.deviceColorB = static_cast<uint8_t>(strtoul(hex, nullptr, 16));
-            cfg.hasDeviceColor = true;
+        cfg.hasDeviceColor = derbyParseHexColor(
+            doc["payload"]["deviceColor"] | "",
+            cfg.deviceColorR, cfg.deviceColorG, cfg.deviceColorB);
+        if (cfg.hasDeviceColor) {
             Serial.printf("[WS] deviceColor: #%02X%02X%02X\n", cfg.deviceColorR, cfg.deviceColorG, cfg.deviceColorB);
         }
 
@@ -241,18 +239,8 @@ void WSClient::_onMessage(WebsocketsMessage msg) {
 
         // Color is sent as a hex string "#RRGGBB" or as separate r/g/b fields.
         const char* hexColor = doc["payload"]["params"]["color"] | "";
-        if (hexColor[0] == '#' && strlen(hexColor) == 7) {
-            // Parse "#RRGGBB"
-            char hex[3] = {0};
-            hex[0] = hexColor[1]; hex[1] = hexColor[2];
-            msg.r = static_cast<uint8_t>(strtoul(hex, nullptr, 16));
-            hex[0] = hexColor[3]; hex[1] = hexColor[4];
-            msg.g = static_cast<uint8_t>(strtoul(hex, nullptr, 16));
-            hex[0] = hexColor[5]; hex[1] = hexColor[6];
-            msg.b = static_cast<uint8_t>(strtoul(hex, nullptr, 16));
-        } else {
-            // Fallback: white
-            msg.r = 255; msg.g = 255; msg.b = 255;
+        if (!derbyParseHexColor(hexColor, msg.r, msg.g, msg.b)) {
+            msg.r = 255; msg.g = 255; msg.b = 255;  // Fallback: white
         }
 
         msg.speedMs   = static_cast<uint16_t>(doc["payload"]["params"]["speed"]      | 1000);
