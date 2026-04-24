@@ -500,5 +500,233 @@ This makes color survive reboots and available immediately before the first `led
 
 ---
 
+## 9. Architectural Critique & Open Issues
+
+> **Context:** This section critiques the proposals above from a senior-architect perspective, flags hidden assumptions, and records unresolved design questions. Nothing here invalidates the migration plan — it sharpens it.
+
+---
+
+### C1 — Three `AnimationManager` instances share one `LedController`: no real compositing
+
+**Proposal (§4.1/§4.4):** Three `EffectLayer` instances, each wrapping its own `AnimationManager`.
+
+**Problem:** All three `AnimationManager` instances write to the *same* `LedController`, which calls `strip.show()` at the end of every frame. Layer-2 effects will clobber Layer-1 outputs pixel-by-pixel because there is no per-layer pixel buffer or blending stage. The last layer to call `_controller->show()` in a given `loop()` iteration wins.
+
+**Better approach — Option A (minimal cost):** Single `AnimationManager` with a priority enum attached to each `playEffect()` call. A lower-priority request is silently ignored if a higher-priority effect is already active; it only fires when the current effect is complete or has lower priority.
+
+```cpp
+// Single-animator priority gate (no extra SRAM)
+// Convention: higher numeric value = higher priority (matches LocalEventType enum ordering)
+// PRIORITY_AMBIENT=0, PRIORITY_GAME=1, PRIORITY_ADMIN=2
+void playEffect(LedEffect* effect, uint8_t priority) {
+    if (_activePriority > priority) return; // currently-running effect has higher priority, drop request
+    _activePriority = priority;
+    _playEffectInternal(effect);
+}
+void _onEffectComplete() {
+    _activePriority = PRIORITY_AMBIENT; // reset when done so any new request is accepted
+}
+```
+
+**Better approach — Option B (richer but ~3× SRAM for pixel buffers):** Keep three `AnimationManager` instances but introduce a `LedCompositor` that owns the physical strip. Each layer writes to its own `RgbColor[]` buffer; the compositor alpha-blends them on each tick before calling `strip.show()`.
+
+Option A is recommended for Phase 3 on ESP8266 (80 KB SRAM). Option B is viable on ESP32 (520 KB SRAM) if per-layer visual blending is desired.
+
+---
+
+### C2 — Priority replacement in `EventQueue` is underspecified across categories
+
+**Proposal (§4.2):** "On full queue, overwrite the lowest-priority entry."
+
+**Problem:** `LocalEventType` and `GlobalEventType` are separate enums with independent ordinal values. A `LocalEventType::TOOK_LEAD` (value 7) is numerically larger than `GlobalEventType::GAME_PAUSED` (value 4), but they are semantically incommensurable — cross-category comparison will produce nonsense.
+
+**Clarification needed:**
+- Local and Global queues must stay separate (as proposed). Priority replacement applies *within* each queue independently.
+- Within `LocalEventType`: enum ordering already gives priority (higher value = higher priority). ✅
+- Within `GlobalEventType`: `WINNER_SELF > WINNER_OTHER > GAME_STARTED > COUNTDOWN_TICK > GAME_PAUSED > GAME_RESUMED > GAME_RESET` is a reasonable order — add a comment in `GameEvents.h` stating that enum value order encodes priority.
+- A `GlobalEventType` in the global queue should never evict a `LocalEventType` in the local queue and vice versa.
+
+---
+
+### C3 — `GameEventMapper` violates the Open/Closed Principle
+
+**Current state:** `onLocalEvent()` and `onGlobalEvent()` are large `switch` statements. Adding a new event type requires modifying the mapper.
+
+**Risk for refactoring:** Any new effect addition risks inadvertent side-effects from touching the same function.
+
+**Proposed alternative — table-driven mapper:**
+
+```cpp
+// In GameEventMapper.h — registration table instead of switch
+// Pre-allocated effect instances (same as current) are referenced by pointer.
+// The table is const and can be stored in flash (PROGMEM) on ESP8266.
+struct LocalEffectEntry {
+    LocalEventType event;
+    LedEffect*     effect;         // pointer to pre-allocated effect instance
+    uint16_t       durationMs;
+    uint8_t        priority;       // PRIORITY_AMBIENT=0, PRIORITY_GAME=1, PRIORITY_ADMIN=2
+};
+
+// Example registration table (replaces the switch in onLocalEvent)
+static const LocalEffectEntry LOCAL_EFFECTS[] PROGMEM = {
+    { LocalEventType::SCORE_PLUS1, &_blinkEffect,   200, PRIORITY_GAME },
+    { LocalEventType::TOOK_LEAD,   &_chaseEffect,  1000, PRIORITY_GAME },
+    // ... one entry per LocalEventType value
+};
+
+void onLocalEvent(LocalEventType event) {
+    for (auto& entry : LOCAL_EFFECTS) {
+        if (entry.event == event) {
+            _configureEffect(entry);
+            _animator->playEffect(entry.effect, entry.priority);
+            return;
+        }
+    }
+}
+```
+
+This keeps new effects as data rather than code changes. Effect parameters can later be loaded from NVS/flash for runtime customisation without firmware reflash.
+
+---
+
+### C4 — `GameEvents.js` module format cannot serve both server (Node.js) and browser without modification
+
+**Proposal (§4.3):** `var GameEvents = Object.freeze({...})` — a browser global.
+
+**Problem:** `SoundManager.js` runs in Node.js and uses `require()`. The proposed format is not importable via `require()` without wrapping. If the file is served as a static asset and also `require()`'d by the server, there will be two separate copies with no shared mutation surface.
+
+**Fix — dual-format shim:**
+
+```javascript
+// clients/shared/js/gameEvents.js
+var GameEvents = Object.freeze({
+  ZERO_ROLL:       'zero_roll',
+  SCORE_1:         'score_1',
+  // ...
+  GAME_STARTED:    'game_started',
+  // ...
+});
+
+// CommonJS export for Node.js (server-side SoundManager, tests)
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = GameEvents;
+}
+```
+
+Both `require('./gameEvents')` (Node.js) and `<script src="...gameEvents.js">` (browser) then produce the same frozen object without modification.
+
+---
+
+### C5 — Sequence numbers are counterproductive for transient LED effects on reconnect
+
+**Proposal (§4.7):** Clients send `lastSeq` on reconnect; server "can log or replay missed events."
+
+**Problem:** LED effects are fire-and-forget animations with duration on the order of 200–1500 ms. Replaying a `scored` event that occurred 3 seconds ago after a sensor reconnects will trigger a stale sparkle effect that has no relationship to current game state. This is confusing to the player standing at the sensor.
+
+**Recommendation:**
+- Firmware clients: **do not replay** missed events after reconnect. Request the current `state` snapshot instead (already sent on connection by the server). The `seq` counter is still useful for *deduplication* (detect duplicate `scored` messages) and *logging* (server-side diagnostics), but firmware should explicitly discard events with `seq ≤ _lastSeenSeq`.
+- Display client and web admin: replay is beneficial (they show scores/history, not time-critical LED pulses). Consider a separate replay flag per client type in the `register` message: `"replayMissed": true`.
+
+---
+
+### C6 — `test_effect` `stop_effect` message should target a specific layer
+
+**Proposal (§4.8):** `{ "type": "stop_effect" }` stops the current test.
+
+**Problem:** If an admin accidentally sends `stop_effect` while a game-triggered `WINNER_SELF` rainbow is running on the admin layer, it could terminate the wrong effect.
+
+**Fix:** Scope the stop message to the admin layer explicitly:
+
+```json
+{ "type": "stop_effect", "payload": { "layer": "admin" } }
+```
+
+Firmware interprets this as "cancel any active admin-layer transient and return to game/ambient." Without a layer qualifier, `stop_effect` is ambiguous.
+
+---
+
+### C7 — Ambient vs. connection-status conflation in Layer 0
+
+**Proposal (§4.1):** Layer 1 = Ambient (connection status, game pause, idle) — a 3-layer model.
+
+**Problem:** "Connection status" and "game pause" are different concerns. Connection status is a **hardware diagnostic** — it should be visible even when a game is running. "Game pause" is a **game event** that arguably belongs in Layer 2.
+
+**Revised conceptual model (4 layers):**
+
+| Layer | Name | Contents | Survives reconnect? |
+|---|---|---|---|
+| 0 — Diagnostic | WiFi/WS status (connecting blink, disconnected red pulse) | Always | Yes |
+| 1 — Ambient | Idle breathing, game-paused pulse, post-reset state | Game-context-dependent | Yes |
+| 2 — Game Event | Scoring, streaks, rank changes, winner, countdown | Transient (duration-bound) | No (drop on reconnect) |
+| 3 — Admin | test_effect overrides | Transient (TTL-bound) | No (stop on reconnect) |
+
+**Reconciling with the 3-layer model in §4.1:** The 3-layer model in §4.1 (Ambient / Game / Admin) remains the *firmware implementation target* because adding a 4th layer costs SRAM. The 4-layer model is the *conceptual design* — on ESP8266, Layers 0 and 1 are collapsed into a single ambient `AnimationManager` driven by an explicit state machine (idle → paused → disconnected → ...), while the priority gate handles Layers 2 and 3. On ESP32, all four can be distinct. This is captured in OQ4 at the end of this section.
+
+---
+
+### C8 — No explicit backward-compatibility contract for the WebSocket protocol
+
+**§7 ("What NOT to Change")** implicitly covers this, but there is no formal statement of what is and isn't a breaking change.
+
+**Recommended contract (add to §7):**
+- **Non-breaking:** Adding optional fields to existing message payloads (`seq`, `durationMs`, `layer`).
+- **Non-breaking:** Adding new `type` values that old clients silently ignore.
+- **Breaking:** Renaming existing `type` values (e.g., `scored` → `score_event`).
+- **Breaking:** Removing payload fields that existing clients read.
+- **Breaking:** Changing numeric encoding of `events[]` strings.
+
+All Phases 1–5 proposals are non-breaking by this definition. ✅
+
+---
+
+### C9 — Lack of firmware testability strategy
+
+The analysis has no mention of how to test the proposed changes before shipping firmware.
+
+**Minimum viable firmware test plan:**
+1. **`EventQueue` unit tests** — host-side (no hardware): use PlatformIO's `native` environment to compile and run `tests/test_event_queue.cpp` with `unity`. Test: push/pop ordering, priority eviction, overflow behaviour.
+2. **`EffectLayer` / priority gate tests** — same native environment: mock `LedController`, verify that a high-priority `playEffect()` call suppresses a low-priority one.
+3. **Integration smoke test** — flash a sensor or motor, observe Serial output via `pio device monitor`, verify that rapid successive `scored` → `game_event` WS messages produce the expected effect sequence without silent drops.
+4. **Regression test checklist** (manual, per firmware build):
+   - [ ] LED strip lights on connection
+   - [ ] `SCORE_PLUS3` effect fires and returns to ambient
+   - [ ] `GAME_PAUSED` amber pulse starts and stops on `GAME_RESUMED`
+   - [ ] `test_effect` from admin UI runs and stops after TTL
+   - [ ] Device color survives reboot (NVS persistence)
+
+---
+
+### C10 — Effect parameter data model (EffectParams) is closed to extension
+
+**Current:** `EffectParams` is a plain struct with fixed fields. Adding a new effect type (e.g., "wave", "fire") that needs custom parameters requires modifying the shared struct.
+
+**Risk:** Every firmware project that includes `LedEffect.h` must be rebuilt when `EffectParams` changes, even if the effect is only used by one project.
+
+**Options (pick one):**
+- **Option A — subclass params:** Each `LedEffect` subclass holds its own extra params via additional setters (already done: `BlinkEffect::setBlinkParams()`, `ChaseEffect::setChaseParams()`). ✅ Continue this pattern; don't add new fields to `EffectParams`.
+- **Option B — tag/variant field:** Add a `uint8_t tag` + `uint8_t data[8]` union to `EffectParams` for effect-specific extras. Avoids virtual setters but sacrifices type safety.
+
+Option A is already the direction the code is taking. Formalise it: `EffectParams` carries *only* universal properties (color, brightness, durationMs, speed); all effect-specific configuration goes through named setters on the concrete class.
+
+---
+
+### C11 — `isComplete()` / `isDone()` naming inconsistency in the analysis
+
+The analysis doc (§1.4) uses `isDone()` but the actual `LedEffect.h` API uses `isComplete()`. All future documentation and code should use `isComplete()` to match the existing interface.
+
+---
+
+### Open Questions (decision required before Phase 3)
+
+| # | Question | Options | Recommended |
+|---|---|---|---|
+| OQ1 | Single animator + priority gate vs. multi-layer compositor? | A: priority gate / B: compositor | **A for ESP8266, B for ESP32** |
+| OQ2 | Should `GAME_PAUSED` effect live in Layer 1 (ambient) or Layer 2 (game event)? | Layer 1 (persistent until resumed) vs Layer 2 (transient) | **Layer 1** — it must survive other game events |
+| OQ3 | Should firmware replay events after reconnect? | Yes (risky) / No — full state sync only | **No — full state sync** |
+| OQ4 | Three-layer or four-layer model? | 3 (ambient/game/admin) vs 4 (diagnostic/ambient/game/admin) | **3 for firmware, 4 conceptually** |
+| OQ5 | `GameEvents.js` — dual-format shim or two separate files? | Shim / separate `gameEvents.cjs` + `gameEvents.js` | **Shim** — one source of truth |
+
+---
+
 *Last updated: 2026-04-24*  
-*Authors: @copilot (analysis), @tamaygz (codebase)*
+*Authors: @copilot (analysis + critique), @tamaygz (codebase)*
