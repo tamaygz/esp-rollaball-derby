@@ -558,12 +558,11 @@ void setup() {
     if (discoverServer(wsHost, wsPort)) {
         wsClient.begin(wsHost.c_str(), wsPort, g_playerName,
                        MOTOR_MAX_LANES, g_motorColors, g_playerId);
-        DerbyLogger::setSender(&wsClient);
     } else {
         wsClient.begin(g_serverIp, (uint16_t)atoi(g_serverPort), g_playerName,
                        MOTOR_MAX_LANES, g_motorColors, g_playerId);
-        DerbyLogger::setSender(&wsClient);
     }
+    DerbyLogger::setSender(&wsClient);
     wsClient.setLedMetadata(g_hasLedConfig ? g_savedLedConfig.ledCount : ledConfigDefaults().ledCount);
 
     // HTTP REST API

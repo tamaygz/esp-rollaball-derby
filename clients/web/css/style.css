@@ -1208,3 +1208,128 @@ input:disabled, select:disabled {
   }
 }
 
+/* ─── Log Viewer ────────────────────────────────────────────────────────────── */
+
+/* card-full spans the full grid width (like card-wide but for single-section pages) */
+.card-full { grid-column: 1 / -1; }
+
+.log-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.log-controls .form-group {
+  margin-bottom: 0;
+  flex-shrink: 0;
+}
+
+.log-controls .form-group label {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.log-controls select,
+.log-controls input[type="number"] {
+  background: var(--surface-hi);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 5px 8px;
+  font-size: 0.85rem;
+}
+
+.log-controls input[type="number"] { width: 80px; }
+
+.log-autoscroll-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: var(--muted);
+  cursor: pointer;
+  user-select: none;
+  padding-bottom: 2px;
+}
+
+.log-autoscroll-label input { cursor: pointer; }
+
+.btn-sm {
+  padding: 5px 12px;
+  font-size: 0.8rem;
+}
+
+/* Status badge — mirrors ws-status visual but lives beside controls */
+.log-status-badge {
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+  align-self: flex-end;
+}
+
+.log-status-ok  { background: rgba(56, 161, 105, 0.2); color: var(--success); }
+.log-status-err { background: rgba(229, 62, 62, 0.15);  color: var(--danger);  }
+
+/* Scrollable log pane */
+.log-output-wrapper {
+  position: relative;
+  flex: 1 1 auto;
+}
+
+.log-output {
+  background: #0b0d14;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  height: 60vh;
+  min-height: 300px;
+  overflow-y: auto;
+  font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+  font-size: 0.78rem;
+  line-height: 1.6;
+  scroll-behavior: smooth;
+}
+
+/* Each log line */
+.log-line {
+  display: flex;
+  gap: 8px;
+  padding: 1px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+  word-break: break-all;
+}
+
+.log-line:last-child { border-bottom: none; }
+
+.log-ts {
+  color: #4a5568;
+  flex-shrink: 0;
+  width: 10ch;
+  font-size: 0.72rem;
+  padding-top: 1px;
+}
+
+.log-sender {
+  flex-shrink: 0;
+  width: 10ch;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.72rem;
+  padding-top: 1px;
+}
+
+.log-msg {
+  flex: 1;
+  color: var(--text);
+  white-space: pre-wrap;
+}
+
+

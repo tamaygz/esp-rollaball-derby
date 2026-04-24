@@ -515,12 +515,11 @@ void setup() {
     uint16_t discoveredPort;
     if (discoverServer(discoveredHost, discoveredPort)) {
         wsClient.begin(discoveredHost.c_str(), discoveredPort, g_playerName, g_playerId);
-        DerbyLogger::setSender(&wsClient);
     } else {
         uint16_t port = static_cast<uint16_t>(atoi(g_serverPort));
         wsClient.begin(g_serverIp, port, g_playerName, g_playerId);
-        DerbyLogger::setSender(&wsClient);
     }
+    DerbyLogger::setSender(&wsClient);
 
     // HTTP config server — lets the Node.js admin push new config without
     // needing to re-open the WiFiManager captive portal.
