@@ -3,10 +3,12 @@
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
 #include <ESP8266mDNS.h>
+using DerbyWebServer = ESP8266WebServer;
 #elif defined(ESP32)
 #include <WiFi.h>
 #include <WebServer.h>
 #include <ESPmDNS.h>
+using DerbyWebServer = WebServer;
 #else
 #error "Unsupported board: define ESP8266 or ESP32 target"
 #endif
@@ -19,18 +21,13 @@
 #include "sensors.h"
 #include "led.h"
 #include "status_led.h"
-#include "device_info.h"
+#include <device_info.h>
 
 // ─── Global Instances ─────────────────────────────────────────────────────────
 static WSClient        wsClient;
 static Sensors         sensors;
 static LedManager      ledManager;
 static StatusLed       statusLed;
-#if defined(ESP8266)
-using DerbyWebServer = ESP8266WebServer;
-#else
-using DerbyWebServer = WebServer;
-#endif
 static DerbyWebServer  httpServer(HTTP_CONFIG_PORT);
 
 // Flag set by the /config handler so the reboot happens after the HTTP response
@@ -38,6 +35,8 @@ static DerbyWebServer  httpServer(HTTP_CONFIG_PORT);
 static bool g_pendingRestart = false;
 
 // ─── Runtime Config (loaded from LittleFS, populated by WiFiManager) ──────────
+// Global state: embedded firmware convention — no DI framework on-target.
+// Mutable state is intentionally module-level; functions operate on these globals directly.
 static char g_serverIp  [40] = "192.168.1.200";
 static char g_serverPort[ 6] = "3000";
 static char g_playerName[21] = "";
@@ -122,16 +121,7 @@ static bool isValidStateFile(const char* path) {
     return !err;
 }
 
-static bool isValidLedPinForPlatform(int pin) {
-#if defined(ESP8266)
-    // Shared LED controller supports only GPIO2/GPIO3 on ESP8266 timing methods.
-    return pin == 2 || pin == 3;
-#elif defined(ESP32)
-    return pin >= 0 && pin <= LED_GPIO_MAX;
-#else
-    return false;
-#endif
-}
+
 
 static void loadState() {
     const bool hasState = LittleFS.exists(STATE_FILE);
@@ -186,8 +176,8 @@ static void loadState() {
         const int bri   = doc["led_brightness"] | static_cast<int>(LED_DEFAULT_BRIGHTNESS);
 
         // Validate / clamp to safe ranges — corrupted state must not brick LEDs.
-        const bool isCountValid      = (count >= 1 && count <= LED_PLATFORM_MAX_LEDS);
-        const bool isPinValid        = isValidLedPinForPlatform(pin);
+        const bool isCountValid      = (count >= 1 && count <= LED_MAX_COUNT);
+        const bool isPinValid        = ledPinIsValid(pin);  // defined in LedPlatform.h (via config.h)
         const bool isBrightnessValid = (bri >= 0 && bri <= 255);
         if (!isCountValid || !isPinValid || !isBrightnessValid) {
             Serial.println("[STATE] LED config out of range — ignoring saved values");

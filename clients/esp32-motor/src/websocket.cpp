@@ -1,4 +1,6 @@
 #include "websocket.h"
+#include <device_info.h>
+#include <color_utils.h>
 #include <WiFi.h>
 
 void WSClient::begin(const char* host, uint16_t port, const char* playerName,
@@ -61,13 +63,11 @@ void WSClient::_sendRegister() {
         payload["playerId"] = _playerId;
     }
 
-    // Unique hardware identifier — ESP32 MAC as hex string
-    char chipIdBuf[17];
-    uint64_t mac = ESP.getEfuseMac();
-    snprintf(chipIdBuf, sizeof(chipIdBuf), "%04X%08X",
-             (uint16_t)(mac >> 32), (uint32_t)(mac & 0xFFFFFFFF));
+    // Unique hardware identifier — canonical 16-char hex, aligned with sensor firmware
+    char chipIdBuf[DERBY_CHIP_ID_HEX_MAX_LEN];
+    derbyChipIdHex(chipIdBuf, sizeof(chipIdBuf));
     payload["chipId"]  = chipIdBuf;
-    payload["chipType"] = "ESP32";
+    payload["chipType"] = derbyChipType();
 
     // Motor metadata
     payload["motorCount"] = _motorCount;
@@ -82,8 +82,8 @@ void WSClient::_sendRegister() {
     // LED metadata
     payload["ledCount"] = _ledMetadataCount;
 
-    // Capability flags
-    JsonObject caps = payload["capabilities"].to<JsonObject>();
+    // Device capability flags (not LED-specific; distinct from sensor's ledCapabilities).
+    JsonObject caps = payload["deviceCapabilities"].to<JsonObject>();
     caps["motors"]  = (_motorCount > 0);
     caps["leds"]    = (_ledMetadataCount > 0);
     caps["buttons"] = true;
@@ -206,23 +206,17 @@ void WSClient::_onMessage(WebsocketsMessage msg) {
         else if (strcmp(topStr, "ring")                == 0) cfg.topology = LedTopology::RING;
         else if (strcmp(topStr, "matrix_progressive")  == 0) cfg.topology = LedTopology::MATRIX_PROGRESSIVE;
 
-        cfg.matrixRows = (uint8_t)(doc["payload"]["matrixRows"] | 8);
-        cfg.matrixCols = (uint8_t)(doc["payload"]["matrixCols"] | 8);
+        cfg.matrixRows = static_cast<uint8_t>(doc["payload"]["matrixRows"] | 8);
+        cfg.matrixCols = static_cast<uint8_t>(doc["payload"]["matrixCols"] | 8);
+        // Clamp matrix dims: 0 rows or cols causes divide-by-zero in address calculations.
+        if (cfg.matrixRows < 1) cfg.matrixRows = 8;
+        if (cfg.matrixCols < 1) cfg.matrixCols = 8;
         cfg.mirrorH    = doc["payload"]["mirrorH"] | false;
         cfg.mirrorV    = doc["payload"]["mirrorV"] | false;
 
-        const char* devColor = doc["payload"]["deviceColor"] | "";
-        cfg.hasDeviceColor = false;
-        if (devColor[0] == '#' && strlen(devColor) == 7) {
-            char hex[3] = {0};
-            hex[0] = devColor[1]; hex[1] = devColor[2];
-            cfg.deviceColorR = (uint8_t)strtoul(hex, nullptr, 16);
-            hex[0] = devColor[3]; hex[1] = devColor[4];
-            cfg.deviceColorG = (uint8_t)strtoul(hex, nullptr, 16);
-            hex[0] = devColor[5]; hex[1] = devColor[6];
-            cfg.deviceColorB = (uint8_t)strtoul(hex, nullptr, 16);
-            cfg.hasDeviceColor = true;
-        }
+        cfg.hasDeviceColor = derbyParseHexColor(
+            doc["payload"]["deviceColor"] | "",
+            cfg.deviceColorR, cfg.deviceColorG, cfg.deviceColorB);
         _pendingLedConfig    = cfg;
         _hasPendingLedConfig = true;
         return;
@@ -234,13 +228,8 @@ void WSClient::_onMessage(WebsocketsMessage msg) {
         const char* name  = doc["payload"]["effectName"] | "solid";
         strlcpy(msg.effectName, name, sizeof(msg.effectName));
         const char* hexColor = doc["payload"]["params"]["color"] | "";
-        if (hexColor[0] == '#' && strlen(hexColor) == 7) {
-            char hex[3] = {0};
-            hex[0] = hexColor[1]; hex[1] = hexColor[2]; msg.r = (uint8_t)strtoul(hex, nullptr, 16);
-            hex[0] = hexColor[3]; hex[1] = hexColor[4]; msg.g = (uint8_t)strtoul(hex, nullptr, 16);
-            hex[0] = hexColor[5]; hex[1] = hexColor[6]; msg.b = (uint8_t)strtoul(hex, nullptr, 16);
-        } else {
-            msg.r = 255; msg.g = 255; msg.b = 255;
+        if (!derbyParseHexColor(hexColor, msg.r, msg.g, msg.b)) {
+            msg.r = 255; msg.g = 255; msg.b = 255;  // Fallback: white
         }
         msg.speedMs    = (uint16_t)(doc["payload"]["params"]["speed"]      | 1000);
         msg.brightness = (uint8_t) (doc["payload"]["params"]["brightness"] | 255);

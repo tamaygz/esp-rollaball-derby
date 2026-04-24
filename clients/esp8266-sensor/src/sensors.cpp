@@ -2,7 +2,8 @@
 
 // ─── ISR-shared state ─────────────────────────────────────────────────────────
 // Accessed from both ISR and loop() — declared volatile.
-// millis() is safe to call from ISR context on ESP8266 (timer-based, not yield-based).
+// millis() is safe to call from ISR context on both ESP8266 (timer-based, not yield-based)
+// and ESP32 (FreeRTOS tick counter, interrupt-safe read).
 
 static volatile bool          s_triggered1    = false;
 static volatile bool          s_triggered2    = false;

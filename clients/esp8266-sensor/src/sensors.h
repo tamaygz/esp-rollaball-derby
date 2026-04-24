@@ -3,7 +3,7 @@
 #include "config.h"
 
 // Reads three IR break-beam sensors via hardware interrupts.
-// ISRs are marked ICACHE_RAM_ATTR so they execute from IRAM (ESP8266 requirement).
+// ISRs are marked IRAM_ATTR so they execute from IRAM on both ESP8266 and ESP32.
 // Debounce is enforced inside the ISR using millis() — minimum DEBOUNCE_MS between
 // accepted triggers per sensor.
 class Sensors {
