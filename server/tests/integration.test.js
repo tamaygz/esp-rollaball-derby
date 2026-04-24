@@ -909,7 +909,16 @@ describe('Integration — LED per-device override routing', () => {
       if (msg.type === 'led_config') ws2LedConfigs.push(msg);
     });
 
-    // PUT override for chipId belonging to ws1 only
+    // PUT override for chipId belonging to ws1 only.
+    // Set up the ws1 listener BEFORE the PUT so we don't miss the WS push
+    // that the server sends as part of the PUT handler (race-free).
+    // Match specifically on ledCount=45 to skip any initial led_config from registration.
+    const ws1LedConfigPromise = waitForMessage(
+      ws1,
+      (m) => m.type === 'led_config' && m.payload?.ledCount === 45,
+      2000
+    );
+
     const override = {
       ledCount: 45,
       gpioPin: 2,
@@ -922,7 +931,7 @@ describe('Integration — LED per-device override routing', () => {
     assert.equal(putRes.body.success, true);
 
     // ws1 should receive led_config
-    const ws1Msg = await waitForMessage(ws1, (m) => m.type === 'led_config', 2000);
+    const ws1Msg = await ws1LedConfigPromise;
     assert.ok(ws1Msg, 'target device should receive led_config');
     assert.equal(ws1Msg.payload.ledCount, 45);
     assert.equal(ws1Msg.payload.gpioPin, 2);
