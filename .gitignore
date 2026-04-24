@@ -5,4 +5,4 @@ test-results/
 **/.playwright
 **/web-install/**
 
-.agents/***.bak
+.agents/**
