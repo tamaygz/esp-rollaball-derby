@@ -129,9 +129,6 @@ Derby.LED = (function () {
     var topologySelect = _el('led-topology');
     if (topologySelect) topologySelect.addEventListener('change', _handleTopologyChange);
 
-    var syncAllBtn = _el('led-sync-all');
-    if (syncAllBtn) syncAllBtn.addEventListener('click', _handleSyncAll);
-
     var effectSelect = _el('led-effect-select');
     if (effectSelect) effectSelect.addEventListener('change', _handleEffectChange);
 
@@ -623,18 +620,6 @@ Derby.LED = (function () {
     }
     if (speedEl) params.speed = parseInt(speedEl.value, 10);
     return params;
-  }
-
-  // ── Sync All ────────────────────────────────────────────────────────────────
-
-  function _handleSyncAll() {
-    fetch('/api/leds/config/sync-all', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-    })
-      .then(function (res) { return res.json(); })
-      .then(function () { _showSuccess('Configuration synced to all devices'); })
-      .catch(function (err) { _showError('Sync failed: ' + err.message); });
   }
 
   // ── UI Helpers ──────────────────────────────────────────────────────────────

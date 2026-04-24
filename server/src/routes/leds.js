@@ -154,29 +154,6 @@ function createLedRoutes(ledConfigManager, connectionManager) {
     }
   });
 
-  /**
-   * POST /api/leds/config/sync-all
-   * Re-broadcast current LED config to all connected devices
-   */
-  router.post('/config/sync-all', (req, res) => {
-    try {
-      const config = ledConfigManager.config || {};
-      let totalSent = 0;
-
-      for (const deviceType of Object.keys(config)) {
-        if (deviceType === 'deviceColorMap') continue;
-        connectionManager.broadcastLedConfig(deviceType, config[deviceType]);
-        totalSent++;
-      }
-
-      console.log(`[LED Routes] Sync-all: broadcast config for ${totalSent} device type(s)`);
-      res.json({ success: true, message: `Configuration synced to ${totalSent} device type(s)` });
-    } catch (error) {
-      console.error('[LED Routes] Error syncing config:', error);
-      res.status(500).json({ error: 'Internal server error', message: error.message });
-    }
-  });
-
   // ─── Device Color Management ────────────────────────────────────────────────
 
   /**

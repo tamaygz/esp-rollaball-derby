@@ -1129,14 +1129,6 @@ input:disabled, select:disabled {
 }
 .btn-test-effect:not(:disabled):hover { background: rgba(159,122,234,0.3); }
 
-.btn-sync-all {
-  background: rgba(214,158,46,0.15);
-  color: #f6e05e;
-  border: 1px solid rgba(214,158,46,0.3);
-  font-size: 0.88rem;
-  min-height: 36px;
-}
-.btn-sync-all:not(:disabled):hover { background: rgba(214,158,46,0.3); }
 
 /* Success/error messages for LED operations */
 .led-message {
