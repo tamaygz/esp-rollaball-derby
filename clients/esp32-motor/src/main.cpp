@@ -73,7 +73,7 @@ static void loadConfig() {
         if (doc["player_name"].is<const char*>()) strlcpy(g_playerName, doc["player_name"], sizeof(g_playerName));
     }
     f.close();
-    Serial.printf("[CFG] Loaded: ip=%s port=%s name=%s\n", g_serverIp, g_serverPort, g_playerName);
+    DERBY_LOG_F("[CFG] Loaded: ip=%s port=%s name=%s\n", g_serverIp, g_serverPort, g_playerName);
 }
 
 static void saveConfig() {
@@ -113,7 +113,7 @@ static void loadState() {
     JsonDocument doc;
     DeserializationError err = deserializeJson(doc, f);
     f.close();
-    if (err) { Serial.printf("[STATE] Parse error: %s\n", err.c_str()); return; }
+    if (err) { DERBY_LOG_F("[STATE] Parse error: %s\n", err.c_str()); return; }
 
     if (doc["player_id"].is<const char*>()) strlcpy(g_playerId, doc["player_id"], sizeof(g_playerId));
 
@@ -148,7 +148,7 @@ static void loadState() {
             g_motorColors[i++] = v.as<uint8_t>();
         }
     }
-    Serial.printf("[STATE] Loaded: playerId=%s\n", g_playerId);
+    DERBY_LOG_F("[STATE] Loaded: playerId=%s\n", g_playerId);
 }
 
 static void saveState() {
@@ -177,16 +177,16 @@ static void saveState() {
     for (uint8_t i = 0; i < MOTOR_MAX_LANES; i++) mc.add(g_motorColors[i]);
 
     File f = LittleFS.open(STATE_TMP, "w");
-    if (!f) { Serial.println("[STATE] Write failed"); return; }
+    if (!f) { DERBY_LOG_LN("[STATE] Write failed"); return; }
     serializeJson(doc, f); f.close();
     LittleFS.remove(STATE_FILE);
     if (!LittleFS.rename(STATE_TMP, STATE_FILE)) {
-        Serial.println("[STATE] Rename failed");
+        DERBY_LOG_LN("[STATE] Rename failed");
         return;
     }
     g_stateDirty    = false;
     g_stateLastSave = millis();
-    Serial.println("[STATE] Saved");
+    DERBY_LOG_LN("[STATE] Saved");
 }
 
 static void markStateDirty() { g_stateDirty = true; }
@@ -205,7 +205,7 @@ static bool discoverServer(String& host, uint16_t& port) {
 
     if (!MDNS.begin(mdnsName)) return false;
 
-    Serial.println("[mDNS] Querying _derby._tcp...");
+    DERBY_LOG_LN("[mDNS] Querying _derby._tcp...");
     int n = MDNS.queryService("derby", "tcp");
     if (n > 0) {
         // Only accept a result on the same /24 as the ESP32 — avoids picking
@@ -213,17 +213,17 @@ static bool discoverServer(String& host, uint16_t& port) {
         IPAddress localIP = WiFi.localIP();
         for (int i = 0; i < n; i++) {
             IPAddress candidate = MDNS.IP(i);
-            Serial.printf("[mDNS] Result %d: %s:%u\n", i, candidate.toString().c_str(), MDNS.port(i));
+            DERBY_LOG_F("[mDNS] Result %d: %s:%u\n", i, candidate.toString().c_str(), MDNS.port(i));
             if (candidate[0] == localIP[0] &&
                 candidate[1] == localIP[1] &&
                 candidate[2] == localIP[2]) {
                 host = candidate.toString();
                 port = MDNS.port(i);
-                Serial.printf("[mDNS] Server at %s:%u\n", host.c_str(), port);
+                DERBY_LOG_F("[mDNS] Server at %s:%u\n", host.c_str(), port);
                 return true;
             }
         }
-        Serial.printf("[mDNS] %d result(s) found but none on same /24 as %s — using configured IP\n",
+        DERBY_LOG_F("[mDNS] %d result(s) found but none on same /24 as %s — using configured IP\n",
                       n, localIP.toString().c_str());
     }
     return false;
@@ -441,7 +441,7 @@ static void setupHttpRoutes() {
     httpServer.on("/api/motor/colors",           HTTP_POST, handleMotorColorsPost);
     httpServer.on("/config",                     handleHttpConfig);
     httpServer.begin();
-    Serial.printf("[HTTP] REST API listening on port %d\n", HTTP_CONFIG_PORT);
+    DERBY_LOG_F("[HTTP] REST API listening on port %d\n", HTTP_CONFIG_PORT);
 }
 
 // ─── Setup ────────────────────────────────────────────────────────────────────
@@ -449,7 +449,7 @@ static void setupHttpRoutes() {
 void setup() {
     Serial.begin(SERIAL_BAUD);
     delay(100);
-    Serial.println("\n[BOOT] Roll-a-Ball Derby — Motor Client");
+    DERBY_LOG_LN("\n[BOOT] Roll-a-Ball Derby — Motor Client");
 
     // Status LED: fast blink = no WiFi
     statusLed.begin(PIN_STATUS_LED);
@@ -457,7 +457,7 @@ void setup() {
 
     // LittleFS
     if (!LittleFS.begin(true)) {  // true = format on fail
-        Serial.println("[CFG] LittleFS mount failed — continuing without persistence");
+        DERBY_LOG_LN("[CFG] LittleFS mount failed — continuing without persistence");
     }
     loadConfig();
     loadState();
@@ -485,7 +485,7 @@ void setup() {
     }
 
     // Serial pre-config window (3 s) — same pattern as sensor
-    Serial.println(F("[CFG] Serial pre-config window 3 s — send: DERBY_CFG:{...}"));
+    DERBY_LOG_F("[CFG] Serial pre-config window 3 s — send: DERBY_CFG:{...}\n");
     {
         const unsigned long kWindowMs = 3000UL;
         unsigned long deadline = millis() + kWindowMs;
@@ -503,10 +503,10 @@ void setup() {
                             if (doc["server_port"].is<const char*>()) strlcpy(g_serverPort,  doc["server_port"], sizeof(g_serverPort));
                             if (doc["player_name"].is<const char*>()) strlcpy(g_playerName,  doc["player_name"], sizeof(g_playerName));
                             saveConfig();
-                            Serial.println(F("[CFG] DERBY_CFG_ACK:OK"));
+                            DERBY_LOG_F("[CFG] DERBY_CFG_ACK:OK\n");
                             done = true;
                         } else {
-                            Serial.println(F("[CFG] DERBY_CFG_ACK:ERR_JSON"));
+                            DERBY_LOG_F("[CFG] DERBY_CFG_ACK:ERR_JSON\n");
                         }
                     }
                     buf = "";
@@ -514,7 +514,7 @@ void setup() {
             }
             if (!done) delay(1);
         }
-        if (!done) Serial.println(F("[CFG] Serial config window expired"));
+        if (!done) DERBY_LOG_F("[CFG] Serial config window expired\n");
     }
 
     // WiFiManager
@@ -531,12 +531,12 @@ void setup() {
     wifiManager.setSaveParamsCallback(onSaveParams);
     wifiManager.setConfigPortalTimeout(180);
 
-    Serial.printf("[WiFi] Auto-connecting (AP: %s if needed)\n", apName);
+    DERBY_LOG_F("[WiFi] Auto-connecting (AP: %s if needed)\n", apName);
     if (!wifiManager.autoConnect(apName)) {
-        Serial.println("[WiFi] Timeout — rebooting");
+        DERBY_LOG_LN("[WiFi] Timeout — rebooting");
         ESP.restart();
     }
-    Serial.printf("[WiFi] Connected — IP: %s\n", WiFi.localIP().toString().c_str());
+    DERBY_LOG_F("[WiFi] Connected — IP: %s\n", WiFi.localIP().toString().c_str());
     
     // Clean up WiFiManagerParameter heap allocations after WiFi is connected
     // and values have been extracted into global buffers by onSaveParams()
@@ -558,9 +558,11 @@ void setup() {
     if (discoverServer(wsHost, wsPort)) {
         wsClient.begin(wsHost.c_str(), wsPort, g_playerName,
                        MOTOR_MAX_LANES, g_motorColors, g_playerId);
+        DerbyLogger::setSender(&wsClient);
     } else {
         wsClient.begin(g_serverIp, (uint16_t)atoi(g_serverPort), g_playerName,
                        MOTOR_MAX_LANES, g_motorColors, g_playerId);
+        DerbyLogger::setSender(&wsClient);
     }
     wsClient.setLedMetadata(g_hasLedConfig ? g_savedLedConfig.ledCount : ledConfigDefaults().ledCount);
 
@@ -584,7 +586,7 @@ void loop() {
         if (s_wifiWasConnected) {
             s_wifiWasConnected = false;
             wsClient.onWiFiLost();
-            Serial.println("[WiFi] Lost");
+            DERBY_LOG_LN("[WiFi] Lost");
         }
         statusLed.setState(LedState::NO_WIFI);
         return;
@@ -592,12 +594,13 @@ void loop() {
 
     if (!s_wifiWasConnected) {
         s_wifiWasConnected = true;
-        Serial.printf("[WiFi] Reconnected — IP: %s\n", WiFi.localIP().toString().c_str());
+        DERBY_LOG_F("[WiFi] Reconnected — IP: %s\n", WiFi.localIP().toString().c_str());
         // Re-discover server after reconnect in case IP changed
         String wsHost; uint16_t wsPort;
         if (discoverServer(wsHost, wsPort)) {
             wsClient.begin(wsHost.c_str(), wsPort, g_playerName,
                            MOTOR_MAX_LANES, g_motorColors, g_playerId);
+            DerbyLogger::setSender(&wsClient);
         }
     }
 

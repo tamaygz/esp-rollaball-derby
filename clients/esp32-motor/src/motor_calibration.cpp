@@ -1,5 +1,6 @@
 #include "motor_calibration.h"
 #include <Arduino.h>
+#include <derby_logger.h>
 
 bool MotorCalibration::begin(uint8_t motorCount) {
     _motorCount = min(motorCount, (uint8_t)MOTOR_MAX_LANES);
@@ -9,13 +10,13 @@ bool MotorCalibration::begin(uint8_t motorCount) {
     }
 
     if (!LittleFS.exists(CALIB_FILE)) {
-        Serial.println("[CALIB] No calibration file — using defaults");
+        DERBY_LOG_LN("[CALIB] No calibration file — using defaults");
         return true;
     }
 
     File f = LittleFS.open(CALIB_FILE, "r");
     if (!f) {
-        Serial.println("[CALIB] Failed to open calibration file");
+        DERBY_LOG_LN("[CALIB] Failed to open calibration file");
         return false;
     }
 
@@ -24,7 +25,7 @@ bool MotorCalibration::begin(uint8_t motorCount) {
     f.close();
 
     if (err) {
-        Serial.printf("[CALIB] Parse error (%s) — using defaults\n", err.c_str());
+        DERBY_LOG_F("[CALIB] Parse error (%s) — using defaults\n", err.c_str());
         return false;
     }
 
@@ -43,7 +44,7 @@ bool MotorCalibration::begin(uint8_t motorCount) {
         c.acceleration     = v["acceleration"]    | STEPPER_DEFAULT_ACCELERATION;
         c.calibrated       = v["calibrated"]      | false;
 
-        Serial.printf("[CALIB] Lane %u: start=%ld end=%ld total=%ld cal=%d\n",
+        DERBY_LOG_F("[CALIB] Lane %u: start=%ld end=%ld total=%ld cal=%d\n",
                       lane, (long)c.startStep, (long)c.endStep,
                       (long)c.totalTrackSteps, (int)c.calibrated);
     }
@@ -72,7 +73,7 @@ bool MotorCalibration::save() {
     {
         File f = LittleFS.open(CALIB_TMP, "w");
         if (!f) {
-            Serial.println("[CALIB] Failed to open calib.tmp for writing");
+            DERBY_LOG_LN("[CALIB] Failed to open calib.tmp for writing");
             return false;
         }
         serializeJson(doc, f);
@@ -81,11 +82,11 @@ bool MotorCalibration::save() {
 
     if (LittleFS.exists(CALIB_FILE)) LittleFS.remove(CALIB_FILE);
     if (!LittleFS.rename(CALIB_TMP, CALIB_FILE)) {
-        Serial.println("[CALIB] Rename calib.tmp → calib.json failed");
+        DERBY_LOG_LN("[CALIB] Rename calib.tmp → calib.json failed");
         return false;
     }
 
-    Serial.println("[CALIB] Calibration saved");
+    DERBY_LOG_LN("[CALIB] Calibration saved");
     return true;
 }
 
@@ -93,20 +94,20 @@ void MotorCalibration::beginCalibration(uint8_t lane) {
     if (lane >= _motorCount) return;
     _backup[lane]    = _lanes[lane];     // save current state for cancel
     _calibrating[lane] = true;
-    Serial.printf("[CALIB] Lane %u: calibration started\n", lane);
+    DERBY_LOG_F("[CALIB] Lane %u: calibration started\n", lane);
 }
 
 void MotorCalibration::setStartPosition(uint8_t lane, int32_t currentStep) {
     if (lane >= _motorCount) return;
     _lanes[lane].startStep = currentStep;
-    Serial.printf("[CALIB] Lane %u: start=%ld\n", lane, (long)currentStep);
+    DERBY_LOG_F("[CALIB] Lane %u: start=%ld\n", lane, (long)currentStep);
 }
 
 void MotorCalibration::setEndPosition(uint8_t lane, int32_t currentStep) {
     if (lane >= _motorCount) return;
     _lanes[lane].endStep = currentStep;
     _lanes[lane].totalTrackSteps = abs(currentStep - _lanes[lane].startStep);
-    Serial.printf("[CALIB] Lane %u: end=%ld total=%ld\n",
+    DERBY_LOG_F("[CALIB] Lane %u: end=%ld total=%ld\n",
                   lane, (long)currentStep, (long)_lanes[lane].totalTrackSteps);
 }
 
@@ -114,13 +115,13 @@ bool MotorCalibration::finishCalibration(uint8_t lane) {
     if (lane >= _motorCount) return false;
     LaneCalibration& c = _lanes[lane];
     if (c.totalTrackSteps == 0 || c.startStep == c.endStep) {
-        Serial.printf("[CALIB] Lane %u: invalid calibration (start == end)\n", lane);
+        DERBY_LOG_F("[CALIB] Lane %u: invalid calibration (start == end)\n", lane);
         cancelCalibration(lane);
         return false;
     }
     c.calibrated = true;
     _calibrating[lane] = false;
-    Serial.printf("[CALIB] Lane %u: calibration complete\n", lane);
+    DERBY_LOG_F("[CALIB] Lane %u: calibration complete\n", lane);
     save();
     return true;
 }
@@ -129,7 +130,7 @@ void MotorCalibration::cancelCalibration(uint8_t lane) {
     if (lane >= _motorCount) return;
     _lanes[lane]     = _backup[lane];
     _calibrating[lane] = false;
-    Serial.printf("[CALIB] Lane %u: calibration cancelled\n", lane);
+    DERBY_LOG_F("[CALIB] Lane %u: calibration cancelled\n", lane);
 }
 
 void MotorCalibration::resetCalibration(uint8_t lane) {
@@ -141,7 +142,7 @@ void MotorCalibration::resetCalibration(uint8_t lane) {
     if (lane >= _motorCount) return;
     _defaults(lane);
     save();
-    Serial.printf("[CALIB] Lane %u: reset\n", lane);
+    DERBY_LOG_F("[CALIB] Lane %u: reset\n", lane);
 }
 
 void MotorCalibration::setDirection(uint8_t lane, bool reversed) {

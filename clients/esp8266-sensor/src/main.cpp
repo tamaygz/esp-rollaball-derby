@@ -59,13 +59,13 @@ static WiFiManagerParameter* param_name;
 
 static void loadConfig() {
     if (!LittleFS.exists(CONFIG_FILE)) {
-        Serial.println("[CFG] No config file — using defaults");
+        DERBY_LOG_LN("[CFG] No config file — using defaults");
         return;
     }
 
     File f = LittleFS.open(CONFIG_FILE, "r");
     if (!f) {
-        Serial.println("[CFG] Failed to open config file");
+        DERBY_LOG_LN("[CFG] Failed to open config file");
         return;
     }
 
@@ -74,7 +74,7 @@ static void loadConfig() {
     f.close();
 
     if (err) {
-        Serial.printf("[CFG] Parse error (%s) — using defaults\n", err.c_str());
+        DERBY_LOG_F("[CFG] Parse error (%s) — using defaults\n", err.c_str());
         return;
     }
 
@@ -82,7 +82,7 @@ static void loadConfig() {
     if (doc["server_port"].is<const char*>()) strlcpy(g_serverPort,  doc["server_port"], sizeof(g_serverPort));
     if (doc["player_name"].is<const char*>()) strlcpy(g_playerName,  doc["player_name"], sizeof(g_playerName));
 
-    Serial.printf("[CFG] Loaded: ip=%s port=%s name=%s\n",
+    DERBY_LOG_F("[CFG] Loaded: ip=%s port=%s name=%s\n",
                   g_serverIp, g_serverPort, g_playerName);
 }
 
@@ -94,13 +94,13 @@ static void saveConfig() {
 
     File f = LittleFS.open(CONFIG_FILE, "w");
     if (!f) {
-        Serial.println("[CFG] Failed to write config file");
+        DERBY_LOG_LN("[CFG] Failed to write config file");
         return;
     }
 
     serializeJson(doc, f);
     f.close();
-    Serial.println("[CFG] Config saved");
+    DERBY_LOG_LN("[CFG] Config saved");
 }
 
 // ─── Runtime State Persistence ────────────────────────────────────────────────
@@ -129,31 +129,31 @@ static void loadState() {
 
     if (hasTemp) {
         if (!hasState) {
-            Serial.println("[STATE] Recovering from interrupted write (temp → state)");
+            DERBY_LOG_LN("[STATE] Recovering from interrupted write (temp → state)");
             LittleFS.rename(STATE_TMP, STATE_FILE);
         } else {
             const bool stateValid = isValidStateFile(STATE_FILE);
             const bool tempValid  = isValidStateFile(STATE_TMP);
 
             if (!stateValid && tempValid) {
-                Serial.println("[STATE] Main state invalid; recovering from temp file");
+                DERBY_LOG_LN("[STATE] Main state invalid; recovering from temp file");
                 LittleFS.remove(STATE_FILE);
                 LittleFS.rename(STATE_TMP, STATE_FILE);
             } else {
-                Serial.println("[STATE] Removing stale temp state file");
+                DERBY_LOG_LN("[STATE] Removing stale temp state file");
                 LittleFS.remove(STATE_TMP);
             }
         }
     }
 
     if (!LittleFS.exists(STATE_FILE)) {
-        Serial.println("[STATE] No state file — using defaults");
+        DERBY_LOG_LN("[STATE] No state file — using defaults");
         return;
     }
 
     File f = LittleFS.open(STATE_FILE, "r");
     if (!f) {
-        Serial.println("[STATE] Failed to open state file");
+        DERBY_LOG_LN("[STATE] Failed to open state file");
         return;
     }
 
@@ -162,7 +162,7 @@ static void loadState() {
     f.close();
 
     if (err) {
-        Serial.printf("[STATE] Parse error (%s) — using defaults\n", err.c_str());
+        DERBY_LOG_F("[STATE] Parse error (%s) — using defaults\n", err.c_str());
         return;
     }
 
@@ -180,7 +180,7 @@ static void loadState() {
         const bool isPinValid        = ledPinIsValid(pin);  // defined in LedPlatform.h (via config.h)
         const bool isBrightnessValid = (bri >= 0 && bri <= 255);
         if (!isCountValid || !isPinValid || !isBrightnessValid) {
-            Serial.println("[STATE] LED config out of range — ignoring saved values");
+            DERBY_LOG_LN("[STATE] LED config out of range — ignoring saved values");
         } else {
             g_savedLedConfig.ledCount   = static_cast<uint16_t>(count);
             g_savedLedConfig.pin        = static_cast<uint8_t>(pin);
@@ -209,11 +209,11 @@ static void loadState() {
             g_savedLedConfig.deviceColorB   = static_cast<uint8_t>(b);
             g_savedLedConfig.hasDeviceColor = true;
         } else {
-            Serial.println("[STATE] Device color out of range — ignoring");
+            DERBY_LOG_LN("[STATE] Device color out of range — ignoring");
         }
     }
 
-    Serial.printf("[STATE] Loaded: playerId=%s ledCount=%u hasColor=%d\n",
+    DERBY_LOG_F("[STATE] Loaded: playerId=%s ledCount=%u hasColor=%d\n",
                   g_playerId,
                   g_hasLedConfig ? g_savedLedConfig.ledCount : 0,
                   g_savedLedConfig.hasDeviceColor ? 1 : 0);
@@ -250,7 +250,7 @@ static void saveState() {
     // Atomic write: write to temp file, then rename to avoid corruption.
     File f = LittleFS.open(STATE_TMP, "w");
     if (!f) {
-        Serial.println("[STATE] Failed to write temp state file");
+        DERBY_LOG_LN("[STATE] Failed to write temp state file");
         return;
     }
     serializeJson(doc, f);
@@ -259,13 +259,13 @@ static void saveState() {
     // Remove old state file (ignore failure — it may not exist on first write).
     LittleFS.remove(STATE_FILE);
     if (!LittleFS.rename(STATE_TMP, STATE_FILE)) {
-        Serial.println("[STATE] WARNING: rename failed — temp file remains");
+        DERBY_LOG_LN("[STATE] WARNING: rename failed — temp file remains");
         return;
     }
 
     g_stateDirty     = false;
     g_stateLastSave  = millis();
-    Serial.println("[STATE] State saved");
+    DERBY_LOG_LN("[STATE] State saved");
 }
 
 // Mark state as dirty; actual write is debounced in loop().
@@ -292,14 +292,14 @@ static bool discoverServer(String& host, uint16_t& port) {
     snprintf(mdnsName, sizeof(mdnsName), "derby-sensor-%04x", derbyChipSuffix16());
 
     if (!MDNS.begin(mdnsName)) {
-        Serial.println("[mDNS] Failed to start responder");
+        DERBY_LOG_LN("[mDNS] Failed to start responder");
         return false;
     }
 
-    Serial.println("[mDNS] Querying for _derby._tcp ...");
+    DERBY_LOG_LN("[mDNS] Querying for _derby._tcp ...");
     int n = MDNS.queryService("derby", "tcp");
     if (n <= 0) {
-        Serial.println("[mDNS] No server found — falling back to config");
+        DERBY_LOG_LN("[mDNS] No server found — falling back to config");
         return false;
     }
 
@@ -314,12 +314,12 @@ static bool discoverServer(String& host, uint16_t& port) {
     // networks and is enough to distinguish 192.168.x.x from 172.x.x.x.
     if ((uint32_t)mask == 0) {
         mask = IPAddress(255, 255, 255, 0);
-        Serial.printf("[mDNS] Subnet mask not ready — assuming /24 (local IP: %s)\n",
+        DERBY_LOG_F("[mDNS] Subnet mask not ready — assuming /24 (local IP: %s)\n",
                       localIp.toString().c_str());
     }
 
     uint32_t myNet = (uint32_t)localIp & (uint32_t)mask;
-    Serial.printf("[mDNS] Local: %s  mask: %s  net: %d.%d.%d.%d  candidates: %d\n",
+    DERBY_LOG_F("[mDNS] Local: %s  mask: %s  net: %d.%d.%d.%d  candidates: %d\n",
                   localIp.toString().c_str(), mask.toString().c_str(),
                   (myNet >> 24) & 0xFF, (myNet >> 16) & 0xFF,
                   (myNet >> 8) & 0xFF, myNet & 0xFF, n);
@@ -327,18 +327,18 @@ static bool discoverServer(String& host, uint16_t& port) {
     for (int i = 0; i < n; i++) {
         IPAddress candidate = MDNS.IP(i);
         uint32_t candNet    = (uint32_t)candidate & (uint32_t)mask;
-        Serial.printf("[mDNS] Candidate[%d]: %s  net match: %s\n",
+        DERBY_LOG_F("[mDNS] Candidate[%d]: %s  net match: %s\n",
                       i, candidate.toString().c_str(),
                       candNet == myNet ? "YES" : "NO");
         if (candNet == myNet) {
             host = candidate.toString();
             port = MDNS.port(i);
-            Serial.printf("[mDNS] Selected server at %s:%u\n", host.c_str(), port);
+            DERBY_LOG_F("[mDNS] Selected server at %s:%u\n", host.c_str(), port);
             return true;
         }
     }
 
-    Serial.println("[mDNS] No same-subnet server found — falling back to config");
+    DERBY_LOG_LN("[mDNS] No same-subnet server found — falling back to config");
     return false;
 }
 
@@ -395,7 +395,7 @@ static void handleHttpConfig() {
 
     if (changed) {
         saveConfig();
-        Serial.printf("[CFG] Remote update — ip=%s port=%s name=%s — rebooting\n",
+        DERBY_LOG_F("[CFG] Remote update — ip=%s port=%s name=%s — rebooting\n",
                       g_serverIp, g_serverPort, g_playerName);
         httpServer.send(200, "application/json", "{\"ok\":true}");
         g_pendingRestart = true;
@@ -409,16 +409,16 @@ static void handleHttpConfig() {
 void setup() {
     Serial.begin(SERIAL_BAUD);
     delay(100);
-    Serial.println("\n[BOOT] Roll-a-Ball Derby — Sensor Client");
+    DERBY_LOG_LN("\n[BOOT] Roll-a-Ball Derby — Sensor Client");
 
     sensors.begin();
 
     // Mount LittleFS; format if mount fails (first boot or corruption).
     if (!LittleFS.begin()) {
-        Serial.println("[CFG] LittleFS mount failed — formatting...");
+        DERBY_LOG_LN("[CFG] LittleFS mount failed — formatting...");
         LittleFS.format();
         if (!LittleFS.begin()) {
-            Serial.println("[CFG] LittleFS mount failed after format — continuing without persistent config");
+            DERBY_LOG_LN("[CFG] LittleFS mount failed after format — continuing without persistent config");
         }
     }
     loadConfig();
@@ -429,7 +429,7 @@ void setup() {
         ledManager.begin(g_savedLedConfig);
         wsClient.setLedMetadata(g_savedLedConfig.ledCount);
         statusLed.begin(g_savedLedConfig.pin);
-        Serial.println("[BOOT] Using saved LED config from previous session");
+        DERBY_LOG_LN("[BOOT] Using saved LED config from previous session");
     } else {
         ledManager.begin(ledConfigDefaults());
         wsClient.setLedMetadata(LED_DEFAULT_COUNT);
@@ -441,7 +441,7 @@ void setup() {
     // server IP/port/name without requiring the WiFiManager captive portal.
     // The settings are saved to LittleFS exactly like the WiFiManager would; on
     // the next step WiFiManager picks them up as pre-filled defaults.
-    Serial.println(F("[CFG] Serial pre-config window 3 s — send: DERBY_CFG:{...}"));
+    DERBY_LOG_F("[CFG] Serial pre-config window 3 s — send: DERBY_CFG:{...}\n");
     {
         const unsigned long kWindowMs = 3000UL;
         unsigned long deadline = millis() + kWindowMs;
@@ -465,10 +465,10 @@ void setup() {
                             if (doc["player_name"].is<const char*>())
                                 strlcpy(g_playerName, doc["player_name"], sizeof(g_playerName));
                             saveConfig();
-                            Serial.println(F("[CFG] DERBY_CFG_ACK:OK"));
+                            DERBY_LOG_F("[CFG] DERBY_CFG_ACK:OK\n");
                             done = true;
                         } else {
-                            Serial.printf("[CFG] DERBY_CFG_ACK:ERR_JSON %s\n", err.c_str());
+                            DERBY_LOG_F("[CFG] DERBY_CFG_ACK:ERR_JSON %s\n", err.c_str());
                         }
                     }
                     buf = "";
@@ -478,7 +478,7 @@ void setup() {
             }
             if (!done) delay(1);   // yield to background tasks
         }
-        if (!done) Serial.println(F("[CFG] Serial config window expired"));
+        if (!done) DERBY_LOG_F("[CFG] Serial config window expired\n");
     }
 
     // Build unique AP name: "Derby-Sensor-XXXX" using last 4 hex digits of chip ID.
@@ -500,14 +500,14 @@ void setup() {
     // If credentials are saved, connect automatically without opening the portal.
     wifiManager.setConfigPortalTimeout(180);
 
-    Serial.printf("[WiFi] Auto-connecting (AP: %s if needed)\n", apName);
+    DERBY_LOG_F("[WiFi] Auto-connecting (AP: %s if needed)\n", apName);
     if (!wifiManager.autoConnect(apName)) {
         // autoConnect() returns false on timeout; reboot and try again.
-        Serial.println("[WiFi] autoConnect timed out — rebooting");
+        DERBY_LOG_LN("[WiFi] autoConnect timed out — rebooting");
         ESP.restart();
     }
 
-    Serial.printf("[WiFi] Connected — IP: %s\n", WiFi.localIP().toString().c_str());
+    DERBY_LOG_F("[WiFi] Connected — IP: %s\n", WiFi.localIP().toString().c_str());
     ledManager.setState(LedState::WIFI_ONLY);
 
     // Try mDNS autodiscovery first; fall back to stored config.
@@ -515,16 +515,18 @@ void setup() {
     uint16_t discoveredPort;
     if (discoverServer(discoveredHost, discoveredPort)) {
         wsClient.begin(discoveredHost.c_str(), discoveredPort, g_playerName, g_playerId);
+        DerbyLogger::setSender(&wsClient);
     } else {
         uint16_t port = static_cast<uint16_t>(atoi(g_serverPort));
         wsClient.begin(g_serverIp, port, g_playerName, g_playerId);
+        DerbyLogger::setSender(&wsClient);
     }
 
     // HTTP config server — lets the Node.js admin push new config without
     // needing to re-open the WiFiManager captive portal.
     httpServer.on("/config", handleHttpConfig);
     httpServer.begin();
-    Serial.printf("[HTTP] Config server listening on port %d\n", HTTP_CONFIG_PORT);
+    DERBY_LOG_F("[HTTP] Config server listening on port %d\n", HTTP_CONFIG_PORT);
 }
 
 // ─── Loop ─────────────────────────────────────────────────────────────────────
@@ -541,7 +543,7 @@ void loop() {
         if (s_wifiWasConnected) {
             s_wifiWasConnected = false;
             wsClient.onWiFiLost();
-            Serial.println("[WiFi] Connection lost");
+            DERBY_LOG_LN("[WiFi] Connection lost");
         }
         ledManager.setState(LedState::NO_WIFI);
         return;
@@ -549,13 +551,14 @@ void loop() {
 
     if (!s_wifiWasConnected) {
         s_wifiWasConnected = true;
-        Serial.printf("[WiFi] Reconnected — IP: %s\n", WiFi.localIP().toString().c_str());
+        DERBY_LOG_F("[WiFi] Reconnected — IP: %s\n", WiFi.localIP().toString().c_str());
 
         // Re-attempt mDNS discovery after WiFi reconnect in case server IP changed.
         String rediscoveredHost;
         uint16_t rediscoveredPort;
         if (discoverServer(rediscoveredHost, rediscoveredPort)) {
             wsClient.begin(rediscoveredHost.c_str(), rediscoveredPort, g_playerName, g_playerId);
+            DerbyLogger::setSender(&wsClient);
         }
     }
 
@@ -580,7 +583,7 @@ void loop() {
         if (currentId.length() > 0 && strcmp(g_playerId, currentId.c_str()) != 0) {
             strlcpy(g_playerId, currentId.c_str(), sizeof(g_playerId));
             markStateDirty();
-            Serial.printf("[STATE] playerId changed: %s\n", g_playerId);
+            DERBY_LOG_F("[STATE] playerId changed: %s\n", g_playerId);
         }
     }
 
@@ -646,16 +649,16 @@ void loop() {
         // Only send score events once a playerId has been assigned by the server.
         if (!wsClient.getPlayerId().isEmpty()) {
             if (points > 0) {
-                Serial.printf("[SENSOR] Triggered: +%d\n", points);
+                DERBY_LOG_F("[SENSOR] Triggered: +%d\n", points);
                 wsClient.sendScore(points);
             }
         } else if (points > 0) {
-            Serial.printf("[SENSOR] Dropped trigger while waiting for player assignment: +%d\n", points);
+            DERBY_LOG_F("[SENSOR] Dropped trigger while waiting for player assignment: +%d\n", points);
         }
     } else {
         ledManager.setState(LedState::WIFI_ONLY);
         if (points > 0) {
-            Serial.printf("[SENSOR] Dropped offline trigger: +%d\n", points);
+            DERBY_LOG_F("[SENSOR] Dropped offline trigger: +%d\n", points);
         }
     }
 

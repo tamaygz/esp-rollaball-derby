@@ -1,5 +1,6 @@
 #include "led.h"
 #include <Arduino.h>
+#include <derby_logger.h>
 
 // ─── Constructor ──────────────────────────────────────────────────────────────
 // Member init order mirrors declaration order in led.h:
@@ -28,7 +29,7 @@ void LedManager::begin(const LedConfig& cfg) {
     uint16_t count = min(cfg.ledCount, static_cast<uint16_t>(LED_MAX_COUNT));
 
     if (!_controller.begin(count, cfg.pin)) {
-        Serial.printf("[LED] ERROR: LedController::begin failed (%u LEDs, pin %u)\n",
+        DERBY_LOG_F("[LED] ERROR: LedController::begin failed (%u LEDs, pin %u)\n",
                       count, cfg.pin);
         return;
     }
@@ -44,7 +45,7 @@ void LedManager::begin(const LedConfig& cfg) {
     // Sync the device identity color so scoring effects use it.
     _mapper.setDeviceColor(_getDeviceColor());
 
-    Serial.printf("[LED] Initialised: %u LEDs, pin=%u, brightness=%u\n",
+    DERBY_LOG_F("[LED] Initialised: %u LEDs, pin=%u, brightness=%u\n",
                   count, cfg.pin, cfg.brightness);
 
     _playAmbient(_state);
@@ -65,10 +66,10 @@ void LedManager::applyConfig(const LedConfig& cfg) {
     // (different pin may switch between DMA and UART1 methods).
     if (count != _config.ledCount || pin != _config.pin) {
         if (!_controller.begin(count, pin)) {
-            Serial.printf("[LED] ERROR: LedController::begin failed during applyConfig\n");
+            DERBY_LOG_F("[LED] ERROR: LedController::begin failed during applyConfig\n");
             return;
         }
-        Serial.printf("[LED] Strip re-initialised: %u LEDs, pin=%u\n", count, pin);
+        DERBY_LOG_F("[LED] Strip re-initialised: %u LEDs, pin=%u\n", count, pin);
     }
 
     _controller.setBrightness(cfg.brightness);
@@ -80,7 +81,7 @@ void LedManager::applyConfig(const LedConfig& cfg) {
     // Sync the device identity color so scoring effects use it.
     _mapper.setDeviceColor(_getDeviceColor());
 
-    Serial.printf("[LED] Config applied: %u LEDs, brightness=%u\n", count, cfg.brightness);
+    DERBY_LOG_F("[LED] Config applied: %u LEDs, brightness=%u\n", count, cfg.brightness);
 
     // Replay the current ambient effect so it fills the new LED count.
     _playAmbient(_state);
