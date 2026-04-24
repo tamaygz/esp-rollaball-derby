@@ -48,5 +48,6 @@ struct LedTestEffectMessage {
     uint8_t  b;
     uint16_t speedMs;        // Period / cycle speed in milliseconds
     uint8_t  brightness;     // 0–255
+    uint16_t durationMs;     // Auto-stop duration in ms; 0 = indefinite
     char     text[32];       // Optional text payload (used by "text" effect)
 };

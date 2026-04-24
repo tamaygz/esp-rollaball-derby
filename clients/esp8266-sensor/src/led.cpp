@@ -129,7 +129,7 @@ void LedManager::playTestEffect(const LedTestEffectMessage& msg) {
     EffectParams p;
     p.color      = RgbColor(msg.r, msg.g, msg.b);
     p.brightness = msg.brightness;
-    p.durationMs = 0; // infinite — admin manually stops by changing state
+    p.durationMs = msg.durationMs; // 0 = indefinite; >0 = auto-stop after this many ms
 
     if (strcmp(msg.effectName, "blink") == 0) {
         uint16_t half = (msg.speedMs > 0) ? (msg.speedMs / 2) : 500;
@@ -187,6 +187,14 @@ void LedManager::loop() {
     if (!_animator.isPlaying() && !_gameActive) {
         _playAmbient(_state);
     }
+}
+
+// ─── restoreAmbient ────────────────────────────────────────────────────────────
+
+void LedManager::restoreAmbient() {
+    if (!_begun) return;
+    _animator.stop();
+    _playAmbient(_state);
 }
 
 // ─── _playAmbient ──────────────────────────────────────────────────────────────

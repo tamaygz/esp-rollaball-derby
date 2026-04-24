@@ -670,6 +670,11 @@ void loop() {
         }
     }
 
+    // ── Stop test effect ─────────────────────────────────────────────────────
+    if (wsClient.pollStopEffect()) {
+        matrixDisplay.clear();
+    }
+
     // ── Position updates from state broadcast ─────────────────────────────────
     {
         static PlayerPosition positions[WS_MAX_PLAYERS];

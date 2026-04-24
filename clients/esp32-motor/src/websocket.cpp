@@ -244,10 +244,17 @@ void WSClient::_onMessage(WebsocketsMessage msg) {
         }
         msg.speedMs    = (uint16_t)(doc["payload"]["params"]["speed"]      | 1000);
         msg.brightness = (uint8_t) (doc["payload"]["params"]["brightness"] | 255);
+        msg.durationMs = (uint16_t)(doc["payload"]["durationMs"]           | 0);
         const char* text = doc["payload"]["params"]["text"] | "";
         strlcpy(msg.text, text, sizeof(msg.text));
         _pendingTestEffect    = msg;
         _hasPendingTestEffect = true;
+        return;
+    }
+
+    if (strcmp(type, "stop_effect") == 0) {
+        _pendingStopEffect = true;
+        Serial.println("[WS] stop_effect received");
         return;
     }
 
@@ -279,6 +286,12 @@ bool WSClient::pollTestEffect(LedTestEffectMessage& out) {
     if (!_hasPendingTestEffect) return false;
     out                   = _pendingTestEffect;
     _hasPendingTestEffect = false;
+    return true;
+}
+
+bool WSClient::pollStopEffect() {
+    if (!_pendingStopEffect) return false;
+    _pendingStopEffect = false;
     return true;
 }
 

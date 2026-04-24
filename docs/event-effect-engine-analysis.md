@@ -143,14 +143,27 @@ winner → winner.wav
 ### P3 — `_applyMotorColorSync` calling `assignColor(chipId, firstLaneColor)` where `firstLaneColor` is a number, not a `Set<number>`
 This is an existing bug (detected by the code reviewer). At runtime the second call to `assignColor` will throw because `assignColor` now expects a `Set<number>` as its second parameter but receives a raw number.
 
+**✅ Fixed** — `_applyMotorColorSync` now calls `updateDeviceColor(chipId, firstLaneColor)` (fire-and-forget with `.catch`) to persist the motor's lane color index directly, bypassing the `alreadyUsed` set entirely. (`server/src/ws/ConnectionManager.js`)
+
 ### P4 — LED config is per-device-type, not per-device
 `PUT /api/leds/config/:deviceType` broadcasts to **all** connected devices of that type. An admin updating one sensor's LED count sends the new config to every sensor. There is no per-`chipId` override path in the REST API.
+
+**✅ Fixed** — Per-device config overrides added:
+- `LedConfigManager` stores `deviceConfigOverrides: { "<deviceType>/<chipId>": {...} }` and exposes `getConfigForDevice(type, chipId)`, `updateDeviceOverride(type, chipId, config)`, and `deleteDeviceOverride(type, chipId)`.
+- New REST endpoints: `GET/PUT/DELETE /api/leds/config/:deviceType/:chipId`.
+- `broadcastLedConfig` and `_handleRegister` now resolve per-device overrides before sending `led_config`, falling back to the type-wide config when no override exists.
 
 ### P5 — `deviceColor` not persisted on firmware
 The assigned color is sent via `led_config.deviceColor` after registration but never written to NVS. On reboot, LEDs revert to white until the server reconnects and sends the next `led_config`. During that window, device-local scoring effects show the wrong (white) color.
 
+**✅ Already fixed in firmware** — Both `esp8266-sensor` and `esp32-motor` persist the full `LedConfig` (including `deviceColorR/G/B` and `hasDeviceColor`) to LittleFS via `saveState()` / `loadState()` whenever a `led_config` message is received. On boot, `setup()` restores the saved config (including device color) before connecting to the server, so the correct color is available immediately. No code change required; analysis doc updated to reflect the current state.
+
 ### P6 — `test_effect` has no TTL / stop message
 Admin-triggered effects run indefinitely with no automatic stop. The only way out is: re-send a different effect, disconnect/reconnect the device, or wait for the next `led_config`. This makes test-mode sticky.
+
+**✅ Fixed** — Two mechanisms added:
+1. **`durationMs` TTL** — `test_effect` WS payload now includes `durationMs` (0 = indefinite, backwards-compatible). `LedTestEffectMessage` has a new `durationMs` field; sensor `led.cpp` wires it into `EffectParams.durationMs` so `AnimationManager` auto-stops the effect and returns to ambient after the TTL.
+2. **`stop_effect` message** — New `{ "type": "stop_effect" }` WS message and `POST /api/leds/effects/stop` REST endpoint. Both firmware clients handle `stop_effect` by calling `restoreAmbient()` (sensor) or `matrixDisplay.clear()` (motor), immediately ending the test effect. (`GameEvents.h`, both `websocket.h/.cpp`, both `main.cpp`, `led.h/.cpp`, `ConnectionManager.js`, `leds.js`)
 
 ### P7 — Event string names duplicated across all layers
 Server emits string names (`"took_lead"`, `"streak_zero_3x"`, ...).  
@@ -365,7 +378,7 @@ Add an incrementing `seq` counter to `GameState` and attach it to every broadcas
 
 Clients that reconnect send their last-seen `seq` in the `register` message. Server can log or replay missed events (even if not acting on them). This gives an audit trail and makes stale-event detection trivial.
 
-### 4.8 `test_effect` TTL and Stop Message
+### 4.8 `test_effect` TTL and Stop Message ✅ Implemented
 
 Add a `durationMs` field to `test_effect` payload:
 
@@ -378,31 +391,20 @@ Add `{ "type": "stop_effect" }` as a companion message to explicitly end a test.
 
 On firmware, `AnimationManager` already supports `durationMs` in `EffectParams` — this is just wiring the value through from the JSON payload, which is already partially done.
 
-### 4.9 `deviceColor` NVS Persistence (firmware)
+**Implemented:** `LedTestEffectMessage.durationMs` added to shared `GameEvents.h`. Sensor `led.cpp` wires it into `EffectParams.durationMs`. Both firmware clients handle `stop_effect` (`restoreAmbient()` / `matrixDisplay.clear()`). Server exposes `durationMs` in `POST /api/leds/effects/test` and a new `POST /api/leds/effects/stop` endpoint.
 
-After receiving `led_config.deviceColor`, write the hex string to NVS:
+### 4.9 `deviceColor` LittleFS Persistence (firmware) ✅ Already implemented
 
-```cpp
-// After parsing led_config:
-if (hasDeviceColor) {
-    NVS.putString("deviceColor", deviceColorHex);  // already done for other prefs
-    _ledManager.setDeviceColor(parsedColor);
-}
-// In setup(), before connecting:
-String saved = NVS.getString("deviceColor", "");
-if (saved.length() == 7) {
-    _ledManager.setDeviceColor(parseHex(saved));
-}
-```
+After receiving `led_config.deviceColor`, both firmware clients store the full `LedConfig` (including device color RGB bytes and `hasDeviceColor` flag) to LittleFS via `saveState()`. On next boot `loadState()` restores the config before connecting to WiFi, so the correct device color is available immediately.
 
-This makes color survive reboots and available immediately before the first `led_config` arrives.
+The original design note referenced NVS (ESP32 Preferences library) but the implementation uses LittleFS, which is available on both ESP8266 and ESP32 and is already used for all other persistent state.
 
 ---
 
 ## 5. Migration Path (Incremental, Low-Risk)
 
 ### Phase 0 — Immediate bug fixes (no architecture change)
-- [ ] Fix `_applyMotorColorSync` to use `updateDeviceColor()` instead of `assignColor(chipId, number)` **(P3)**
+- [x] Fix `_applyMotorColorSync` to use `updateDeviceColor()` instead of `assignColor(chipId, number)` **(P3 — fixed)**
 - [ ] Fix `PLATFORM.motor.defaultTopology` missing in `led-admin.js` **(P9)**
 - [ ] Revert `sensor.gpioPin` default to `2` in `led-config.json`; add chiptype-aware config lookup **(P4/comment #3134833016)**
 - [ ] Fix README.md ESP32 strip pin (GPIO2 → GPIO4) **(comment #3134833090)**
@@ -410,8 +412,8 @@ This makes color survive reboots and available immediately before the first `led
 ### Phase 1 — Quick wins (single-file changes)
 - [ ] Add `clients/shared/js/gameEvents.js` with string constants
 - [ ] Replace hardcoded string literals in `ActionEffect.js`, `SoundManager.js`, `websocket.cpp` string maps
-- [ ] Add `durationMs` and `stop_effect` to `test_effect` flow
-- [ ] Persist `deviceColor` to NVS in firmware
+- [x] Add `durationMs` and `stop_effect` to `test_effect` flow **(P6 — fixed)**
+- [x] Persist `deviceColor` to LittleFS in firmware **(P5 — already done)**
 
 ### Phase 2 — Event queue (firmware only)
 - [ ] Add `EventQueue<T, N>` ring buffer to `clients/shared/leds/GameEventQueue.h`
@@ -426,9 +428,9 @@ This makes color survive reboots and available immediately before the first `led
 - [ ] Move admin test effects to layer 2
 
 ### Phase 4 — Per-device LED config (server)
-- [ ] Add per-`chipId` override storage in `LedConfigManager`
-- [ ] Add `GET/PUT/DELETE /api/leds/config/:deviceType/:chipId` REST endpoints
-- [ ] Update `broadcastLedConfig` to resolve per-device config
+- [x] Add per-`chipId` override storage in `LedConfigManager` **(P4 — fixed)**
+- [x] Add `GET/PUT/DELETE /api/leds/config/:deviceType/:chipId` REST endpoints **(P4 — fixed)**
+- [x] Update `broadcastLedConfig` to resolve per-device config **(P4 — fixed)**
 - [ ] Update LED admin page to expose per-device overrides
 
 ### Phase 5 — Sequence numbers and event log
