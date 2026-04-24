@@ -1,5 +1,6 @@
 #include "motor_manager.h"
 #include <Arduino.h>
+#include <derby_logger.h>
 
 // Pin layout: MOTOR_N_PINS macros expand to uint8_t[4] { in1, in2, in3, in4 }
 static const uint8_t MOTOR_PINS[MOTOR_MAX_LANES][4] = {
@@ -19,7 +20,7 @@ bool MotorManager::begin(uint8_t motorCount) {
     _count = min(motorCount, (uint8_t)MOTOR_MAX_LANES);
 
     if (_count == 0) {
-        Serial.println("[MOTOR_MGR] motorCount=0 — motor subsystem inactive");
+        DERBY_LOG_LN("[MOTOR_MGR] motorCount=0 — motor subsystem inactive");
         _available = false;
         return false;
     }
@@ -29,7 +30,7 @@ bool MotorManager::begin(uint8_t motorCount) {
 
     for (uint8_t i = 0; i < _count; ++i) {
         if (MOTOR_PINS[i][0] == 0) {
-            Serial.printf("[MOTOR_MGR] Lane %u: no pins defined, skipping\n", i);
+            DERBY_LOG_F("[MOTOR_MGR] Lane %u: no pins defined, skipping\n", i);
             continue;
         }
 
@@ -40,7 +41,7 @@ bool MotorManager::begin(uint8_t motorCount) {
         );
 
         if (!_motors[i]->begin()) {
-            Serial.printf("[MOTOR_MGR] Lane %u: begin() failed\n", i);
+            DERBY_LOG_F("[MOTOR_MGR] Lane %u: begin() failed\n", i);
             delete _motors[i];
             _motors[i] = nullptr;
             continue;
@@ -53,7 +54,7 @@ bool MotorManager::begin(uint8_t motorCount) {
     }
 
     _available = true;
-    Serial.printf("[MOTOR_MGR] Initialised: %u motors\n", _count);
+    DERBY_LOG_F("[MOTOR_MGR] Initialised: %u motors\n", _count);
     homeAll();
     return true;
 }

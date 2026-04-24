@@ -376,6 +376,25 @@ class ConnectionManager {
     return this.clients.get(deviceId) || null;
   }
 
+  /**
+   * Broadcast a log entry to all connected web and display clients.
+   * Called both for server-side log lines (from log.js) and for device log
+   * messages received over WebSocket (from _handleLog).
+   *
+   * @param {{ source, senderName, senderType, level?, message, ts }} entry
+   */
+  broadcastLog(entry) {
+    const msg = JSON.stringify({ type: 'log_line', payload: entry });
+    for (const client of this.clients.values()) {
+      if (
+        (client.type === 'web' || client.type === 'display') &&
+        client.ws.readyState === 1 /* OPEN */
+      ) {
+        client.ws.send(msg);
+      }
+    }
+  }
+
   // ─── Private ──────────────────────────────────────────────────────────────────
 
   _send(ws, msg) {
@@ -492,6 +511,9 @@ class ConnectionManager {
           break;
         case 'button':
           this._handleButton(clientId, ws, payload || {});
+          break;
+        case 'log':
+          this._handleLog(clientId, payload || {});
           break;
         default:
           this._send(ws, { type: 'error', payload: { message: 'Unknown message type' } });
@@ -689,6 +711,31 @@ class ConnectionManager {
     } catch (err) {
       this._send(ws, { type: 'error', payload: { message: err.message } });
     }
+  }
+
+  _handleLog(clientId, payload) {
+    const client = this.clients.get(clientId);
+    if (!client) return;
+
+    // Accept log messages only from hardware devices (sensors, motors).
+    if (!HARDWARE_TYPES.has(client.type)) return;
+
+    const message = typeof payload.message === 'string' ? payload.message : '';
+    if (!message) return;
+
+    // Resolve a human-readable sender name from the associated player record.
+    const player = client.playerId
+      ? this.gameState.players.get(client.playerId)
+      : null;
+    const senderName = player ? player.name : (client.chipType || client.type || 'device');
+
+    this.broadcastLog({
+      source:     clientId,
+      senderName,
+      senderType: client.type,
+      message,
+      ts: Date.now(),
+    });
   }
 
   _handleButton(clientId, ws, payload) {

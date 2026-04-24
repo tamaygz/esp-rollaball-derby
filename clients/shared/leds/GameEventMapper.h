@@ -21,6 +21,9 @@
 #include "effects/PulseEffect.h"
 #include "effects/RainbowEffect.h"
 #include "effects/SparkleEffect.h"
+#ifndef NATIVE_TEST
+#  include <derby_logger.h>
+#endif
 
 /**
  * Maps game events to LED effects.
@@ -54,7 +57,7 @@ public:
 
   void begin() {
     _configureEffects();
-    Serial.println("[GameEventMapper] Initialized");
+    DERBY_LOG_LN("[GameEventMapper] Initialized");
   }
 
   /**
