@@ -832,6 +832,11 @@ describe('Integration — LED per-device override routing', () => {
       const ledConfigManager = new LedConfigManager(tmpPath);
       // Prime in-memory config (no file I/O)
       ledConfigManager.config = JSON.parse(JSON.stringify(ledConfigManager.defaultConfig));
+      // Stub saveConfig to be in-memory only — no temp-file atomics in tests
+      ledConfigManager.saveConfig = async function (config) {
+        ledConfigManager.config = config;
+        return true;
+      };
 
       connectionManager = new ConnectionManager(gameState, ledConfigManager);
 
