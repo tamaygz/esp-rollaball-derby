@@ -193,7 +193,11 @@ class LedConfigManager extends EventEmitter {
    */
   async updateDeviceOverride(deviceType, chipId, deviceConfig) {
     if (!this.config) await this.loadConfig();
-    this._validateDeviceConfig(deviceConfig);
+
+    const typeConfig = this.getConfigForDeviceType(deviceType) || {};
+    const effectiveConfig = { ...typeConfig, ...deviceConfig };
+
+    this._validateDeviceConfig(effectiveConfig);
     const overrides = { ...(this.config.deviceConfigOverrides || {}) };
     overrides[`${deviceType}/${chipId}`] = deviceConfig;
     await this.saveConfig({ ...this.config, deviceConfigOverrides: overrides });
