@@ -1,13 +1,13 @@
 # Roll-a-Ball Derby — Copilot Instructions
 
-Local-network physical race game: IR sensors on ESP8266 → Node.js server (single source of truth) → Pixi.js display + vanilla JS admin client, all over WebSocket.
+Local-network physical race game: IR sensors on ESP8266/ESP32 → Node.js server (single source of truth) → Pixi.js display + vanilla JS admin client, all over WebSocket.
 
 ## Architecture
 
 ```
-ESP8266 Sensors ──┐
-                   ├──► Node.js Server ──► Display Client (Pixi.js beamer/TV)
-ESP32 Peripheral ──┘         │
+ESP8266/ESP32 Sensors ──┐
+                       ├──► Node.js Server ──► Display Client (Pixi.js beamer/TV)
+ESP32 Peripheral ─────┘         │
                              └──► Web Admin Client (vanilla JS)
 ```
 
@@ -17,7 +17,7 @@ ESP32 Peripheral ──┘         │
 | Shared assets | ✅ Complete | `clients/assets/` |
 | Web admin | ✅ Complete | `clients/web/` |
 | Display client | ✅ Complete | `clients/display/` |
-| ESP8266 sensor firmware | 🚧 In progress | `clients/esp8266-sensor/` |
+| ESP8266 sensor firmware | 🚧 In progress | `clients/esp8266-sensor/` (ESP8266 + ESP32 DevKit targets) |
 | ESP32 peripheral firmware | 🚧 In progress | `clients/esp32-motor/` |
 | ESP8266 motor firmware | ⏳ Superseded by ESP32 peripheral | `clients/esp8266-motor/` |
 
@@ -61,6 +61,16 @@ The server publishes `_derby._tcp` via DNS-SD (`bonjour-service`). ESP8266 senso
 - Sprite tinting relies on pure-white SVG fills — new sprites must follow the same convention (see `clients/assets/README.md`)
 - Action effects live in `js/effects/`; add new event types there, not in `main.js`
 
+### Shared IO library (`clients/shared/io/`)
+- Header-only utilities: include with angle brackets (`<device_info.h>`, `<color_utils.h>`)
+- Platform guards use `#if defined(ESP8266)` / `#elif defined(ESP32)` — never check `ESP32` first
+- Buffer size for chip ID strings: always use `DERBY_CHIP_ID_HEX_MAX_LEN` (17) to cover both platforms
+
+### Shared LED library (`clients/shared/leds/`)
+- Valid data pins: ESP8266 GPIO2 (UART1, default) or GPIO3 (DMA); ESP32 any GPIO 0–39 (RMT)
+- Use `ledPinIsValid(pin)` from `LedPlatform.h` to validate GPIO before use
+- `LED_GPIO_MAX` (39) is defined for ESP32 only; ESP8266 has no equivalent constant
+
 ### Assets (`clients/assets/`)
 - Sprites use pure-white fills (`#ffffff`) so Pixi.js can tint them with any player colour
 - Theme manifest schema is in `clients/assets/README.md`; both `horse/` and `camel/` must stay in sync
@@ -71,7 +81,7 @@ All messages are JSON `{ type, payload }`. Key types:
 
 | Direction | `type` | Notes |
 |-----------|--------|-------|
-| client→server | `register` | `{ type: "web"\|"sensor"\|"display"\|"motor", playerName?, playerId? }` |
+| client→server | `register` | `{ type: "web"\|"sensor"\|"display"\|"motor", playerName?, playerId?, chipId?, chipType?, ledCount?, ledCapabilities?, deviceCapabilities? }` |
 | server→broadcast | `state` | Full game state snapshot |
 | server→broadcast | `scored` | Includes `events[]` array (see [server README](../server/README.md)) |
 | server→broadcast | `winner` | `{ playerId, name }` |

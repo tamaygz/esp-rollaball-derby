@@ -31,9 +31,9 @@ Derby.LED = (function () {
   // Chip-level capabilities used to drive the pin selector and LED count limits.
   // Keyed by normalised chipType string (uppercase) as reported by the device.
   var CHIP = {
-    'ESP8266': { chipName: 'ESP8266', maxLeds: 300,  defaultPin: 2, pinGroup: 'esp8266',
+    'ESP8266': { chipName: 'ESP8266', maxLeds: 300,  defaultPin: 2, defaultTopology: 'strip', pinGroup: 'esp8266',
                  pinHint: 'ESP8266: GPIO2 = UART1 (leaves Serial free); GPIO3 = DMA (uses RX pin).' },
-    'ESP32':   { chipName: 'ESP32',   maxLeds: 1000, defaultPin: 4, pinGroup: 'esp32',
+    'ESP32':   { chipName: 'ESP32',   maxLeds: 1000, defaultPin: 4, defaultTopology: 'strip', pinGroup: 'esp32',
                  pinHint: 'ESP32: GPIO4 is the default strip pin (RMT ch0, hardware-timed). GPIO2 is reserved for the onboard status LED.' },
   };
 
@@ -376,12 +376,11 @@ Derby.LED = (function () {
    * Falls back to platform defaults if the server config hasn't loaded yet.
    */
   function _populateConfigForm(device) {
-    var chip     = _chipFor(device);
-    var platform = PLATFORM[device.type] || PLATFORM.sensor;  // kept for topology default
-    var stored   = _allConfigs[device.type] || {};
+    var chip   = _chipFor(device);
+    var stored = _allConfigs[device.type] || {};
 
     var gpioPin    = stored.gpioPin    || chip.defaultPin;
-    var topology   = stored.topology   || platform.defaultTopology || 'strip';
+    var topology   = stored.topology   || chip.defaultTopology || 'strip';
     var brightness = stored.brightness !== undefined ? stored.brightness : 80;
     var matrixRows = stored.matrixRows || 8;
     var matrixCols = stored.matrixCols || 8;
@@ -531,6 +530,21 @@ Derby.LED = (function () {
       brightness:    parseInt(_el('led-brightness').value, 10),
       defaultEffect: _el('led-effect-select').value || 'solid',
     };
+
+    // Validate ledCount and gpioPin against the chip's known hardware limits.
+    var chip = _chipFor(_selectedDevice);
+    if (isNaN(config.ledCount) || config.ledCount < 1 || config.ledCount > chip.maxLeds) {
+      _showError('LED count must be 1–' + chip.maxLeds + ' for ' + chip.chipName);
+      return;
+    }
+    if (chip.pinGroup === 'esp8266' && config.gpioPin !== 2 && config.gpioPin !== 3) {
+      _showError(chip.chipName + ': only GPIO2 (UART1) and GPIO3 (DMA) are valid LED pins');
+      return;
+    }
+    if (chip.pinGroup === 'esp32' && (isNaN(config.gpioPin) || config.gpioPin < 0 || config.gpioPin > 39)) {
+      _showError(chip.chipName + ': LED pin must be GPIO 0–39');
+      return;
+    }
 
     if (config.topology.startsWith('matrix')) {
       config.matrixRows = parseInt(_el('led-matrix-rows').value, 10);
