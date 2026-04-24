@@ -53,6 +53,9 @@ public:
     // Poll for a pending test_effect message.
     bool pollTestEffect(LedTestEffectMessage& out);
 
+    // Returns true (once) if a stop_effect message arrived since the last call.
+    bool pollStopEffect();
+
     // Update LED metadata for re-registrations (call if LED config changes).
     void setLedMetadata(uint16_t ledCount);
 
@@ -84,6 +87,7 @@ private:
 
     LedTestEffectMessage _pendingTestEffect     = {};
     bool                 _hasPendingTestEffect  = false;
+    bool                 _pendingStopEffect     = false;
 
     PlayerPosition _positions[WS_MAX_PLAYERS] = {};
     uint8_t        _positionCount = 0;

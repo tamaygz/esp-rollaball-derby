@@ -53,7 +53,8 @@ class LedConfigManager extends EventEmitter {
         defaultEffect: 'solid'
       },
       deviceColorMap: {},  // { "<chipId>": colorIndex }
-      deviceNameMap: {}    // { "<chipId>": name }
+      deviceNameMap: {},   // { "<chipId>": name }
+      deviceConfigOverrides: {}  // { "<deviceType>/<chipId>": { ...config } }
     };
   }
 
@@ -71,6 +72,9 @@ class LedConfigManager extends EventEmitter {
       }
       if (!this.config.deviceNameMap) {
         this.config.deviceNameMap = {};
+      }
+      if (!this.config.deviceConfigOverrides) {
+        this.config.deviceConfigOverrides = {};
       }
       console.log('[LedConfigManager] Configuration loaded from', this.configFilePath);
       return this.config;
@@ -157,6 +161,67 @@ class LedConfigManager extends EventEmitter {
     console.log(`[LedConfigManager] Updated configuration for device type: ${deviceType}`);
   }
 
+  // ─── Per-Device Config Overrides ──────────────────────────────────────────────
+
+  /**
+   * Get the effective LED config for a specific device.
+   * Returns the per-device override if one exists, otherwise falls back to the
+   * device-type config.
+   * @param {string} deviceType - Device type (sensor, motor, display)
+   * @param {string|null} chipId - Device chip ID, or null for type-wide lookup
+   * @returns {Object|null} Effective config, or null if not found
+   */
+  getConfigForDevice(deviceType, chipId) {
+    const typeConfig = this.getConfigForDeviceType(deviceType);
+    if (!chipId) return typeConfig;
+    const overrides = this.config.deviceConfigOverrides || {};
+    const key = `${deviceType}/${chipId}`;
+    const overrideConfig = overrides[key];
+
+    if (!overrideConfig) return typeConfig;
+    if (!typeConfig) return overrideConfig;
+
+    return { ...typeConfig, ...overrideConfig };
+  }
+
+  /**
+   * Set a per-device LED config override for a specific chip.
+   * Only the provided fields are overridden; other fields fall back to the type config.
+   * @param {string} deviceType - Device type (sensor, motor, display)
+   * @param {string} chipId - Device chip ID
+   * @param {Object} deviceConfig - Partial or full config to override
+   */
+  async updateDeviceOverride(deviceType, chipId, deviceConfig) {
+    if (!this.config) await this.loadConfig();
+
+    const typeConfig = this.getConfigForDeviceType(deviceType) || {};
+    const effectiveConfig = { ...typeConfig, ...deviceConfig };
+
+    this._validateDeviceConfig(effectiveConfig);
+    const overrides = { ...(this.config.deviceConfigOverrides || {}) };
+    overrides[`${deviceType}/${chipId}`] = deviceConfig;
+    await this.saveConfig({ ...this.config, deviceConfigOverrides: overrides });
+    console.log(`[LedConfigManager] Per-device override set for ${deviceType}/${chipId}`);
+  }
+
+  /**
+   * Remove the per-device LED config override for a specific chip.
+   * After deletion the device reverts to the type-wide config.
+   * @param {string} deviceType - Device type
+   * @param {string} chipId - Device chip ID
+   * @returns {boolean} true if an override existed and was removed, false if none
+   */
+  async deleteDeviceOverride(deviceType, chipId) {
+    if (!this.config) await this.loadConfig();
+    const overrides = { ...(this.config.deviceConfigOverrides || {}) };
+    const key = `${deviceType}/${chipId}`;
+    if (!overrides[key]) return false;
+    delete overrides[key];
+    await this.saveConfig({ ...this.config, deviceConfigOverrides: overrides });
+    console.log(`[LedConfigManager] Per-device override removed for ${deviceType}/${chipId}`);
+    return true;
+  }
+
   /**
    * Get all configurations
    * @returns {Object} Complete configuration object
@@ -181,6 +246,19 @@ class LedConfigManager extends EventEmitter {
     for (const [key, value] of Object.entries(config)) {
       if (key === 'deviceColorMap') continue;
       if (key === 'deviceNameMap') continue;
+      if (key === 'deviceConfigOverrides') {
+        // Validate each per-device override entry
+        if (value && typeof value === 'object') {
+          for (const [overrideKey, overrideValue] of Object.entries(value)) {
+            try {
+              this._validateDeviceConfig(overrideValue);
+            } catch (error) {
+              throw new Error(`Invalid per-device override for ${overrideKey}: ${error.message}`);
+            }
+          }
+        }
+        continue;
+      }
       try {
         this._validateDeviceConfig(value);
       } catch (error) {
