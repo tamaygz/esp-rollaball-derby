@@ -144,15 +144,30 @@
         : payload.points === 2 ? [GameEvents.SCORE_2]
         : [GameEvents.SCORE_1]);
     raceTrack.triggerEffect(payload.playerId, events);
+    // Shared decision — same rule used on the server so every client agrees.
+    if (typeof DerbyAudio !== 'undefined' && typeof SoundDecision !== 'undefined') {
+      var ev = SoundDecision.pickScoredSound({ events: events, points: payload.points });
+      if (ev) DerbyAudio.play(ev);
+    }
   }
 
   function _handleWinner(payload) {
     if (winnerOverlay) winnerOverlay.show(payload.name || 'WINNER');
     if (raceTrack)     raceTrack.triggerScoringEffect(payload.playerId);
+    if (typeof DerbyAudio !== 'undefined') DerbyAudio.play(GameEvents.WINNER);
   }
 
   function _handleCountdown(payload) {
     if (countdownEffect) countdownEffect.show(payload.count);
+    if (typeof DerbyAudio !== 'undefined') {
+      DerbyAudio.play(payload.count > 0 ? GameEvents.COUNTDOWN_TICK : 'countdown_go');
+    }
+  }
+
+  function _handleGameEvent(payload) {
+    if (typeof DerbyAudio !== 'undefined' && payload && payload.event) {
+      DerbyAudio.play(payload.event);
+    }
   }
 
   // ── WebSocket routing ─────────────────────────────────────────────────────────
@@ -180,6 +195,7 @@
       case 'scored':     _handleScored(msg.payload);   break;
       case 'winner':     _handleWinner(msg.payload);   break;
       case 'countdown':  _handleCountdown(msg.payload); break;
+      case 'game_event': _handleGameEvent(msg.payload); break;
       case 'registered':
         console.log('[Display] registered', msg.payload.id);
         break;
