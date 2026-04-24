@@ -429,22 +429,26 @@ The original design note referenced NVS (ESP32 Preferences library) but the impl
 - [x] Fix README.md ESP32 strip pin (GPIO2 → GPIO4) **(fixed in PR#24)**
 
 ### Phase 1 — Quick wins (single-file changes)
-- [ ] Add `clients/shared/js/gameEvents.js` with string constants
-- [ ] Replace hardcoded string literals in `ActionEffect.js`, `SoundManager.js`, `websocket.cpp` string maps
+- [x] Add `clients/shared/js/gameEvents.js` with string constants **(T3 — done in PR#27)**
+- [x] Replace hardcoded string literals in `ActionEffect.js`, `SoundManager.js` (JS side) **(T3 — done in PR#27)**
+- [ ] Replace `strcmp` string literals in firmware `websocket.cpp` with `GameEvents.h` enum values **(P7 — remaining)**
+- [x] Add chiptype-aware LED config defaults (`sensor-esp32` entry) **(T4 — done in PR#27)**
 - [x] Add `durationMs` and `stop_effect` to `test_effect` flow **(P6 — fixed)**
 - [x] Persist `deviceColor` to LittleFS in firmware **(P5 — done via `state.json`, both firmware clients)**
 
 ### Phase 2 — Event queue (firmware only)
-- [ ] Add `EventQueue<T, N>` ring buffer to `clients/shared/leds/GameEventQueue.h`
+- [x] Add `EventQueue<T, N>` ring buffer to `clients/shared/leds/EventQueue.h` **(T5 — done in PR#27)**
+- [x] Native unit tests for `EventQueue` (all 4 cases) **(T5 — done in PR#27)**
 - [ ] Replace `_pendingLocalEvent` / `_pendingGlobalEvent` with `EventQueue` in both `esp8266-sensor` and `esp32-motor`
 - [ ] Drain queue in main loop (process oldest, drop duplicates of same type)
 
 ### Phase 3 — Layered effect system (shared firmware)
-- [ ] Implement `EffectLayer` class in shared lib
-- [ ] Refactor `LedManager` in both firmware projects to use three layers
-- [ ] Move ambient (connection-state) effects to layer 0
-- [ ] Move game-event effects to layer 1
-- [ ] Move admin test effects to layer 2
+- [x] Add priority gate to `AnimationManager::playEffect()` (Option A, C1) **(T6 — done in PR#27)**
+- [x] Native unit tests for priority gate (2 test cases) **(T6 — done in PR#27)**
+- [ ] Wire priority constants (`PRIORITY_AMBIENT/GAME/ADMIN`) into all firmware call sites
+- [ ] Replace ad-hoc `restoreAmbient()` calls with explicit `playEffect(&_ambient, PRIORITY_AMBIENT)`
+- [ ] Move admin `test_effect` handling to `playEffect(..., PRIORITY_ADMIN)` in both firmware projects
+- [ ] `GameEventMapper` switch → table-driven registration (C3 / OCP fix)
 
 ### Phase 4 — Per-device LED config (server)
 - [x] Add per-`chipId` override storage in `LedConfigManager` **(P4 — fixed)**
@@ -472,9 +476,9 @@ The original design note referenced NVS (ESP32 Preferences library) but the impl
 | `color_utils.h` (`derbyParseHexColor`) | ✅ already shared in `clients/shared/io/` **(PR#24)** | Replaces duplicated hex parsers in sensor/motor |
 | `ledPinIsValid(pin)` | ✅ already shared in `clients/shared/leds/LedPlatform.h` **(PR#24)** | Single source of truth for LED GPIO rules |
 | `StatusLed`, `ButtonManager` | ✅ already shared in `clients/shared/io/` | |
-| `EventQueue<T,N>` | ❌ not yet created | Add to `clients/shared/leds/` |
-| `EffectLayer` | ❌ not yet created | Add to `clients/shared/leds/` |
-| `GameEvents.js` string constants | ❌ not yet created | Add to `clients/shared/js/` |
+| `EventQueue<T,N>` | ✅ created in `clients/shared/leds/EventQueue.h` **(T5 — PR#27)** | Bounded FIFO with priority-based overflow eviction; native tests pass |
+| `EffectLayer` | ❌ not needed as a class — superseded by priority gate in `AnimationManager` (Option A, T6) | Priority constants `PRIORITY_AMBIENT/GAME/ADMIN` live in `AnimationManager.h` |
+| `GameEvents.js` string constants | ✅ created in `clients/shared/js/gameEvents.js` **(T3 — PR#27)** | Dual-format shim; used by display client and server SoundManager |
 | `LedConfigDefaults.h` (chiptype map) | ❌ not yet created | Could centralise defaults; or expose same data as a server-side JSON schema so JS and firmware stay in sync |
 
 ---
@@ -805,5 +809,31 @@ A third boundary is implicit and should be documented here while it is fresh:
 
 ---
 
-*Last updated: 2026-04-24 (baseline); §10 added post-PR#24 (`2f22a31`).*  
-*Authors: @copilot (analysis, critique, baseline update), @tamaygz (codebase).*
+## 11. Codebase Baseline Update — changes from PR#27 (`copilot/sub-pr-25`)
+
+> **Context:** PR#27 (merged `c12b9b1`) executed isolated tasks T1–T6, completing all Phase 0/1/2-pre/3-pre work. This section records what changed so the migration path in §5 and shared-lib table in §6 stay accurate.
+
+### 11.1 What PR#27 changed (code)
+
+| Task | Files changed | Impact on this document |
+|---|---|---|
+| **T3 — Shared `gameEvents.js`** | `clients/shared/js/gameEvents.js` (new), `clients/display/index.html`, `clients/display/js/effects/ActionEffect.js`, `clients/display/js/main.js`, `server/src/index.js`, `server/src/sound/SoundManager.js`, `server/src/ws/ConnectionManager.js`, `server/tests/soundManager.test.js` | §5 Phase 1 first two items now ✅. §6 table `GameEvents.js` now ✅. P7 partial: JS side resolved; firmware `websocket.cpp` strcmp literals still open. |
+| **T4 — Chiptype-aware LED config** | `server/src/config/LedConfigManager.js`, `server/data/led-config.json` (+`sensor-esp32` entry), `server/src/ws/ConnectionManager.js`, `server/tests/ledConfigManager.test.js` (+7 new tests) | §4.6 fully resolved. ESP32 sensors now receive `gpioPin: 4` automatically; ESP8266 sensors `gpioPin: 2`. Server baseline: 168/168 tests pass. |
+| **T5 — `EventQueue<T,N>` template** | `clients/shared/leds/EventQueue.h` (new), `clients/esp8266-sensor/platformio.ini` (+`native_test` env), `clients/esp8266-sensor/test/test_event_queue/test_event_queue.cpp` (new, 4 Unity tests) | §5 Phase 2 first item now ✅. §6 table `EventQueue` now ✅. The template is ready to integrate into firmware; the single-slot `_pendingLocalEvent`/`_pendingGlobalEvent` replacement is the remaining Phase 2 work. |
+| **T6 — AnimationManager priority gate** | `clients/shared/leds/AnimationManager.h/.cpp` (priority gate, 3 constants), `clients/shared/leds/LedPlatform.h` (`NATIVE_TEST` guard), `clients/esp8266-sensor/test/mocks/` (3 new mock headers), `clients/esp8266-sensor/test/test_animation_manager/test_animation_manager.cpp` (new, 2 Unity tests) | §5 Phase 3 priority-gate item ✅. `EffectLayer` class is no longer needed as a separate type — the gate is in `AnimationManager` (Option A). All existing `playEffect()` call sites are unaffected (default `= PRIORITY_GAME`). Wiring priority args at call sites is the remaining Phase 3 integration work. |
+
+### 11.2 Problems carried forward after PR#27
+
+- **P1** — single-slot event buffer in firmware: `EventQueue.h` now exists; integration into `esp8266-sensor`/`esp32-motor` is the next step (see T8 in `isolated-tasks.md`).
+- **P2** — global events unconditionally cancel local effects: priority gate is in `AnimationManager`; firmware call sites must pass the correct `PRIORITY_*` constant (T9 in `isolated-tasks.md`).
+- **P7** — event string names duplicated in firmware `websocket.cpp`: JS side resolved (T3); C++ `strcmp` mapping still needs to be reviewed for consistency with `GameEvents.h` enum values.
+- **P8** — no event versioning or sequence numbers: unchanged; Phase 5.
+
+### 11.3 `EffectLayer.h` — no longer planned as a separate class
+
+The original §4.4 proposed an `EffectLayer` class. After T6 landed, the architecture decision is **Option A (priority gate in `AnimationManager`)**, not a full multi-layer compositor. `EffectLayer.h` will **not** be created. The priority constants (`PRIORITY_AMBIENT = 0`, `PRIORITY_GAME = 1`, `PRIORITY_ADMIN = 2`) live directly in `AnimationManager.h`. The §4.4 concept remains valid as a conceptual reference, but the implementation target is simpler.
+
+---
+
+*Last updated: 2026-04-24 (§10 post-PR#24 `2f22a31`; §11 post-PR#27 `c12b9b1`).*  
+*Authors: @copilot (analysis, critique, baseline updates), @tamaygz (codebase).*

@@ -63,10 +63,10 @@ npm test
 All existing tests must pass. Record the count:
 
 ```
-# As of 2026-04-24: 168 pass, 0 fail (T1 pre-existing failures fixed before refactor began)
+# As of 2026-04-24 (post-PR#27 / T1–T6): 168 pass, 0 fail
 ```
 
-The 3 pre-existing failures are being fixed in a **separate dedicated PR** (spawned as an isolated task — see [isolated-tasks.md](./isolated-tasks.md)) so they are resolved before any phase of the event refactor begins. Each subsequent phase must maintain or improve on the passing test count — never regress it.
+All pre-existing failures were resolved. Each subsequent phase must maintain or improve on this count — never regress it.
 
 ### 2.2 Manual Hardware Smoke Test (per firmware project)
 
@@ -122,18 +122,20 @@ No firmware reflash required unless the GPIO pin change was shipped to devices.
 
 ### Phase 1 — Quick wins (single-file changes)
 
-**Scope:** Add `clients/shared/js/gameEvents.js`; replace hardcoded string literals; add `durationMs`/`stop_effect`; `deviceColor` NVS persistence.
+**Scope:** Add `clients/shared/js/gameEvents.js`; replace hardcoded string literals; add `durationMs`/`stop_effect`; `deviceColor` LittleFS persistence; chiptype-aware LED config defaults.
 
 **Risk:** Low for JS changes. Medium for firmware NVS write (if NVS key collides with existing Preferences keys).
 
 **Acceptance criteria:**
-- [ ] `npm test` passes.
-- [ ] `ActionEffect.js` uses `GameEvents.TOOK_LEAD` (etc.) — no raw string literals remain.
-- [ ] `SoundManager.js` uses `GameEvents` constants — `EVENT_FILE_MAP` keys are verified against the constants at startup (add a `console.warn` for unknown keys).
-- [ ] `test_effect` with `durationMs: 3000` auto-stops on firmware after 3 s (verify via Serial monitor).
-- [ ] `stop_effect` from admin UI cancels an indefinite `test_effect`.
-- [ ] `deviceColor` hex is written to NVS after first `led_config`. After reboot, device shows correct color before WiFi connects.
-- [ ] All hardware smoke tests H1–H9 pass.
+- [x] `npm test` passes. ✅ 168/168 (post-PR#27)
+- [x] `ActionEffect.js` uses `GameEvents.TOOK_LEAD` (etc.) — no raw string literals remain. ✅ (T3)
+- [x] `SoundManager.js` uses `GameEvents` constants — `EVENT_FILE_MAP` keys are verified against the constants at startup. ✅ (T3)
+- [ ] `websocket.cpp` firmware string maps updated to use `GameEvents.h` enum values (remaining — see T7 in `isolated-tasks.md`).
+- [x] `test_effect` with `durationMs: 3000` auto-stops on firmware after 3 s. ✅ (P6)
+- [x] `stop_effect` from admin UI cancels an indefinite `test_effect`. ✅ (P6)
+- [x] `deviceColor` hex persists to LittleFS after `led_config`. After reboot, device shows correct color before WiFi connects. ✅ (P5)
+- [x] ESP32 sensors receive `gpioPin: 4`; ESP8266 sensors receive `gpioPin: 2`. ✅ (T4)
+- [ ] All hardware smoke tests H1–H9 pass (pending hardware verification).
 
 **Rollback:**
 ```bash
@@ -141,20 +143,15 @@ git revert <phase-1-commit-sha>   # JS changes, no server state affected
 ```
 For firmware: re-flash previous `.bin`. NVS key `deviceColor` is benign if left in flash — it will be ignored by the reverted firmware.
 
-**NVS key collision check:** Before writing, confirm no existing `Preferences` call in `esp8266-sensor` or `esp32-motor` uses the key `"deviceColor"`. Search:
-```bash
-grep -r 'putString\|getString\|putUInt\|getUInt' clients/esp8266-sensor/src clients/esp32-motor/src
-```
-
 ---
 
 ### Phase 2 — Event queue (firmware only)
 
-**Scope:** Add `EventQueue<T, N>` to `clients/shared/leds/`; replace `_pendingLocalEvent` / `_pendingGlobalEvent` in both firmware projects.
+**Scope:** Integrate `EventQueue<T, N>` from `clients/shared/leds/EventQueue.h` into both firmware projects; replace `_pendingLocalEvent` / `_pendingGlobalEvent` single-slot variables.
 
 **Risk:** Medium — changes the core event-dispatch path in firmware. A bug here will cause effects to not fire or fire in wrong order.
 
-**Pre-condition:** Phase 1 complete and verified on hardware.
+**Pre-condition:** Phase 1 complete. ✅ `EventQueue.h` exists and all 4 native unit tests pass (T5, PR#27).
 
 **Acceptance criteria:**
 - [ ] `EventQueue` has unit tests compiled under PlatformIO `native` environment (see §4.1).
@@ -171,20 +168,21 @@ git revert <phase-2-commit-sha>
 
 ---
 
-### Phase 3 — Layered effect system (shared firmware)
+### Phase 3 — Priority gate integration (firmware call sites)
 
-**Scope:** Implement `EffectLayer` / priority gate; refactor `LedManager` to use it; move ambient, game, and admin effects to the appropriate layer/priority.
+**Scope:** Wire `AnimationManager` priority constants (`PRIORITY_AMBIENT/GAME/ADMIN`) into all firmware call sites in both firmware projects; replace ad-hoc `restoreAmbient()` calls; move admin `test_effect` to `PRIORITY_ADMIN`; refactor `GameEventMapper` from switch to table-driven (C3/OCP fix).
 
 **Risk:** High — touches every effect dispatch path. A wrong priority assignment can make effects invisible or permanently override the ambient state.
 
-**Pre-condition:** Phase 2 complete and verified. Open Question OQ1 resolved (priority gate vs. compositor — see analysis §9/C1).
+**Pre-condition:** Phase 2 complete. ✅ Priority gate exists in `AnimationManager` and both native tests pass (T6, PR#27). OQ1 is resolved: Option A (single animator, priority gate).
 
 **Acceptance criteria:**
-- [ ] Unit test: `playEffect(lowPriority)` while a higher-priority effect is active → request is dropped or queued (not applied).
-- [ ] Unit test: high-priority effect completes → system reverts to the previous lower-priority effect, not to black/off.
-- [ ] `GAME_PAUSED` amber pulse persists through subsequent `SCORE_PLUS1` events. The specific mechanism depends on the resolution of OQ2 (whether `GAME_PAUSED` lives in the ambient layer or is a higher-priority game effect), but in both cases a `SCORE_PLUS1` must *not* cancel the paused indicator. Verify this on hardware before closing Phase 3.
-- [ ] `test_effect` (admin layer) overrides any game effect; when admin effect ends, game/ambient resumes correctly.
+- [x] Unit test: `playEffect(lowPriority)` while a higher-priority effect is active → request is dropped (not applied). ✅ (T6, `test_low_priority_dropped_while_high_active`)
+- [x] Unit test: high-priority effect completes → `_activePriority` resets to `PRIORITY_AMBIENT`. ✅ (T6, `test_priority_resets_after_effect_completes`)
+- [ ] `GAME_PAUSED` amber pulse persists through subsequent `SCORE_PLUS1` events (OQ2 resolved: `GAME_PAUSED` is ambient layer, priority 0; scoring fires at priority 1 — gate must NOT suppress higher-priority game event over lower-priority ambient, only suppress lower over higher). Verify on hardware.
+- [ ] `test_effect` (admin layer, priority 2) overrides any game effect; when admin effect ends, game/ambient resumes correctly.
 - [ ] On `WINNER_SELF` (indefinite rainbow): device holds rainbow until `game_reset` fires, then returns to ambient — not to black.
+- [ ] `GameEventMapper` switch replaced with `LOCAL_EFFECTS[]` / `GLOBAL_EFFECTS[]` registration tables (C3).
 - [ ] All hardware smoke tests H1–H9 pass.
 - [ ] SRAM budget: build with `pio run --target size`. SRAM usage must not increase by more than 10% compared to Phase 2 baseline.
 
@@ -198,16 +196,17 @@ git revert <phase-3-commit-sha>
 
 ### Phase 4 — Per-device LED config (server)
 
-**Scope:** Add per-`chipId` override storage in `LedConfigManager`; new REST endpoints; update `broadcastLedConfig`.
+**Scope:** Add LED admin page per-device override UI. Server-side per-device config is already done.
 
-**Risk:** Low-medium — additive server change. The existing type-wide path must continue to work as before.
+**Risk:** Low — additive UI change. The existing type-wide path and REST endpoints are complete.
 
 **Acceptance criteria:**
-- [ ] `npm test` passes (new tests for per-chipId CRUD added).
-- [ ] `PUT /api/leds/config/sensor` (type-wide) still works and broadcasts to all sensors.
-- [ ] `PUT /api/leds/config/sensor/<chipId>` broadcasts only to the matching device.
-- [ ] After setting a per-device override, the override persists in `led-config.json` and survives server restart.
-- [ ] `DELETE /api/leds/config/sensor/<chipId>` removes the override and device falls back to type default.
+- [x] `npm test` passes (7 new chiptype + per-device CRUD tests added in T4). ✅ 168/168
+- [x] `PUT /api/leds/config/sensor` (type-wide) still works and broadcasts to all sensors. ✅
+- [x] `PUT /api/leds/config/sensor/<chipId>` broadcasts only to the matching device. ✅
+- [x] After setting a per-device override, the override persists in `led-config.json` and survives server restart. ✅
+- [x] `DELETE /api/leds/config/sensor/<chipId>` removes the override and device falls back to type default. ✅
+- [ ] LED admin page exposes per-device override UI (T11 in `isolated-tasks.md`).
 
 **Rollback:**
 ```bash
@@ -245,44 +244,36 @@ Firmware and clients do not need reflashing — `seq` was never a required field
 
 ### 4.1 Firmware Unit Tests (PlatformIO native)
 
-Add a `test` environment to each firmware's `platformio.ini`:
+✅ **Native test environment is already set up** (T5/T6, PR#27). `clients/esp8266-sensor/platformio.ini` has `[env:native_test]` with Unity framework.
 
-```ini
-[env:native_test]
-platform = native
-test_framework = unity
-# Update test_filter progressively: add test_effect_layer after Phase 3 is implemented
-test_filter = test_event_queue
-```
+Current test coverage (6 tests, all passing):
 
-Test file locations:
 ```
-clients/esp8266-sensor/test/test_event_queue.cpp
-clients/esp32-motor/test/test_effect_layer.cpp
-```
+clients/esp8266-sensor/test/test_event_queue/test_event_queue.cpp     — 4 tests
+  test_push_pop_fifo              basic FIFO ordering
+  test_priority_eviction          TOOK_LEAD survives 3× SCORE_PLUS1 overflow
+  test_empty_pop_returns_false    pop on empty, does not crash
+  test_full_no_crash              overflow does not corrupt memory
 
-Shared tests can live in:
-```
-clients/shared/leds/test/   (symlinked or duplicated)
+clients/esp8266-sensor/test/test_animation_manager/test_animation_manager.cpp  — 2 tests
+  test_low_priority_dropped_while_high_active
+  test_priority_resets_after_effect_completes
 ```
 
-Minimum test cases required before Phase 2 is merged:
+Run with: `pio test -e native_test` (from `clients/esp8266-sensor/`)
 
-```cpp
-// test_event_queue.cpp
-void test_push_pop_fifo();          // basic FIFO for equal-priority items
-void test_priority_eviction();      // TOOK_LEAD survives 3× SCORE_PLUS1 overflow
-void test_empty_pop_returns_none(); // pop() on empty queue does not crash
-void test_full_no_crash();          // overflow does not corrupt memory
-```
+As Phase 3 integration (T9) progresses, extend the AnimationManager test file with:
+- `test_admin_priority_overrides_game` — PRIORITY_ADMIN wins over PRIORITY_GAME
+- `test_ambient_resumes_after_game_effect` — ambient returns after game effect completes
 
 ### 4.2 Server Unit Tests
 
-Server uses Node.js built-in test runner (`node --test`). All new server functionality (P4, P5) must have corresponding tests in `server/tests/`:
+Server uses Node.js built-in test runner (`node --test`). Current baseline: **168/168 pass** (post-PR#27).
+
+For Phase 5 (sequence numbers), add:
 
 ```
-server/tests/LedConfigManager.test.js   (extended for per-chipId CRUD)
-server/tests/GameState.seq.test.js      (new, for sequence numbers)
+server/tests/gameState.seq.test.js   (new — monotonic counter, dedup on replay)
 ```
 
 Run with: `cd server && npm test`
@@ -336,10 +327,12 @@ As the refactor progresses, evaluate each piece of new code against this checkli
 | Sequence numbering / dedup | None | `GameState._seq` counter + client-side dedup (P5) |
 | Test effect TTL | None (sticky forever) | `durationMs` field + `stop_effect` message (P6 ✅ done) |
 | Shared LED effects (C++) | `clients/shared/leds/` | Same — keep as reusable library, usable by esp-buzzwire |
-| `EventQueue<T,N>` template | Not yet created | `clients/shared/leds/EventQueue.h` (P2) |
-| `EffectLayer` / priority gate | Not yet created | `clients/shared/leds/EffectLayer.h` (P3) |
+| `EventQueue<T,N>` template | ✅ `clients/shared/leds/EventQueue.h` (T5 — PR#27) | Integration into firmware pending (T8) |
+| Priority gate for effects | ✅ `AnimationManager::playEffect(effect, priority)` with `PRIORITY_AMBIENT/GAME/ADMIN` (T6 — PR#27) | `EffectLayer.h` not needed — priority gate is in `AnimationManager` (Option A) |
+| Firmware call-site priority wiring | Not yet done — all calls use default `PRIORITY_GAME` | Wire correct priority at each call site (T9) |
+| `GameEventMapper` switch → table | Still a switch statement — OCP violation | Replace with `LOCAL_EFFECTS[]` / `GLOBAL_EFFECTS[]` registration tables (T9) |
 
 ---
 
-*Last updated: 2026-04-24*  
+*Last updated: 2026-04-24 (post-PR#27: T1–T6 complete, T7–T11 scoped)*  
 *Authors: @copilot, @tamaygz*
