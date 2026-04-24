@@ -27,7 +27,13 @@ try {
     'countdown', 'text', 'winner', 'ballroll', 'clear'];
 }
 
+// Maximum allowed durationMs for test effects.
+// Firmware stores test_effect.durationMs as uint32_t (up to ~49 days).
+// Cap server-side at 1 hour to prevent accidental indefinitely-sticky effects.
+const MAX_EFFECT_DURATION_MS = 60 * 60 * 1000;
+
 // Rate limiter for effect test endpoint: 1 request per second per device
+
 const effectTestLimiter = rateLimit({
   windowMs: 1000, // 1 second
   max: 1,
@@ -36,10 +42,7 @@ const effectTestLimiter = rateLimit({
     return req.body?.deviceId || req.ip;
   },
   handler: (req, res) => {
-    res.status(429).json({
-      error: 'Too many requests',
-      message: 'Effect test rate limit: 1 request per second per device'
-    });
+    res.status(429).json({ error: 'Effect test rate limit: 1 request per second per device' });
   }
 });
 
@@ -62,10 +65,7 @@ function createLedRoutes(ledConfigManager, connectionManager) {
       res.json(config);
     } catch (error) {
       console.error('[LED Routes] Error getting config:', error);
-      res.status(500).json({
-        error: 'Internal server error',
-        message: error.message
-      });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -77,21 +77,13 @@ function createLedRoutes(ledConfigManager, connectionManager) {
     try {
       const { deviceType } = req.params;
       const config = ledConfigManager.getConfigForDeviceType(deviceType);
-      
       if (!config) {
-        return res.status(404).json({
-          error: 'Not found',
-          message: `No configuration found for device type: ${deviceType}`
-        });
+        return res.status(404).json({ error: `No configuration found for device type: ${deviceType}` });
       }
-      
       res.json(config);
     } catch (error) {
       console.error('[LED Routes] Error getting device config:', error);
-      res.status(500).json({
-        error: 'Internal server error',
-        message: error.message
-      });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -103,54 +95,124 @@ function createLedRoutes(ledConfigManager, connectionManager) {
     try {
       const { deviceType } = req.params;
       const deviceConfig = req.body;
-      
-      // Validate payload structure
+
       if (!deviceConfig || typeof deviceConfig !== 'object') {
-        return res.status(400).json({
-          error: 'Bad request',
-          message: 'Request body must be a valid configuration object'
-        });
+        return res.status(400).json({ error: 'Request body must be a valid configuration object' });
       }
-      
-      // Required fields validation
+
       const requiredFields = ['ledCount', 'topology', 'gpioPin', 'brightness', 'defaultEffect'];
-      const missingFields = requiredFields.filter(field => !(field in deviceConfig));
-      
+      const missingFields = requiredFields.filter((field) => !(field in deviceConfig));
       if (missingFields.length > 0) {
-        return res.status(400).json({
-          error: 'Bad request',
-          message: `Missing required fields: ${missingFields.join(', ')}`
-        });
+        return res.status(400).json({ error: `Missing required fields: ${missingFields.join(', ')}` });
       }
-      
-      // Update configuration (validation happens in LedConfigManager)
+
       await ledConfigManager.updateDeviceConfig(deviceType, deviceConfig);
-      
-      // Broadcast new configuration to connected devices
+      console.log(`[LED Routes] Config updated for ${deviceType}`);
       connectionManager.broadcastLedConfig(deviceType, deviceConfig);
-      
+
       res.json({
         success: true,
         message: `Configuration updated for device type: ${deviceType}`,
         config: deviceConfig
       });
-      
     } catch (error) {
       console.error('[LED Routes] Error updating config:', error);
-      
-      // Validation errors return 400
       if (error.message.includes('must be') || error.message.includes('Invalid')) {
-        return res.status(400).json({
-          error: 'Validation error',
-          message: error.message
+        return res.status(400).json({ error: error.message });
+      }
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
+   * GET /api/leds/config/:deviceType/:chipId
+   * Get the effective LED config for a specific device (per-device override or type fallback).
+   */
+  router.get('/config/:deviceType/:chipId', (req, res) => {
+    try {
+      const { deviceType, chipId } = req.params;
+      // Resolve chipType from the connected client so chiptype-aware defaults
+      // (e.g. sensor-esp32 gpioPin=4) are reflected in the response.
+      const connectedClient = connectionManager.getConnectedDevice(chipId, deviceType);
+      const chipType = connectedClient ? (connectedClient.chipType || null) : null;
+      const config = ledConfigManager.getConfigForDevice(deviceType, chipId, chipType);
+      if (!config) {
+        return res.status(404).json({
+          error: `No configuration found for device type: ${deviceType}`
         });
       }
-      
-      // Other errors return 500
-      res.status(500).json({
-        error: 'Internal server error',
-        message: error.message
+      const overrides = ledConfigManager.getAllConfigs().deviceConfigOverrides || {};
+      const hasOverride = !!overrides[`${deviceType}/${chipId}`];
+      res.json({ config, hasOverride });
+    } catch (error) {
+      console.error('[LED Routes] Error getting device config:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
+   * PUT /api/leds/config/:deviceType/:chipId
+   * Set a per-device LED config override for a specific chip.
+   */
+  router.put('/config/:deviceType/:chipId', async (req, res) => {
+    try {
+      const { deviceType, chipId } = req.params;
+      const deviceConfig = req.body;
+
+      if (!deviceConfig || typeof deviceConfig !== 'object') {
+        return res.status(400).json({ error: 'Request body must be a valid configuration object' });
+      }
+
+      const requiredFields = ['ledCount', 'topology', 'gpioPin', 'brightness', 'defaultEffect'];
+      const missingFields = requiredFields.filter((field) => !(field in deviceConfig));
+      if (missingFields.length > 0) {
+        return res.status(400).json({ error: `Missing required fields: ${missingFields.join(', ')}` });
+      }
+
+      await ledConfigManager.updateDeviceOverride(deviceType, chipId, deviceConfig);
+
+      console.log(`[LED Routes] Override set for ${deviceType}/${chipId}`);
+
+      // Push the updated config to the specific device (chiptype-aware, includes deviceColor)
+      connectionManager.sendLedConfigToDevice(chipId, deviceType);
+
+      res.json({
+        success: true,
+        message: `Per-device config override set for ${deviceType}/${chipId}`,
+        config: deviceConfig
       });
+    } catch (error) {
+      console.error('[LED Routes] Error setting device config override:', error);
+      if (error.message.includes('must be') || error.message.includes('Invalid')) {
+        return res.status(400).json({ error: error.message });
+      }
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
+   * DELETE /api/leds/config/:deviceType/:chipId
+   * Remove the per-device override, reverting the device to the type-wide config.
+   */
+  router.delete('/config/:deviceType/:chipId', async (req, res) => {
+    try {
+      const { deviceType, chipId } = req.params;
+      const removed = await ledConfigManager.deleteDeviceOverride(deviceType, chipId);
+      if (!removed) {
+        return res.status(404).json({
+          error: `No per-device override exists for ${deviceType}/${chipId}`
+        });
+      }
+
+      // Push the reverted (chiptype-aware) type default to the device (if connected).
+      // sendLedConfigToDevice resolves getConfigForDevice(deviceType, chipId, client.chipType)
+      // which, with no override present, falls through to the chiptype-specific type default.
+      connectionManager.sendLedConfigToDevice(chipId, deviceType);
+
+      res.json({ success: true, message: `Per-device override removed for ${deviceType}/${chipId}` });
+    } catch (error) {
+      console.error('[LED Routes] Error deleting device config override:', error);
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -222,7 +284,7 @@ function createLedRoutes(ledConfigManager, connectionManager) {
       if (error.message.includes('must be')) {
         return res.status(400).json({ error: error.message });
       }
-      res.status(500).json({ error: 'Internal server error', message: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -232,62 +294,69 @@ function createLedRoutes(ledConfigManager, connectionManager) {
    */
   router.post('/effects/test', effectTestLimiter, (req, res) => {
     try {
-      const { deviceId, effectName, params } = req.body;
-      
-      // Validate required fields
+      const { deviceId, effectName, params, durationMs } = req.body;
+
       if (!deviceId) {
-        return res.status(400).json({
-          error: 'Bad request',
-          message: 'deviceId is required'
-        });
+        return res.status(400).json({ error: 'deviceId is required' });
       }
-      
       if (!effectName) {
-        return res.status(400).json({
-          error: 'Bad request',
-          message: 'effectName is required'
-        });
+        return res.status(400).json({ error: 'effectName is required' });
       }
-      
-      // Validate effect name against shared manifest
       if (!_validEffects.includes(effectName)) {
-        return res.status(400).json({
-          error: 'Bad request',
-          message: `Invalid effectName. Must be one of: ${_validEffects.join(', ')}`
-        });
+        return res.status(400).json({ error: `Invalid effectName. Must be one of: ${_validEffects.join(', ')}` });
       }
-      
-      // Check if device is connected
+
+      const duration = durationMs !== undefined ? Number(durationMs) : 0;
+      if (!Number.isInteger(duration) || duration < 0 || duration > MAX_EFFECT_DURATION_MS) {
+        return res.status(400).json({ error: `durationMs must be an integer between 0 and ${MAX_EFFECT_DURATION_MS} (0 = indefinite)` });
+      }
+
       const device = connectionManager.getDeviceById(deviceId);
       if (!device) {
-        return res.status(404).json({
-          error: 'Device not found',
-          message: `Device ${deviceId} is not connected`
-        });
+        return res.status(404).json({ error: `Device ${deviceId} is not connected` });
       }
-      
-      // Send test effect to device
-      const success = connectionManager.sendTestEffect(deviceId, effectName, params || {});
-      
+
+      const success = connectionManager.sendTestEffect(deviceId, effectName, params || {}, duration);
       if (success) {
-        console.log(`[LED Routes] Effect test: ${effectName} sent to device ${deviceId}`);
+        console.log(`[LED Routes] Effect test: ${effectName} sent to device ${deviceId}${duration ? ` (TTL ${duration}ms)` : ''}`);
         res.json({
           success: true,
-          message: `Test effect '${effectName}' sent to device ${deviceId}`
+          message: `Test effect '${effectName}' sent to device ${deviceId}`,
+          durationMs: duration
         });
       } else {
-        res.status(500).json({
-          error: 'Internal server error',
-          message: 'Failed to send test effect to device'
-        });
+        res.status(500).json({ error: 'Failed to send test effect to device' });
       }
-      
     } catch (error) {
       console.error('[LED Routes] Error sending test effect:', error);
-      res.status(500).json({
-        error: 'Internal server error',
-        message: error.message
-      });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
+   * POST /api/leds/effects/stop
+   * Stop any active test effect on a specific device, restoring the ambient state.
+   */
+  router.post('/effects/stop', (req, res) => {
+    try {
+      const { deviceId } = req.body;
+      if (!deviceId) {
+        return res.status(400).json({ error: 'deviceId is required' });
+      }
+      const device = connectionManager.getDeviceById(deviceId);
+      if (!device) {
+        return res.status(404).json({ error: `Device ${deviceId} is not connected` });
+      }
+      const success = connectionManager.sendStopEffect(deviceId);
+      if (success) {
+        console.log(`[LED Routes] stop_effect sent to device ${deviceId}`);
+        res.json({ success: true, message: `stop_effect sent to device ${deviceId}` });
+      } else {
+        res.status(500).json({ error: 'Failed to send stop_effect to device' });
+      }
+    } catch (error) {
+      console.error('[LED Routes] Error sending stop_effect:', error);
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -301,7 +370,7 @@ function createLedRoutes(ledConfigManager, connectionManager) {
       const manifest = require(MANIFEST_PATH);
       res.json(manifest);
     } catch (err) {
-      res.status(500).json({ error: 'Could not load effects manifest', message: err.message });
+      res.status(500).json({ error: `Could not load effects manifest: ${err.message}` });
     }
   });
 

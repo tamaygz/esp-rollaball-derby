@@ -183,6 +183,85 @@ describe('ConnectionManager — _handleMessage()', () => {
   });
 });
 
+// ─── _handleLog() ───────────────────────────────────────────────────────────
+
+describe('ConnectionManager — _handleLog()', () => {
+  test('broadcasts hardware log messages as log_line', () => {
+    const gameState = new GameState();
+    const cm = new ConnectionManager(gameState);
+    const wsDevice = makeMockWs();
+    const wsDisplay = makeMockWs();
+
+    cm.handleConnection(wsDevice);
+    cm.handleConnection(wsDisplay);
+
+    const [deviceId, displayId] = cm.clients.keys();
+
+    cm._handleRegister(deviceId, wsDevice, {
+      type: 'sensor',
+      playerName: 'Rider',
+      chipId: 'A1B2',
+    });
+    cm._handleRegister(displayId, wsDisplay, { type: 'display' });
+
+    cm._handleLog(deviceId, { message: 'hello log' });
+
+    const logLine = wsDisplay.sent.find((m) => m.type === 'log_line');
+    assert.ok(logLine);
+    assert.equal(logLine.payload.message, 'hello log');
+    assert.equal(logLine.payload.senderType, 'sensor');
+    assert.equal(logLine.payload.senderName, 'Rider');
+    assert.equal(logLine.payload.source, 'A1B2');
+  });
+
+  test('ignores log messages from non-hardware clients', () => {
+    const gameState = new GameState();
+    const cm = new ConnectionManager(gameState);
+    const wsWeb = makeMockWs();
+    const wsDisplay = makeMockWs();
+
+    cm.handleConnection(wsWeb);
+    cm.handleConnection(wsDisplay);
+
+    const [webId, displayId] = cm.clients.keys();
+
+    cm._handleRegister(webId, wsWeb, { type: 'web' });
+    cm._handleRegister(displayId, wsDisplay, { type: 'display' });
+
+    cm._handleLog(webId, { message: 'nope' });
+
+    const hasLogLine = wsDisplay.sent.some((m) => m.type === 'log_line');
+    assert.equal(hasLogLine, false);
+  });
+
+  test('truncates oversized log messages', () => {
+    const gameState = new GameState();
+    const cm = new ConnectionManager(gameState);
+    const wsDevice = makeMockWs();
+    const wsDisplay = makeMockWs();
+
+    cm.handleConnection(wsDevice);
+    cm.handleConnection(wsDisplay);
+
+    const [deviceId, displayId] = cm.clients.keys();
+
+    cm._handleRegister(deviceId, wsDevice, {
+      type: 'sensor',
+      playerName: 'Rider',
+      chipId: 'A1B2',
+    });
+    cm._handleRegister(displayId, wsDisplay, { type: 'display' });
+
+    const longMessage = 'a'.repeat(400);
+    cm._handleLog(deviceId, { message: longMessage });
+
+    const logLine = wsDisplay.sent.find((m) => m.type === 'log_line');
+    assert.ok(logLine);
+    assert.equal(logLine.payload.message.length, 300);
+    assert.ok(logLine.payload.message.endsWith('...'));
+  });
+});
+
 // ─── _handleDisconnect() ─────────────────────────────────────────────────────
 
 describe('ConnectionManager — _handleDisconnect()', () => {
@@ -535,5 +614,65 @@ describe('ConnectionManager — stale socket cleanup', () => {
     assert.equal(ws1Closed, true);
     assert.equal(cm.clients.has(clientId1), false);
     assert.equal(cm.clients.get(clientId2).playerId, playerId);
+  });
+});
+
+// ─── sendTestEffect / sendStopEffect ─────────────────────────────────────────
+
+describe('ConnectionManager — sendTestEffect / sendStopEffect', () => {
+  test('sendTestEffect includes durationMs in test_effect payload', () => {
+    const gameState = new GameState();
+    const cm = new ConnectionManager(gameState);
+    const ws = makeMockWs();
+
+    cm.handleConnection(ws);
+    const [clientId] = cm.clients.keys();
+
+    const success = cm.sendTestEffect(clientId, 'rainbow', { brightness: 200 }, 3000);
+    assert.equal(success, true);
+
+    const msg = ws.lastMessage();
+    assert.equal(msg.type, 'test_effect');
+    assert.equal(msg.payload.effectName, 'rainbow');
+    assert.equal(msg.payload.durationMs, 3000);
+  });
+
+  test('sendTestEffect defaults durationMs to 0 when not provided', () => {
+    const gameState = new GameState();
+    const cm = new ConnectionManager(gameState);
+    const ws = makeMockWs();
+
+    cm.handleConnection(ws);
+    const [clientId] = cm.clients.keys();
+
+    cm.sendTestEffect(clientId, 'solid', {});
+    const msg = ws.lastMessage();
+    assert.equal(msg.payload.durationMs, 0);
+  });
+
+  test('sendStopEffect sends stop_effect message to device', () => {
+    const gameState = new GameState();
+    const cm = new ConnectionManager(gameState);
+    const ws = makeMockWs();
+
+    cm.handleConnection(ws);
+    const [clientId] = cm.clients.keys();
+
+    const success = cm.sendStopEffect(clientId);
+    assert.equal(success, true);
+    const msg = ws.lastMessage();
+    assert.equal(msg.type, 'stop_effect');
+  });
+
+  test('sendStopEffect returns false for unknown deviceId', () => {
+    const gameState = new GameState();
+    const cm = new ConnectionManager(gameState);
+    assert.equal(cm.sendStopEffect('no-such-id'), false);
+  });
+
+  test('sendTestEffect returns false for unknown deviceId', () => {
+    const gameState = new GameState();
+    const cm = new ConnectionManager(gameState);
+    assert.equal(cm.sendTestEffect('no-such-id', 'rainbow', {}), false);
   });
 });

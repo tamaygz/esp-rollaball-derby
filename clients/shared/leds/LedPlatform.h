@@ -48,6 +48,35 @@
     using LedMethod = NeoEsp32Rmt0Ws2812xMethod;
     using LedStrip  = NeoPixelBusLg<NeoGrbFeature, LedMethod, NeoGammaNullMethod>;
 
+#elif defined(NATIVE_TEST)
+    // ── Native / desktop unit-test build ─────────────────────────────────────
+    // No hardware dependencies. Stub types satisfy the LedController interface
+    // so that AnimationManager and EventQueue can be tested on the host machine.
+    #define LED_PLATFORM_NATIVE
+    #define LED_PLATFORM_NAME "native"
+    #define LED_MAX_COUNT 1000
+    #define LED_GPIO_MAX  39
+
+    // Minimal stub that satisfies the NeoPixelBusLg API used by LedController.
+    struct _NativeMethod {};
+    class _NativeLedStrip {
+    public:
+        _NativeLedStrip(uint16_t count, uint8_t) : _count(count) {}
+        void Begin() {}
+        void Show()  {}
+        bool IsDirty() const { return false; }
+        uint16_t PixelCount() const { return _count; }
+        void SetPixelColor(uint16_t, RgbColor) {}
+        RgbColor GetPixelColor(uint16_t) const { return RgbColor(); }
+        void ClearTo(RgbColor) {}
+        void SetLuminance(uint8_t) {}
+        uint8_t GetLuminance() const { return 255; }
+    private:
+        uint16_t _count;
+    };
+    using LedMethod = _NativeMethod;
+    using LedStrip  = _NativeLedStrip;
+
 #else
     #error "Unsupported platform. This code requires ESP8266 or ESP32."
 #endif
@@ -63,7 +92,7 @@ using HsvColor = ::HsbColor;  // NeoPixelBus v2.7+ renamed HsvColor to HsbColor
 inline bool ledPinIsValid(int pin) {
 #if defined(ESP8266)
     return pin == 2 || pin == 3;
-#elif defined(ESP32)
+#elif defined(ESP32) || defined(NATIVE_TEST)
     return pin >= 0 && pin <= LED_GPIO_MAX;
 #else
     return false;

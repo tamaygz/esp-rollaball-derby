@@ -34,6 +34,14 @@ class LedConfigManager extends EventEmitter {
         brightness: 80,
         defaultEffect: 'rainbow'
       },
+      // ESP32 sensors default to GPIO4 (RMT-capable) instead of GPIO2 (UART1-only on ESP8266).
+      'sensor-esp32': {
+        ledCount: 30,
+        topology: 'strip',
+        gpioPin: 4,
+        brightness: 80,
+        defaultEffect: 'rainbow'
+      },
       motor: {
         ledCount: 64,
         topology: 'matrix_zigzag',
@@ -53,7 +61,8 @@ class LedConfigManager extends EventEmitter {
         defaultEffect: 'solid'
       },
       deviceColorMap: {},  // { "<chipId>": colorIndex }
-      deviceNameMap: {}    // { "<chipId>": name }
+      deviceNameMap: {},   // { "<chipId>": name }
+      deviceConfigOverrides: {}  // { "<deviceType>/<chipId>": { ...config } }
     };
   }
 
@@ -71,6 +80,9 @@ class LedConfigManager extends EventEmitter {
       }
       if (!this.config.deviceNameMap) {
         this.config.deviceNameMap = {};
+      }
+      if (!this.config.deviceConfigOverrides) {
+        this.config.deviceConfigOverrides = {};
       }
       console.log('[LedConfigManager] Configuration loaded from', this.configFilePath);
       return this.config;
@@ -122,15 +134,27 @@ class LedConfigManager extends EventEmitter {
   }
 
   /**
-   * Get configuration for a specific device type
+   * Get configuration for a specific device type, optionally narrowed by chip type.
+   *
+   * Resolution order:
+   *   1. `"${deviceType}-${chipType.toLowerCase()}"` entry (e.g. `"sensor-esp32"`) — chiptype override
+   *   2. `"${deviceType}"` entry — type-wide default
+   *
    * @param {string} deviceType - Device type (sensor, motor, display)
+   * @param {string|null} [chipType] - Chip type string (e.g. 'ESP32', 'ESP8266'), or null
    * @returns {Object|null} Device-specific configuration
    */
-  getConfigForDeviceType(deviceType) {
+  getConfigForDeviceType(deviceType, chipType = null) {
     if (!this.config) {
       throw new Error('Configuration not loaded. Call loadConfig() first.');
     }
-    
+
+    // Check chiptype-specific key first (e.g. "sensor-esp32" for chipType="ESP32")
+    if (chipType) {
+      const chipKey = `${deviceType}-${chipType.toLowerCase()}`;
+      if (this.config[chipKey]) return this.config[chipKey];
+    }
+
     return this.config[deviceType] || null;
   }
 
@@ -157,6 +181,68 @@ class LedConfigManager extends EventEmitter {
     console.log(`[LedConfigManager] Updated configuration for device type: ${deviceType}`);
   }
 
+  // ─── Per-Device Config Overrides ──────────────────────────────────────────────
+
+  /**
+   * Get the effective LED config for a specific device.
+   * Returns the per-device override if one exists (merged on top of type config),
+   * otherwise falls back to the chiptype-aware type config.
+   * @param {string} deviceType - Device type (sensor, motor, display)
+   * @param {string|null} chipId - Device chip ID, or null for type-wide lookup
+   * @param {string|null} [chipType] - Chip type (e.g. 'ESP32', 'ESP8266'), or null
+   * @returns {Object|null} Effective config, or null if not found
+   */
+  getConfigForDevice(deviceType, chipId, chipType = null) {
+    const typeConfig = this.getConfigForDeviceType(deviceType, chipType);
+    if (!chipId) return typeConfig;
+    const overrides = this.config.deviceConfigOverrides || {};
+    const key = `${deviceType}/${chipId}`;
+    const overrideConfig = overrides[key];
+
+    if (!overrideConfig) return typeConfig;
+    if (!typeConfig) return overrideConfig;
+
+    return { ...typeConfig, ...overrideConfig };
+  }
+
+  /**
+   * Set a per-device LED config override for a specific chip.
+   * Only the provided fields are overridden; other fields fall back to the type config.
+   * @param {string} deviceType - Device type (sensor, motor, display)
+   * @param {string} chipId - Device chip ID
+   * @param {Object} deviceConfig - Partial or full config to override
+   */
+  async updateDeviceOverride(deviceType, chipId, deviceConfig) {
+    if (!this.config) await this.loadConfig();
+
+    const typeConfig = this.getConfigForDeviceType(deviceType) || {};
+    const effectiveConfig = { ...typeConfig, ...deviceConfig };
+
+    this._validateDeviceConfig(effectiveConfig);
+    const overrides = { ...(this.config.deviceConfigOverrides || {}) };
+    overrides[`${deviceType}/${chipId}`] = deviceConfig;
+    await this.saveConfig({ ...this.config, deviceConfigOverrides: overrides });
+    console.log(`[LedConfigManager] Per-device override set for ${deviceType}/${chipId}`);
+  }
+
+  /**
+   * Remove the per-device LED config override for a specific chip.
+   * After deletion the device reverts to the type-wide config.
+   * @param {string} deviceType - Device type
+   * @param {string} chipId - Device chip ID
+   * @returns {boolean} true if an override existed and was removed, false if none
+   */
+  async deleteDeviceOverride(deviceType, chipId) {
+    if (!this.config) await this.loadConfig();
+    const overrides = { ...(this.config.deviceConfigOverrides || {}) };
+    const key = `${deviceType}/${chipId}`;
+    if (!overrides[key]) return false;
+    delete overrides[key];
+    await this.saveConfig({ ...this.config, deviceConfigOverrides: overrides });
+    console.log(`[LedConfigManager] Per-device override removed for ${deviceType}/${chipId}`);
+    return true;
+  }
+
   /**
    * Get all configurations
    * @returns {Object} Complete configuration object
@@ -181,6 +267,19 @@ class LedConfigManager extends EventEmitter {
     for (const [key, value] of Object.entries(config)) {
       if (key === 'deviceColorMap') continue;
       if (key === 'deviceNameMap') continue;
+      if (key === 'deviceConfigOverrides') {
+        // Validate each per-device override entry
+        if (value && typeof value === 'object') {
+          for (const [overrideKey, overrideValue] of Object.entries(value)) {
+            try {
+              this._validateDeviceConfig(overrideValue);
+            } catch (error) {
+              throw new Error(`Invalid per-device override for ${overrideKey}: ${error.message}`);
+            }
+          }
+        }
+        continue;
+      }
       try {
         this._validateDeviceConfig(value);
       } catch (error) {

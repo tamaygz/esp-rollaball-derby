@@ -19,8 +19,10 @@ function createGameRouter(gameState, connectionManager, botManager) {
   router.post('/start', (req, res) => {
     try {
       connectionManager.startWithCountdown(botManager);
+      console.log('[Game Routes] Start requested');
       res.json({ ok: true });
     } catch (err) {
+      console.warn('[Game Routes] Start rejected:', err.message);
       res.status(400).json({ error: err.message });
     }
   });
@@ -33,10 +35,12 @@ function createGameRouter(gameState, connectionManager, botManager) {
         if (newStatus === 'running') botManager.onGameStart();
         else botManager.onGameStop();
       }
+      console.log(`[Game Routes] Pause toggled: ${newStatus}`);
       connectionManager.broadcastGameEvent(newStatus === 'running' ? 'game_resumed' : 'game_paused');
       connectionManager.broadcastState();
       res.json({ status: newStatus });
     } catch (err) {
+      console.warn('[Game Routes] Pause rejected:', err.message);
       res.status(400).json({ error: err.message });
     }
   });
@@ -47,6 +51,7 @@ function createGameRouter(gameState, connectionManager, botManager) {
     connectionManager.cancelAutoReset();
     if (botManager) botManager.onGameReset();
     gameState.reset();
+    console.log('[Game Routes] Reset requested');
     connectionManager.broadcastGameEvent('game_reset');
     connectionManager.broadcastState();
     connectionManager.broadcastPositions();
@@ -57,9 +62,11 @@ function createGameRouter(gameState, connectionManager, botManager) {
   router.put('/config', (req, res) => {
     try {
       const updated = gameState.updateConfig(req.body);
+      console.log('[Game Routes] Config updated:', updated);
       connectionManager.broadcastState();
       res.json(updated);
     } catch (err) {
+      console.warn('[Game Routes] Config update rejected:', err.message);
       res.status(400).json({ error: err.message });
     }
   });

@@ -77,11 +77,8 @@ public:
     _elapsedTime = 0;
     _currentPosition = 0.0f;
     
-    Serial.print("[ChaseEffect] Started: tail=");
-    Serial.print(_tailLength);
-    Serial.print(" pixels, speed=");
-    Serial.print(_speedPixelsPerSec);
-    Serial.println(" px/s");
+    DERBY_LOG_F("[ChaseEffect] Started: tail=%u pixels, speed=%u px/s\n",
+                _tailLength, _speedPixelsPerSec);
   }
   
   /**

@@ -1,0 +1,37 @@
+{
+  "urls": {
+    "zero_roll": "http://192.168.1.2:8123/local/sfx/Voicy_Ha-Ha.mp3",
+    "score_1": "http://192.168.1.2:8123/local/buzz/short-beep.mp3",
+    "score_2": "http://192.168.1.2:8123/local/sfx/Voicy_Horn 2.mp3",
+    "score_3": "http://192.168.1.2:8123/local/sfx/Kirmes Sprüche 11 (128kbit_AAC).m4a",
+    "streak_zero_3x": "http://192.168.1.2:8123/local/sfx/Voicy_Ha-Ha.mp3",
+    "streak_three_2x": "http://192.168.1.2:8123/local/sfx/freesound_community-winner-bell-game-show-91932.mp3",
+    "took_lead": "http://192.168.1.2:8123/local/sfx/newchallenger.mp3",
+    "became_last": "http://192.168.1.2:8123/local/sfx/Voicy_Sad Violin.mp3",
+    "game_started": "http://192.168.1.2:8123/local/sfx/Voicy_WhistleSFX.mp3",
+    "game_paused": "http://192.168.1.2:8123/local/sfx/Kirmes Sprüche 3 (128kbit_AAC).m4a",
+    "game_resumed": "http://192.168.1.2:8123/local/sfx/Kirmes Sprüche 11 (128kbit_AAC).m4a",
+    "game_reset": "http://192.168.1.2:8123/local/sfx/Kirmes Sprüche 15 (128kbit_AAC).m4a",
+    "countdown_tick": "http://192.168.1.2:8123/local/sfx/Voicy_Alert.mp3",
+    "winner": "http://192.168.1.2:8123/local/sfx/8d82b5_Horse_Race_Fanfare_Sound_Effect.mp3",
+    "countdown_go": "http://192.168.1.2:8123/local/sfx/Kirmes Sprüche 9 (128kbit_AAC).m4a"
+  },
+  "volumes": {
+    "lobby": 0.34,
+    "game": 0.5,
+    "effects": 1
+  },
+  "lobbyMusic": [
+    "http://192.168.1.2:8123/local/sfx/IMAscore - KRAKE Soundtrack [official] (128kbit_AAC).m4a"
+  ],
+  "themeMusic": {},
+  "fallbackMusic": [
+    "http://192.168.1.2:8123/local/sfx/byronatoraustralia-circus-11794.mp3",
+    "http://192.168.1.2:8123/local/sfx/delon_boomkin-circus-music-388517.mp3",
+    "http://192.168.1.2:8123/local/sfx/Happy Traveller - Gack Winter (Offride) Video Bremer Freimarkt 2017 (128kbit_AAC).m4a",
+    "http://192.168.1.2:8123/local/sfx/Kirmes Sprüche 11 (128kbit_AAC).m4a",
+    "http://192.168.1.2:8123/local/sfx/Kirmes Sprüche 13 (128kbit_AAC).m4a",
+    "http://192.168.1.2:8123/local/sfx/Kirmes Sprüche 11 (128kbit_AAC).m4a",
+    "http://192.168.1.2:8123/local/sfx/Kirmes Sprüche 11 (128kbit_AAC).m4a"
+  ]
+}

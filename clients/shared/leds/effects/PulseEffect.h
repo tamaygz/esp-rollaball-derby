@@ -55,7 +55,7 @@ public:
   void setPeriod(uint16_t periodMs) {
     if (periodMs < 100) {
       periodMs = 100; // Minimum 100ms period
-      Serial.println("[PulseEffect] Period clamped to 100ms minimum");
+      DERBY_LOG_LN("[PulseEffect] Period clamped to 100ms minimum");
     }
     _periodMs = periodMs;
   }
@@ -67,9 +67,7 @@ public:
     _startTime = millis();
     _elapsedTime = 0;
     
-    Serial.print("[PulseEffect] Started with period ");
-    Serial.print(_periodMs);
-    Serial.println("ms");
+    DERBY_LOG_F("[PulseEffect] Started with period %ums\n", _periodMs);
   }
   
   /**

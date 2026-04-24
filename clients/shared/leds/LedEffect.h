@@ -9,6 +9,7 @@
 
 #include "LedController.h"
 #include <stdint.h>
+#include <derby_logger.h>
 
 // Effect type identifier enum
 enum EffectType {
@@ -138,7 +139,7 @@ public:
   bool setParams(const EffectParams& params) {
     // Validate speed
     if (params.speed < 0.1f || params.speed > 10.0f) {
-      Serial.println("[LedEffect] Invalid speed, must be 0.1-10.0");
+      DERBY_LOG_LN("[LedEffect] Invalid speed, must be 0.1-10.0");
       return false;
     }
     
