@@ -1,0 +1,27 @@
+{
+  "name": "Derby Sensor (ESP32 DevKit)",
+  "new_install_prompt_erase": true,
+  "builds": [
+    {
+      "chipFamily": "ESP32",
+      "parts": [
+        {
+          "path": "https://github.com/tamaygz/esp-rollaball-derby/releases/latest/download/bootloader-esp32dev.bin",
+          "offset": 4096
+        },
+        {
+          "path": "https://github.com/tamaygz/esp-rollaball-derby/releases/latest/download/partitions-esp32dev.bin",
+          "offset": 32768
+        },
+        {
+          "path": "https://github.com/tamaygz/esp-rollaball-derby/releases/latest/download/boot_app0-esp32dev.bin",
+          "offset": 57344
+        },
+        {
+          "path": "https://github.com/tamaygz/esp-rollaball-derby/releases/latest/download/firmware-esp32dev.bin",
+          "offset": 65536
+        }
+      ]
+    }
+  ]
+}

@@ -1,10 +1,10 @@
 {
   "sensor": {
     "ledCount": 8,
-    "gpioPin": 3,
+    "gpioPin": 4,
     "topology": "strip",
-    "brightness": 80,
-    "defaultEffect": "sparkle"
+    "brightness": 55,
+    "defaultEffect": "chase"
   },
   "motor": {
     "ledCount": 256,
@@ -26,10 +26,12 @@
   },
   "deviceColorMap": {
     "00B7F33C": 15,
-    "701C34FE8CE0": 9
+    "701C34FE8CE0": 9,
+    "0000307F33FE8CE0": 13
   },
   "deviceNameMap": {
     "00B7F33C": "Gallop Poll",
-    "701C34FE8CE0": "Thunderhooves"
+    "701C34FE8CE0": "Thunderhooves",
+    "0000307F33FE8CE0": "tg15"
   }
 }

@@ -24,8 +24,8 @@ LedManager::LedManager()
 // ─── begin ─────────────────────────────────────────────────────────────────────
 
 void LedManager::begin(const LedConfig& cfg) {
-    // Clamp LED count to ESP8266 DMA hardware maximum.
-    uint16_t count = min(cfg.ledCount, static_cast<uint16_t>(300));
+    // Clamp LED count to per-platform safe maximum.
+    uint16_t count = min(cfg.ledCount, static_cast<uint16_t>(LED_MAX_COUNT));
 
     if (!_controller.begin(count, cfg.pin)) {
         Serial.printf("[LED] ERROR: LedController::begin failed (%u LEDs, pin %u)\n",
@@ -59,7 +59,7 @@ void LedManager::applyConfig(const LedConfig& cfg) {
     }
 
     uint8_t  pin   = cfg.pin;
-    uint16_t count = min(cfg.ledCount, static_cast<uint16_t>(300));
+    uint16_t count = min(cfg.ledCount, static_cast<uint16_t>(LED_MAX_COUNT));
 
     // Re-initialise the NeoPixelBus strip when LED count or pin changes
     // (different pin may switch between DMA and UART1 methods).

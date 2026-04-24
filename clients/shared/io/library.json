@@ -1,14 +1,14 @@
 {
   "name": "io",
   "version": "1.0.0",
-  "description": "Shared IO helpers: StatusLed and ButtonManager for Derby firmware clients",
-  "keywords": "statusled, button, debounce, derby",
+  "description": "Shared IO helpers: StatusLed, ButtonManager, and device identity (device_info) for Derby firmware clients",
+  "keywords": "statusled, button, debounce, device-id, chip-identity, derby",
   "authors": {
     "name": "Derby"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/derby/esp-rollaball-derby"
+    "url": "https://github.com/tamaygz/esp-rollaball-derby"
   },
   "license": "MIT",
   "frameworks": "arduino",

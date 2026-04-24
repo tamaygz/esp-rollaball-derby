@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 90" width="416" height="720">
+  <!--
+    Reef Race Finish Marker — Anchor on a pole
+    Pole: ocean-blue steel. Banner: teal wave flag with anchor symbol.
+    Reef-themed: undersea diver buoy / anchor post style.
+  -->
+  <defs>
+    <linearGradient id="rPole" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"   stop-color="#1A4A6A"/>
+      <stop offset="40%"  stop-color="#2A7A9A"/>
+      <stop offset="100%" stop-color="#1A5A7A"/>
+    </linearGradient>
+    <linearGradient id="rBanner" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#007A8A"/>
+      <stop offset="50%"  stop-color="#00B5D8"/>
+      <stop offset="100%" stop-color="#0088AA"/>
+    </linearGradient>
+  </defs>
+
+  <!-- ── Pole ───────────────────────────────────────────────────── -->
+  <rect x="23" y="0" width="5" height="90" rx="2.5" fill="url(#rPole)"/>
+  <!-- Highlight stripe -->
+  <rect x="24.5" y="0" width="1.5" height="90" rx="0.75" fill="#5ABCDA" opacity="0.4"/>
+
+  <!-- ── Pole finial — anchor crown ────────────────────────────── -->
+  <!-- Ring at very top -->
+  <circle cx="25.5" cy="5" r="4.5" fill="#00B5D8"/>
+  <circle cx="25.5" cy="5" r="2.8" fill="#007A8A"/>
+  <!-- Anchor shaft stub pointing up -->
+  <rect x="24.5" y="0" width="2" height="5" rx="1" fill="#2A9ABA"/>
+
+  <!-- ── Decorative rings on pole ──────────────────────────────── -->
+  <rect x="22" y="18" width="8" height="3" rx="1.5" fill="#1A5A7A"/>
+  <rect x="22" y="32" width="8" height="3" rx="1.5" fill="#1A5A7A"/>
+
+  <!-- ── Flag / Banner ─────────────────────────────────────────── -->
+  <!-- Wave-shaped pennant flying right from pole -->
+  <path d="M28,8
+    Q36,6 46,10
+    Q50,14 48,22
+    Q46,28 40,30
+    Q34,32 28,30
+    Z"
+    fill="url(#rBanner)"/>
+  <!-- Wave highlight along top edge -->
+  <path d="M28,8 Q36,6 46,10 Q50,14 48,22"
+    stroke="#80DDEF" stroke-width="0.8" fill="none" opacity="0.6"/>
+
+  <!-- ── Anchor symbol on flag ──────────────────────────────────── -->
+  <g transform="translate(39, 18)" fill="white" opacity="0.85">
+    <!-- Anchor ring at top -->
+    <circle cx="0" cy="-7" r="3.2" fill="none" stroke="white" stroke-width="1.4" opacity="0.85"/>
+    <!-- Anchor shaft -->
+    <rect x="-0.7" y="-5" width="1.4" height="11" rx="0.7" fill="white" opacity="0.85"/>
+    <!-- Anchor crossbar -->
+    <rect x="-5" y="-3" width="10" height="1.4" rx="0.7" fill="white" opacity="0.85"/>
+    <!-- Anchor flukes -->
+    <path d="M-0.7,6 C-4,6 -6,4 -5,2" stroke="white" stroke-width="1.4" fill="none" stroke-linecap="round" opacity="0.85"/>
+    <path d="M0.7,6 C4,6 6,4 5,2"    stroke="white" stroke-width="1.4" fill="none" stroke-linecap="round" opacity="0.85"/>
+    <!-- Fluke tips (small circles) -->
+    <circle cx="-5.2" cy="1.5" r="1.5" fill="white" opacity="0.85"/>
+    <circle cx="5.2"  cy="1.5" r="1.5" fill="white" opacity="0.85"/>
+  </g>
+
+  <!-- ── Flag edge / outline ────────────────────────────────────── -->
+  <path d="M28,8 Q36,6 46,10 Q50,14 48,22 Q46,28 40,30 Q34,32 28,30 Z"
+    fill="none" stroke="#00889A" stroke-width="0.6"/>
+
+  <!-- ── Rope coil at pole base ─────────────────────────────────── -->
+  <ellipse cx="25.5" cy="86" rx="7" ry="3" fill="#1A3A5A" opacity="0.6"/>
+  <ellipse cx="25.5" cy="86" rx="5" ry="2" fill="#2A5A7A" opacity="0.5"/>
+</svg>

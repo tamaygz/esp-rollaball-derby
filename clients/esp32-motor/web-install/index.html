@@ -379,10 +379,14 @@
         <span class="step-n">01</span>
         <span class="step-label">Board</span>
       </div>
-      <div class="seg-group single" id="board-group">
+      <div class="seg-group" id="board-group">
         <button class="seg on" data-board="esp32dev">
           <strong>ESP32 Dev Module</strong>
           <small>DOIT DevKit · 4 MB flash</small>
+        </button>
+        <button class="seg" data-board="esp32-s3">
+          <strong>ESP32-S3</strong>
+          <small>ESP32-S3-WROOM-1 · 16 MB flash</small>
         </button>
       </div>
     </div>
@@ -489,10 +493,12 @@
 
 // ── Manifest URLs ─────────────────────────────────────────────────────────────
 const MANIFESTS = {
-  esp32dev: './manifest.json',
+  esp32dev:  './manifest.json',
+  'esp32-s3': './manifest-esp32-s3.json',
 };
 const MANIFESTS_BUNDLED = {
-  esp32dev: './manifest-bundled.json',
+  esp32dev:  './manifest-bundled.json',
+  'esp32-s3': './manifest-bundled-esp32-s3.json',
 };
 
 // ── DOM refs ──────────────────────────────────────────────────────────────────

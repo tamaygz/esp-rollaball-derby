@@ -61,7 +61,7 @@ Connect to `ws://localhost:3000`. All messages are JSON `{ type, payload }`.
 
 | `type` | Direction | Description |
 |--------|-----------|-------------|
-| `register` | client→server | Register with `{ type: "web"\|"sensor"\|"display"\|"motor", playerName?, playerId? }` |
+| `register` | client→server | Register with `{ type: "web"\|"sensor"\|"display"\|"motor", playerName?, playerId?, chipId?, chipType?, ledCount?, ledCapabilities? }` |
 | `registered` | server→client | Confirms registration with `{ id, name, playerType }` |
 | `score` | client→server | `{ playerId, points }` — points: 0, 1, 2, or 3 |
 | `state` | server→broadcast | Full game state snapshot |
@@ -82,8 +82,15 @@ Devices (sensor, motor) register with optional `ledCount` and `chipType` fields:
   "payload": {
     "type": "sensor",
     "playerName": "ESP-001",
-    "ledCount": 10,
-    "chipType": "ESP8266"
+    "playerId": "",
+    "chipId": "DEADBEEF",
+    "chipType": "ESP8266",
+    "ledCount": 30,
+    "ledCapabilities": {
+      "maxLeds": 300,
+      "method": "UART1",
+      "pin": 2
+    }
   }
 }
 ```

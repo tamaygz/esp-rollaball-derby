@@ -48,9 +48,10 @@ class BotManager {
    * @returns {{ id: string, playerId: string, playerName: string }}
    */
   addBot() {
-    const botId    = randomUUID();
-    const name     = this.gameState.assignName();
-    const player   = this.gameState.addPlayer(botId, name, 'bot');
+    const botId     = randomUUID();
+    const name      = this.gameState.assignName();
+    const colorIndex = this.gameState.nextFreeColorIndex();
+    const player    = this.gameState.addPlayer(botId, name, 'bot', colorIndex);
     const bot      = { id: botId, playerId: botId, playerName: player.name, timer: null };
 
     this._bots.set(botId, bot);

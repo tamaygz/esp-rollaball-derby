@@ -28,10 +28,32 @@ Derby.LED = (function () {
 
   // ── Platform constants ──────────────────────────────────────────────────────
 
-  var PLATFORM = {
-    sensor: { chipName: 'ESP8266', maxLeds: 300, defaultPin: 2, defaultTopology: 'strip' },
-    motor:  { chipName: 'ESP32',   maxLeds: 1000, defaultPin: 4, defaultTopology: 'matrix_zigzag' },
+  // Chip-level capabilities used to drive the pin selector and LED count limits.
+  // Keyed by normalised chipType string (uppercase) as reported by the device.
+  var CHIP = {
+    'ESP8266': { chipName: 'ESP8266', maxLeds: 300,  defaultPin: 2, defaultTopology: 'strip', pinGroup: 'esp8266',
+                 pinHint: 'ESP8266: GPIO2 = UART1 (leaves Serial free); GPIO3 = DMA (uses RX pin).' },
+    'ESP32':   { chipName: 'ESP32',   maxLeds: 1000, defaultPin: 4, defaultTopology: 'strip', pinGroup: 'esp32',
+                 pinHint: 'ESP32: GPIO4 is the default strip pin (RMT ch0, hardware-timed). GPIO2 is reserved for the onboard status LED.' },
   };
+
+  // Legacy per-type defaults used as fallback when chipType is not yet known.
+  var PLATFORM = {
+    sensor: CHIP['ESP8266'],
+    motor:  CHIP['ESP32'],
+  };
+
+  /**
+   * Return the CHIP entry for a device, using chipType when available and
+   * falling back to the type-based default (sensor→ESP8266, motor→ESP32).
+   */
+  function _chipFor(device) {
+    if (device && device.chipType) {
+      var key = String(device.chipType).toUpperCase();
+      if (CHIP[key]) return CHIP[key];
+    }
+    return PLATFORM[device && device.type] || CHIP['ESP8266'];
+  }
 
   // ── Initialization ──────────────────────────────────────────────────────────
 
@@ -106,9 +128,6 @@ Derby.LED = (function () {
 
     var topologySelect = _el('led-topology');
     if (topologySelect) topologySelect.addEventListener('change', _handleTopologyChange);
-
-    var syncAllBtn = _el('led-sync-all');
-    if (syncAllBtn) syncAllBtn.addEventListener('click', _handleSyncAll);
 
     var effectSelect = _el('led-effect-select');
     if (effectSelect) effectSelect.addEventListener('change', _handleEffectChange);
@@ -221,7 +240,9 @@ Derby.LED = (function () {
         '<div class="led-device-info">' +
           '<div class="led-device-name">' + _esc(device.name || 'Unknown') + '</div>' +
           '<div class="led-device-meta">' +
-            _esc(device.type) + ' · ' + detectedLEDs + ' LEDs · ' + _esc(colorName) +
+            _esc(device.type) +
+            (device.chipType ? ' (' + _esc(device.chipType) + ')' : '') +
+            ' · ' + detectedLEDs + ' LEDs · ' + _esc(colorName) +
           '</div>' +
         '</div>' +
         '<span class="led-status-badge led-status-' + connected + '"></span>' +
@@ -355,11 +376,11 @@ Derby.LED = (function () {
    * Falls back to platform defaults if the server config hasn't loaded yet.
    */
   function _populateConfigForm(device) {
-    var platform = PLATFORM[device.type] || PLATFORM.sensor;
-    var stored   = _allConfigs[device.type] || {};
+    var chip   = _chipFor(device);
+    var stored = _allConfigs[device.type] || {};
 
-    var gpioPin    = stored.gpioPin    || platform.defaultPin;
-    var topology   = stored.topology   || platform.defaultTopology;
+    var gpioPin    = stored.gpioPin    || chip.defaultPin;
+    var topology   = stored.topology   || chip.defaultTopology || 'strip';
     var brightness = stored.brightness !== undefined ? stored.brightness : 80;
     var matrixRows = stored.matrixRows || 8;
     var matrixCols = stored.matrixCols || 8;
@@ -370,14 +391,14 @@ Derby.LED = (function () {
     // ── LED count ──
     var ledCountEl = _el('led-count');
     if (ledCountEl) {
-      ledCountEl.max   = platform.maxLeds;
+      ledCountEl.max   = chip.maxLeds;
       ledCountEl.value = stored.ledCount || device.ledCount || (device.type === 'motor' ? 64 : 30);
     }
     var hintEl = _el('led-count-hint');
-    if (hintEl) hintEl.textContent = platform.chipName + ' · max ' + platform.maxLeds + ' LEDs';
+    if (hintEl) hintEl.textContent = chip.chipName + ' · max ' + chip.maxLeds + ' LEDs';
 
     // ── GPIO pin ── show only the relevant platform's optgroup, select the right pin
-    _updatePinSelector(device.type, gpioPin);
+    _updatePinSelector(chip, gpioPin);
 
     // ── Topology ──
     var topologyEl = _el('led-topology');
@@ -412,9 +433,11 @@ Derby.LED = (function () {
   }
 
   /**
-   * Show only the GPIO optgroup relevant to the device type and select the right pin.
+   * Show only the GPIO optgroup relevant to the chip and select the right pin.
+   * @param {object} chip  - Entry from CHIP (has .pinGroup and .pinHint).
+   * @param {number} pinValue - GPIO pin number to pre-select.
    */
-  function _updatePinSelector(deviceType, pinValue) {
+  function _updatePinSelector(chip, pinValue) {
     var esp8266Group = _el('led-pin-esp8266');
     var esp32Group   = _el('led-pin-esp32');
     var hintEl       = _el('led-pin-hint');
@@ -422,16 +445,10 @@ Derby.LED = (function () {
 
     if (!pinEl) return;
 
-    if (deviceType === 'sensor') {
-      if (esp8266Group) esp8266Group.style.display = '';
-      if (esp32Group)   esp32Group.style.display   = 'none';
-      if (hintEl) hintEl.textContent = 'ESP8266: GPIO2 = UART1 (leaves Serial free); GPIO3 = DMA (uses RX pin).';
-    } else {
-      // motor = ESP32
-      if (esp8266Group) esp8266Group.style.display = 'none';
-      if (esp32Group)   esp32Group.style.display   = '';
-      if (hintEl) hintEl.textContent = 'ESP32: GPIO4 is the default matrix pin (RMT ch0, hardware-timed).';
-    }
+    var isEsp32 = chip.pinGroup === 'esp32';
+    if (esp8266Group) esp8266Group.style.display = isEsp32 ? 'none' : '';
+    if (esp32Group)   esp32Group.style.display   = isEsp32 ? '' : 'none';
+    if (hintEl) hintEl.textContent = chip.pinHint || '';
 
     // Select the right option; if nothing matches, browser stays on first enabled option
     pinEl.value = String(pinValue);
@@ -513,6 +530,21 @@ Derby.LED = (function () {
       brightness:    parseInt(_el('led-brightness').value, 10),
       defaultEffect: _el('led-effect-select').value || 'solid',
     };
+
+    // Validate ledCount and gpioPin against the chip's known hardware limits.
+    var chip = _chipFor(_selectedDevice);
+    if (isNaN(config.ledCount) || config.ledCount < 1 || config.ledCount > chip.maxLeds) {
+      _showError('LED count must be 1–' + chip.maxLeds + ' for ' + chip.chipName);
+      return;
+    }
+    if (chip.pinGroup === 'esp8266' && config.gpioPin !== 2 && config.gpioPin !== 3) {
+      _showError(chip.chipName + ': only GPIO2 (UART1) and GPIO3 (DMA) are valid LED pins');
+      return;
+    }
+    if (chip.pinGroup === 'esp32' && (isNaN(config.gpioPin) || config.gpioPin < 0 || config.gpioPin > 39)) {
+      _showError(chip.chipName + ': LED pin must be GPIO 0–39');
+      return;
+    }
 
     if (config.topology.startsWith('matrix')) {
       config.matrixRows = parseInt(_el('led-matrix-rows').value, 10);
@@ -602,18 +634,6 @@ Derby.LED = (function () {
     }
     if (speedEl) params.speed = parseInt(speedEl.value, 10);
     return params;
-  }
-
-  // ── Sync All ────────────────────────────────────────────────────────────────
-
-  function _handleSyncAll() {
-    fetch('/api/leds/config/sync-all', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-    })
-      .then(function (res) { return res.json(); })
-      .then(function () { _showSuccess('Configuration synced to all devices'); })
-      .catch(function (err) { _showError('Sync failed: ' + err.message); });
   }
 
   // ── UI Helpers ──────────────────────────────────────────────────────────────

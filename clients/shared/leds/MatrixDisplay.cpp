@@ -49,7 +49,7 @@ void MatrixDisplay::applyConfig(const LedConfig& cfg) {
         if (cfg.hasDeviceColor) {
             setDeviceColor(cfg.deviceColorR, cfg.deviceColorG, cfg.deviceColorB);
         }
-        if (_strip) _strip->SetBrightness(cfg.brightness);
+        if (_strip) _strip->SetLuminance(cfg.brightness);
     }
 }
 

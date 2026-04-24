@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Derby Sensor — Firmware Flasher</title>
+  <title>Derby Sensor (ESP8266 / ESP32) — Firmware Flasher</title>
+  <meta name="description" content="Browser flasher for Derby sensor firmware on ESP8266 and ESP32 boards." />
   <link rel="icon" href="/favicon.ico" sizes="any">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -347,7 +348,7 @@
 
   <!-- Header -->
   <header class="hdr">
-    <div class="badge">⚡ ESP8266 Flasher</div>
+    <div class="badge">⚡ ESP8266 / ESP32 Flasher</div>
     <h1>Derby <em>Sensor</em></h1>
     <p class="sub">Flash IR sensor firmware directly from your browser — no toolchain required.</p>
   </header>
@@ -383,6 +384,10 @@
         <button class="seg" data-board="nodemcuv2">
           <strong>NodeMCU v2 / v3</strong>
           <small>CH340 · 4 MB flash</small>
+        </button>
+        <button class="seg" data-board="esp32dev">
+          <strong>ESP32 DevKit</strong>
+          <small>ESP32-WROOM · USB-UART</small>
         </button>
       </div>
     </div>
@@ -491,10 +496,17 @@
 const MANIFESTS = {
   d1_mini:   './manifest.json',
   nodemcuv2: './manifest-nodemcuv2.json',
+  esp32dev:  './manifest-esp32dev.json',
 };
 const MANIFESTS_BUNDLED = {
   d1_mini:   './manifest-bundled.json',
   nodemcuv2: './manifest-bundled-nodemcuv2.json',
+  esp32dev:  './manifest-bundled-esp32dev.json',
+};
+const BOARD_CHIP_FAMILY = {
+  d1_mini:   'ESP8266',
+  nodemcuv2: 'ESP8266',
+  esp32dev:  'ESP32',
 };
 
 // ── DOM refs ──────────────────────────────────────────────────────────────────
@@ -517,6 +529,8 @@ const cfgRetryBtn   = document.getElementById('cfg-retry-btn');
 let currentBoard = 'd1_mini';
 let currentSrc   = 'auto';
 let manualUrl    = null;   // Object URL for blob manifest when source=manual
+let manualBinFile = null;  // Last uploaded .bin for rebuilding manifest on board switch
+const ESP32_APP_MAGIC = 0xE9;
 
 // ── Browser compat ────────────────────────────────────────────────────────────
 {
@@ -539,6 +553,9 @@ boardGroup.addEventListener('click', (e) => {
   boardGroup.querySelectorAll('.seg').forEach(b => b.classList.toggle('on', b === btn));
   if (currentSrc === 'auto')     ewib.manifest = MANIFESTS[currentBoard];
   if (currentSrc === 'bundled')  checkBundledAndSet();
+  if (currentSrc === 'manual' && manualBinFile) {
+    handleBinFile(manualBinFile);
+  }
 });
 
 // ── Firmware source ───────────────────────────────────────────────────────────
@@ -573,24 +590,51 @@ binFileInput.addEventListener('change', () => {
   if (binFileInput.files[0]) handleBinFile(binFileInput.files[0]);
 });
 
-function handleBinFile(file) {
+async function handleBinFile(file) {
   if (!file.name.toLowerCase().endsWith('.bin')) {
     setStatus('Only .bin files are supported', 'err');
     return;
   }
+  if (file.size === 0) {
+    setStatus('Empty .bin file is not valid', 'err');
+    return;
+  }
   if (manualUrl) URL.revokeObjectURL(manualUrl);
 
+  manualBinFile = file;
   const binUrl = URL.createObjectURL(file);
+  let parts = [{ path: binUrl, offset: 0 }];
+  let statusMsg = '';
+  let statusCls = '';
+
+  if (currentBoard === 'esp32dev') {
+    // ESP32 app-only images usually start with 0xE9 at byte 0 and flash at 0x10000.
+    // Merged flash-at-0x0 images usually contain only erased bytes (0xFF) before 0x1000.
+    const probeSize = Math.min(file.size, 4096);
+    const header = new Uint8Array(await file.slice(0, probeSize).arrayBuffer());
+    // 0xE9 is the ESP-IDF app image magic at offset 0 for app-only binaries.
+    const isAppImage = header[0] === ESP32_APP_MAGIC;
+    if (isAppImage) {
+      parts = [{ path: binUrl, offset: 0x10000 }];
+      statusMsg = 'Detected ESP32 app image. Flashing at 0x10000 (bootloader/partitions must already exist on device; if it does not boot, use a merged image).';
+      statusCls = 'warn';
+    } else {
+      parts = [{ path: binUrl, offset: 0 }];
+      statusMsg = 'Detected merged ESP32 image. Flashing at 0x0.';
+      statusCls = 'ok';
+    }
+  }
+
   const manifest = {
     name: 'Derby Sensor (custom)',
     new_install_prompt_erase: true,
-    builds: [{ chipFamily: 'ESP8266', parts: [{ path: binUrl, offset: 0 }] }],
+    builds: [{ chipFamily: BOARD_CHIP_FAMILY[currentBoard] || 'ESP8266', parts }],
   };
   const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
   manualUrl = URL.createObjectURL(manifestBlob);
   ewib.manifest = manualUrl;
   binNameEl.textContent = `✓  ${file.name}`;
-  setStatus('');
+  setStatus(statusMsg, statusCls);
 }
 
 // ── Bundled firmware availability check ───────────────────────────────────────

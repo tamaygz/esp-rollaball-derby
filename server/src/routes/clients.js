@@ -12,27 +12,29 @@ const rateLimit = require('express-rate-limit');
  * endpoints (motor calibration + Bluetooth management) without the browser
  * needing to know the ESP32's IP address directly.
  */
+
+// Rate limiting middleware for motor control endpoints — created once at module
+// load time (express-rate-limit requires instances not be created per-request).
+// Prevents excessive requests that could overwhelm the ESP32 wireless link
+// or cause rapid motor commands to queue up and become unsafe.
+const motorLimiter = rateLimit({
+  windowMs: 1000,        // 1-second window
+  max: 10,               // Max 10 requests per window (10 req/sec)
+  standardHeaders: true, // Include rate-limit headers in response
+  skip: (_req, _res) => false,
+  message: 'Motor endpoint rate limit exceeded. Please try again later.',
+});
+
+const motorColorsLimiter = rateLimit({
+  windowMs: 1000,
+  max: 5,                // Stricter limit for color changes (5 req/sec)
+  standardHeaders: true,
+  skip: (_req, _res) => false,
+  message: 'Color update rate limit exceeded. Please try again later.',
+});
+
 function createClientsRouter(gameState, connectionManager) {
   const router = Router();
-
-  // Rate limiting middleware for motor control endpoints
-  // Prevents excessive requests that could overwhelm the ESP32 wireless link
-  // or cause rapid motor commands to queue up and become unsafe
-  const motorLimiter = rateLimit({
-    windowMs: 1000,        // 1-second window
-    max: 10,               // Max 10 requests per window (10 req/sec)
-    standardHeaders: true, // Include rate-limit headers in response
-    skip: (_req, _res) => false,
-    message: 'Motor endpoint rate limit exceeded. Please try again later.',
-  });
-
-  const motorColorsLimiter = rateLimit({
-    windowMs: 1000,
-    max: 5,                // Stricter limit for color changes (5 req/sec)
-    standardHeaders: true,
-    skip: (_req, _res) => false,
-    message: 'Color update rate limit exceeded. Please try again later.',
-  });
 
   // GET / — all currently connected WS clients, enriched with player context
   router.get('/', (req, res) => {

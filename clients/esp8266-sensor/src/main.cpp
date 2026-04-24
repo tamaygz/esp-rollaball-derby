@@ -1,7 +1,17 @@
 #include <Arduino.h>
+#if defined(ESP8266)
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
 #include <ESP8266mDNS.h>
+using DerbyWebServer = ESP8266WebServer;
+#elif defined(ESP32)
+#include <WiFi.h>
+#include <WebServer.h>
+#include <ESPmDNS.h>
+using DerbyWebServer = WebServer;
+#else
+#error "Unsupported board: define ESP8266 or ESP32 target"
+#endif
 #include <WiFiManager.h>
 #include <LittleFS.h>
 #include <ArduinoJson.h>
@@ -10,18 +20,23 @@
 #include "websocket.h"
 #include "sensors.h"
 #include "led.h"
+#include "status_led.h"
+#include <device_info.h>
 
 // ─── Global Instances ─────────────────────────────────────────────────────────
 static WSClient        wsClient;
 static Sensors         sensors;
 static LedManager      ledManager;
-static ESP8266WebServer httpServer(HTTP_CONFIG_PORT);
+static StatusLed       statusLed;
+static DerbyWebServer  httpServer(HTTP_CONFIG_PORT);
 
 // Flag set by the /config handler so the reboot happens after the HTTP response
 // has been flushed to the client.
 static bool g_pendingRestart = false;
 
 // ─── Runtime Config (loaded from LittleFS, populated by WiFiManager) ──────────
+// Global state: embedded firmware convention — no DI framework on-target.
+// Mutable state is intentionally module-level; functions operate on these globals directly.
 static char g_serverIp  [40] = "192.168.1.200";
 static char g_serverPort[ 6] = "3000";
 static char g_playerName[21] = "";
@@ -106,6 +121,8 @@ static bool isValidStateFile(const char* path) {
     return !err;
 }
 
+
+
 static void loadState() {
     const bool hasState = LittleFS.exists(STATE_FILE);
     const bool hasTemp  = LittleFS.exists(STATE_TMP);
@@ -159,7 +176,10 @@ static void loadState() {
         const int bri   = doc["led_brightness"] | static_cast<int>(LED_DEFAULT_BRIGHTNESS);
 
         // Validate / clamp to safe ranges — corrupted state must not brick LEDs.
-        if (count < 1 || count > 300 || pin < 0 || pin > 16 || bri < 0 || bri > 255) {
+        const bool isCountValid      = (count >= 1 && count <= LED_MAX_COUNT);
+        const bool isPinValid        = ledPinIsValid(pin);  // defined in LedPlatform.h (via config.h)
+        const bool isBrightnessValid = (bri >= 0 && bri <= 255);
+        if (!isCountValid || !isPinValid || !isBrightnessValid) {
             Serial.println("[STATE] LED config out of range — ignoring saved values");
         } else {
             g_savedLedConfig.ledCount   = static_cast<uint16_t>(count);
@@ -269,7 +289,7 @@ static void flushStateIfNeeded() {
 static bool discoverServer(String& host, uint16_t& port) {
     // Build a unique mDNS hostname: "derby-sensor-XXXX"
     char mdnsName[32];
-    snprintf(mdnsName, sizeof(mdnsName), "derby-sensor-%04x", ESP.getChipId() & 0xFFFF);
+    snprintf(mdnsName, sizeof(mdnsName), "derby-sensor-%04x", derbyChipSuffix16());
 
     if (!MDNS.begin(mdnsName)) {
         Serial.println("[mDNS] Failed to start responder");
@@ -278,14 +298,47 @@ static bool discoverServer(String& host, uint16_t& port) {
 
     Serial.println("[mDNS] Querying for _derby._tcp ...");
     int n = MDNS.queryService("derby", "tcp");
-    if (n > 0) {
-        host = MDNS.IP(0).toString();
-        port = MDNS.port(0);
-        Serial.printf("[mDNS] Found server at %s:%u\n", host.c_str(), port);
-        return true;
+    if (n <= 0) {
+        Serial.println("[mDNS] No server found — falling back to config");
+        return false;
     }
 
-    Serial.println("[mDNS] No server found — falling back to config");
+    // Pick the first result on the same subnet as the ESP32's WiFi interface.
+    // Windows hosts can advertise mDNS from multiple adapters (e.g. WSL2 bridge),
+    // so we must reject IPs that are unreachable from the sensor's subnet.
+    IPAddress localIp = WiFi.localIP();
+    IPAddress mask    = WiFi.subnetMask();
+
+    // On ESP32, subnetMask() can return 0.0.0.0 immediately after connect while
+    // DHCP is still settling. Fall back to /24 — covers virtually all home/office
+    // networks and is enough to distinguish 192.168.x.x from 172.x.x.x.
+    if ((uint32_t)mask == 0) {
+        mask = IPAddress(255, 255, 255, 0);
+        Serial.printf("[mDNS] Subnet mask not ready — assuming /24 (local IP: %s)\n",
+                      localIp.toString().c_str());
+    }
+
+    uint32_t myNet = (uint32_t)localIp & (uint32_t)mask;
+    Serial.printf("[mDNS] Local: %s  mask: %s  net: %d.%d.%d.%d  candidates: %d\n",
+                  localIp.toString().c_str(), mask.toString().c_str(),
+                  (myNet >> 24) & 0xFF, (myNet >> 16) & 0xFF,
+                  (myNet >> 8) & 0xFF, myNet & 0xFF, n);
+
+    for (int i = 0; i < n; i++) {
+        IPAddress candidate = MDNS.IP(i);
+        uint32_t candNet    = (uint32_t)candidate & (uint32_t)mask;
+        Serial.printf("[mDNS] Candidate[%d]: %s  net match: %s\n",
+                      i, candidate.toString().c_str(),
+                      candNet == myNet ? "YES" : "NO");
+        if (candNet == myNet) {
+            host = candidate.toString();
+            port = MDNS.port(i);
+            Serial.printf("[mDNS] Selected server at %s:%u\n", host.c_str(), port);
+            return true;
+        }
+    }
+
+    Serial.println("[mDNS] No same-subnet server found — falling back to config");
     return false;
 }
 
@@ -375,10 +428,12 @@ void setup() {
     if (g_hasLedConfig) {
         ledManager.begin(g_savedLedConfig);
         wsClient.setLedMetadata(g_savedLedConfig.ledCount);
+        statusLed.begin(g_savedLedConfig.pin);
         Serial.println("[BOOT] Using saved LED config from previous session");
     } else {
         ledManager.begin(ledConfigDefaults());
         wsClient.setLedMetadata(LED_DEFAULT_COUNT);
+        statusLed.begin(LED_DEFAULT_PIN);
     }
 
     // ─── Serial Pre-Configure Window ──────────────────────────────────────────
@@ -421,7 +476,7 @@ void setup() {
                     buf += c;
                 }
             }
-            if (!done) delay(1);   // yield to ESP8266 background tasks
+            if (!done) delay(1);   // yield to background tasks
         }
         if (!done) Serial.println(F("[CFG] Serial config window expired"));
     }
@@ -429,7 +484,7 @@ void setup() {
     // Build unique AP name: "Derby-Sensor-XXXX" using last 4 hex digits of chip ID.
     char apName[32];
     snprintf(apName, sizeof(apName), "%s%04X",
-             WIFIMANAGER_AP_PREFIX, ESP.getChipId() & 0xFFFF);
+             WIFIMANAGER_AP_PREFIX, derbyChipSuffix16());
 
     // WiFiManager custom parameters — pre-filled from saved config.
     param_ip   = new WiFiManagerParameter("server_ip",   "Server IP",   g_serverIp,   39);
@@ -478,6 +533,7 @@ static bool s_wifiWasConnected = false;
 
 void loop() {
     ledManager.loop();
+    statusLed.loop();
 
     bool wifiOk = (WiFi.status() == WL_CONNECTED);
 
@@ -503,7 +559,9 @@ void loop() {
         }
     }
 
+#if defined(ESP8266)
     MDNS.update();
+#endif
     httpServer.handleClient();
 
     // Reboot after the HTTP response has been flushed (flagged by handleHttpConfig).
@@ -531,6 +589,7 @@ void loop() {
     if (wsClient.pollLedConfig(pendingCfg)) {
         ledManager.applyConfig(pendingCfg);
         wsClient.setLedMetadata(pendingCfg.ledCount);
+        statusLed.setStripPin(pendingCfg.pin);
         // Persist the LED config so next boot starts with the correct setup.
         g_savedLedConfig = pendingCfg;
         g_hasLedConfig   = true;
@@ -553,12 +612,12 @@ void loop() {
         // Global events: all devices react (countdown, lifecycle, winner).
         bool winnerEvent = false;
         switch (gev) {
-            case GlobalEventType::COUNTDOWN_TICK: ledManager.onGlobalEvent(gev); break;
-            case GlobalEventType::GAME_STARTED:   ledManager.onGlobalEvent(gev); break;
+            case GlobalEventType::COUNTDOWN_TICK: ledManager.onGlobalEvent(gev); statusLed.blink(600); break;
+            case GlobalEventType::GAME_STARTED:   ledManager.onGlobalEvent(gev); statusLed.blink(500); break;
             case GlobalEventType::GAME_PAUSED:    ledManager.onGlobalEvent(gev); break;
-            case GlobalEventType::GAME_RESUMED:   ledManager.onGlobalEvent(gev); break;
+            case GlobalEventType::GAME_RESUMED:   ledManager.onGlobalEvent(gev); statusLed.blink(300); break;
             case GlobalEventType::GAME_RESET:     ledManager.onGlobalEvent(gev); break;
-            case GlobalEventType::WINNER_SELF:    ledManager.onGlobalEvent(gev); winnerEvent = true; break;
+            case GlobalEventType::WINNER_SELF:    ledManager.onGlobalEvent(gev); statusLed.blink(1000); winnerEvent = true; break;
             case GlobalEventType::WINNER_OTHER:   ledManager.onGlobalEvent(gev); winnerEvent = true; break;
             default: break;
         }
@@ -568,14 +627,14 @@ void loop() {
         // WS batch and would immediately overwrite the rainbow/pulse effect.
         if (winnerEvent) lev = LocalEventType::NONE;
         switch (lev) {
-            case LocalEventType::SCORE_PLUS1:   ledManager.onLocalEvent(lev); break;
-            case LocalEventType::SCORE_PLUS2:   ledManager.onLocalEvent(lev); break;
-            case LocalEventType::SCORE_PLUS3:   ledManager.onLocalEvent(lev); break;
+            case LocalEventType::SCORE_PLUS1:   ledManager.onLocalEvent(lev); statusLed.blink(200); break;
+            case LocalEventType::SCORE_PLUS2:   ledManager.onLocalEvent(lev); statusLed.blink(200); break;
+            case LocalEventType::SCORE_PLUS3:   ledManager.onLocalEvent(lev); statusLed.blink(300); break;
             case LocalEventType::ZERO_ROLL:     ledManager.onLocalEvent(lev); break;
-            case LocalEventType::TOOK_LEAD:     ledManager.onLocalEvent(lev); break;
+            case LocalEventType::TOOK_LEAD:     ledManager.onLocalEvent(lev); statusLed.blink(400); break;
             case LocalEventType::BECAME_LAST:   ledManager.onLocalEvent(lev); break;
             case LocalEventType::STREAK_ZERO:   ledManager.onLocalEvent(lev); break;
-            case LocalEventType::STREAK_THREE:  ledManager.onLocalEvent(lev); break;
+            case LocalEventType::STREAK_THREE:  ledManager.onLocalEvent(lev); statusLed.blink(400); break;
             default: break;
         }
 

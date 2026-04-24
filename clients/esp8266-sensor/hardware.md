@@ -1,8 +1,8 @@
-# Roll-a-Ball Derby — ESP8266 Sensor Node Hardware Guide
+# Roll-a-Ball Derby — Sensor Node Hardware Guide (ESP8266 + ESP32)
 
 ## Overview
 
-The ESP8266 Sensor Node detects balls passing through scoring holes using IR photodiodes and transmits score events to the game server via WebSocket. This document covers hardware requirements, wiring diagrams, and pin configurations for all supported ESP8266 board variants.
+The sensor node detects balls passing through scoring holes using IR photodiodes and transmits score events to the game server via WebSocket. This document covers hardware requirements, wiring diagrams, and pin configurations for supported ESP8266 and ESP32 board variants.
 
 ## Supported Board Configurations
 
@@ -21,15 +21,21 @@ The ESP8266 Sensor Node detects balls passing through scoring holes using IR pho
 - **PlatformIO Board ID**: `nodemcuv2`
 - **Notes**: v3 hardware identical to v2, different USB chip only
 
+### ESP32 DevKit (ESP32-WROOM)
+- **Chip**: ESP32 dual-core
+- **Flash**: 4MB (typical)
+- **USB**: CP210x/CH340 (varies by board vendor)
+- **PlatformIO Board ID**: `esp32dev`
+
 ## Pin Configuration Summary
 
-| Function | GPIO | D1 Mini Pin | NodeMCU Pin | Notes |
-|----------|------|-------------|-------------|-------|
-| +1 Sensor | GPIO5 | D1 | D1 | IR photodiode (+1 points) |
-| +2 Sensor | GPIO14 | D5 | D5 | IR photodiode (+2 points) |  
-| +3 Sensor | GPIO4 | D2 | D2 | IR photodiode (+3 points) |
-| Status LED | GPIO2 | D4/LED_BUILTIN | D4 | WS2812B strip (optional) |
-| Built-in LED | GPIO2 | LED_BUILTIN | LED_BUILTIN | Onboard blue LED |
+| Function | ESP8266 GPIO / Pin | ESP32 GPIO | Notes |
+|----------|---------------------|------------|-------|
+| +1 Sensor | GPIO5 / D1 | GPIO25 | IR photodiode (+1 points) |
+| +2 Sensor | GPIO14 / D5 | GPIO26 | IR photodiode (+2 points) |
+| +3 Sensor | GPIO4 / D2 | GPIO27 | IR photodiode (+3 points) |
+| LED Data | GPIO2 / D4 | **GPIO4** | WS2812B strip data (optional) |
+| Status LED | GPIO2 / D4 | GPIO2 | Onboard LED — blinks on game events |
 
 **Pin Mapping Reference**:
 - D1 Mini and NodeMCU use the same GPIO numbering
@@ -53,8 +59,15 @@ The ESP8266 Sensor Node detects balls passing through scoring holes using IR pho
 - **Type**: WS2812B addressable LED strip
 - **Default count**: 30 LEDs (configurable)
 - **Power**: 5V DC (separate supply for >10 LEDs)
-- **Data pin**: GPIO2 (D4)
+- **Data pin**: GPIO2 (D4) on ESP8266 · **GPIO4** on ESP32
 - **Purpose**: Visual feedback and game state indication
+
+> **ESP32 note:** The default data pin was changed from GPIO2 to GPIO4 so that
+> GPIO2 (the DevKit onboard LED) can be used as an explicit secondary status
+> indicator. If you must use GPIO2 for the strip, push `gpioPin: 2` via the
+> admin panel — on ESP32 this creates a pin conflict, so explicit status LED
+> control is disabled and the onboard LED may no longer be independently visible
+> as a status indicator.
 
 ### 3. Power Supply
 - **USB**: 5V from USB port (500mA typical)
@@ -177,6 +190,7 @@ LED Strip DIN── Level Shifter HV1
 
 ### Power Consumption Analysis
 - **ESP8266**: 80mA @ 3.3V (typical WiFi usage)
+- **ESP32**: 120mA @ 3.3V (typical WiFi usage)
 - **IR Photodiodes**: <1mA each @ 3.3V (3× photodiodes = <3mA)
 - **Pull-up resistors**: ~0.3mA each when activated (3× resistors = ~1mA)
 - **LED Strip**: 60mA per LED @ 5V (full white brightness)
@@ -302,7 +316,8 @@ Edit `src/config.h` to customize:
 #define PIN_SENSOR_1  5     // +1 point photodiode (D1)
 #define PIN_SENSOR_2  14    // +2 point photodiode (D5)  
 #define PIN_SENSOR_3  4     // +3 point photodiode (D2)
-#define PIN_LED       2     // LED strip data (D4)
+#define PIN_LED       2     // ESP8266: LED strip data (D4)
+                            // ESP32:   LED strip data (GPIO4 default)
 #define DEBOUNCE_MS   500   // Sensor debounce time
 ```
 
