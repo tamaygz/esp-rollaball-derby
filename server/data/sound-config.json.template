@@ -15,5 +15,28 @@
     "countdown_tick": "https://example.com/sounds/countdown_tick.wav",
     "countdown_go": "https://example.com/sounds/countdown_go.wav",
     "winner": "https://example.com/sounds/winner.wav"
-  }
+  },
+  "volumes": {
+    "lobby": 0.6,
+    "game": 0.5,
+    "effects": 0.9
+  },
+  "lobbyMusic": [
+    "https://example.com/music/lobby-ambient.mp3"
+  ],
+  "themeMusic": {
+    "horse": [
+      "https://example.com/music/horse-track-1.mp3",
+      "https://example.com/music/horse-track-2.mp3"
+    ],
+    "camel": [
+      "https://example.com/music/camel-track-1.mp3"
+    ],
+    "reef": [
+      "https://example.com/music/reef-track-1.mp3"
+    ]
+  },
+  "fallbackMusic": [
+    "https://example.com/music/fallback-1.mp3"
+  ]
 }

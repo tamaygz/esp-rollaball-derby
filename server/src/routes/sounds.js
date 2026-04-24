@@ -23,8 +23,8 @@ function createSoundsRouter(soundConfigManager) {
   router.post('/config', async (req, res) => {
     try {
       const body = req.body || {};
-      const urls = body.urls && typeof body.urls === 'object' ? body.urls : {};
-      await soundConfigManager.saveConfig(urls);
+      // Accept either the full config body or legacy { urls } shape
+      await soundConfigManager.saveConfig(body);
       res.json(soundConfigManager.getClientConfig());
     } catch (err) {
       res.status(400).json({ error: err.message });

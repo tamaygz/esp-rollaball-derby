@@ -7,6 +7,8 @@ const { EventEmitter } = require('events');
 
 const GameEvents = require(path.join(__dirname, '..', '..', '..', 'clients', 'shared', 'js', 'gameEvents'));
 
+const DEFAULT_VOLUMES = { lobby: 0.6, game: 0.5, effects: 0.9 };
+
 /**
  * Canonical list of all audio-playable event names. Mirrors the server-side
  * SoundManager.EVENT_FILE_MAP so the admin UI can display a complete, stable
@@ -63,8 +65,14 @@ class SoundConfigManager extends EventEmitter {
       || path.join(__dirname, '..', '..', 'data', 'sound-config.json');
     this.soundsDir = options.soundsDir
       || path.join(__dirname, '..', '..', 'sounds');
-    /** @type {{urls: Object<string,string>}} */
-    this.config = { urls: {} };
+    /** @type {{urls: Object<string,string>, volumes: object, lobbyMusic: string[], themeMusic: object, fallbackMusic: string[]}} */
+    this.config = {
+      urls: {},
+      volumes: { ...DEFAULT_VOLUMES },
+      lobbyMusic: [],
+      themeMusic: {},
+      fallbackMusic: [],
+    };
     this._loaded = false;
   }
 
@@ -73,23 +81,53 @@ class SoundConfigManager extends EventEmitter {
     try {
       const raw = await fs.readFile(this.configFilePath, 'utf8');
       const parsed = JSON.parse(raw);
-      this.config = {
-        urls: (parsed && typeof parsed.urls === 'object' && parsed.urls) ? parsed.urls : {},
-      };
+
+      // urls
+      const urls = (parsed && typeof parsed.urls === 'object' && parsed.urls) ? parsed.urls : {};
+
+      // volumes — clamp to [0, 1]
+      const rawVols = (parsed && typeof parsed.volumes === 'object' && parsed.volumes) ? parsed.volumes : {};
+      const volumes = {};
+      for (const k of Object.keys(DEFAULT_VOLUMES)) {
+        const v = typeof rawVols[k] === 'number' ? rawVols[k] : DEFAULT_VOLUMES[k];
+        volumes[k] = Math.max(0, Math.min(1, v));
+      }
+
+      // music arrays — filter unsafe URLs
+      const lobbyMusic = Array.isArray(parsed && parsed.lobbyMusic)
+        ? parsed.lobbyMusic.filter(u => u && isSafeUrl(u)) : [];
+      const themeMusic = {};
+      if (parsed && typeof parsed.themeMusic === 'object' && parsed.themeMusic) {
+        for (const [theme, tracks] of Object.entries(parsed.themeMusic)) {
+          if (Array.isArray(tracks)) themeMusic[theme] = tracks.filter(u => u && isSafeUrl(u));
+        }
+      }
+      const fallbackMusic = Array.isArray(parsed && parsed.fallbackMusic)
+        ? parsed.fallbackMusic.filter(u => u && isSafeUrl(u)) : [];
+
+      this.config = { urls, volumes, lobbyMusic, themeMusic, fallbackMusic };
       console.log('[SoundConfig] loaded from', this.configFilePath);
     } catch (err) {
       if (err.code !== 'ENOENT') {
         console.error('[SoundConfig] load failed, using empty overrides:', err.message);
       }
-      this.config = { urls: {} };
+      this.config = {
+        urls: {},
+        volumes: { ...DEFAULT_VOLUMES },
+        lobbyMusic: [],
+        themeMusic: {},
+        fallbackMusic: [],
+      };
     }
     this._loaded = true;
     return this.config;
   }
 
   /** Atomic write to disk. Validates URL shape before persisting. */
-  async saveConfig(newUrls) {
+  async saveConfig(newConfig) {
+    // ── effect URL overrides ──────────────────────────────────────────────────
     const urls = {};
+    const newUrls = (newConfig && typeof newConfig.urls === 'object' && newConfig.urls) ? newConfig.urls : {};
     if (newUrls && typeof newUrls === 'object') {
       for (const [event, url] of Object.entries(newUrls)) {
         if (!(event in EVENT_FILE_MAP)) continue;       // unknown event — drop
@@ -101,7 +139,45 @@ class SoundConfigManager extends EventEmitter {
       }
     }
 
-    const next = { urls };
+    // ── volumes ───────────────────────────────────────────────────────────────
+    const volumes = { ...DEFAULT_VOLUMES };
+    if (newConfig && typeof newConfig.volumes === 'object' && newConfig.volumes) {
+      for (const k of Object.keys(DEFAULT_VOLUMES)) {
+        const v = Number(newConfig.volumes[k]);
+        if (!isNaN(v)) volumes[k] = Math.max(0, Math.min(1, v));
+      }
+    }
+
+    // ── music arrays ──────────────────────────────────────────────────────────
+    const lobbyMusic = [];
+    if (Array.isArray(newConfig && newConfig.lobbyMusic)) {
+      for (const url of newConfig.lobbyMusic) {
+        if (url && typeof url === 'string' && url.trim() && isSafeUrl(url.trim())) {
+          lobbyMusic.push(url.trim());
+        }
+      }
+    }
+
+    const themeMusic = {};
+    if (newConfig && typeof newConfig.themeMusic === 'object' && newConfig.themeMusic) {
+      for (const [theme, tracks] of Object.entries(newConfig.themeMusic)) {
+        if (Array.isArray(tracks)) {
+          const valid = tracks.map(u => (u || '').trim()).filter(u => u && isSafeUrl(u));
+          if (valid.length) themeMusic[theme] = valid;
+        }
+      }
+    }
+
+    const fallbackMusic = [];
+    if (Array.isArray(newConfig && newConfig.fallbackMusic)) {
+      for (const url of newConfig.fallbackMusic) {
+        if (url && typeof url === 'string' && url.trim() && isSafeUrl(url.trim())) {
+          fallbackMusic.push(url.trim());
+        }
+      }
+    }
+
+    const next = { urls, volumes, lobbyMusic, themeMusic, fallbackMusic };
     const tmp  = this.configFilePath + '.tmp';
     await fs.mkdir(path.dirname(this.configFilePath), { recursive: true });
     await fs.writeFile(tmp, JSON.stringify(next, null, 2), 'utf8');
@@ -113,8 +189,8 @@ class SoundConfigManager extends EventEmitter {
 
   /**
    * Build the full resolved map the browser uses.
-   *   { events: [...], urls: { event: url }, overrides: { event: url }, defaults: { event: url|null } }
-   * `urls` is the authoritative map each client should consume.
+   *   { events, urls, overrides, defaults, volumes, lobbyMusic, themeMusic, fallbackMusic }
+   * `urls` is the authoritative per-event effect map each client should consume.
    */
   getClientConfig() {
     const events    = Object.keys(EVENT_FILE_MAP);
@@ -132,7 +208,16 @@ class SoundConfigManager extends EventEmitter {
         urls[event] = defaults[event];
       }
     }
-    return { events, urls, overrides, defaults };
+    return {
+      events,
+      urls,
+      overrides,
+      defaults,
+      volumes:      { ...DEFAULT_VOLUMES, ...(this.config.volumes || {}) },
+      lobbyMusic:   this.config.lobbyMusic   || [],
+      themeMusic:   this.config.themeMusic   || {},
+      fallbackMusic: this.config.fallbackMusic || [],
+    };
   }
 }
 

@@ -1340,3 +1340,32 @@ input:disabled, select:disabled {
 .sounds-table th { background: #f5f5f5; font-weight: 600; }
 .sounds-table input.sound-url { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; padding: 4px 6px; }
 #sounds-status.error { color: #b00020; }
+
+/* Background music section */
+#card-sounds-music h3 { margin: 20px 0 6px; font-size: 1rem; }
+#card-sounds-music h3:first-of-type { margin-top: 4px; }
+
+.sounds-vol-table { border-collapse: collapse; width: 100%; max-width: 460px; margin-bottom: 6px; }
+.volume-row td { padding: 4px 8px 4px 0; vertical-align: middle; }
+.volume-label { width: 160px; font-size: 0.875rem; color: var(--muted); }
+.volume-slider { width: 220px; cursor: pointer; accent-color: var(--accent, #2563eb); }
+.volume-display { width: 40px; text-align: right; font-size: 0.875rem; font-variant-numeric: tabular-nums; color: var(--text); }
+
+.sounds-subsection { margin-bottom: 12px; }
+.music-label { display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px; text-transform: capitalize; }
+.music-urls {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 12px;
+  padding: 6px 8px;
+  border: 1px solid var(--border, #d1d5db);
+  border-radius: 4px;
+  resize: vertical;
+  background: var(--bg, #fff);
+  color: var(--text, #111);
+  margin-bottom: 6px;
+}
+.music-urls:focus { outline: 2px solid var(--accent, #2563eb); outline-offset: 1px; border-color: transparent; }
+

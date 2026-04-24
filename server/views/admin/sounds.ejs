@@ -41,6 +41,43 @@
       </table>
     </section>
 
+    <section class="card card-wide" id="card-sounds-music">
+      <h2>🎵 Background Music</h2>
+      <p class="hint">
+        Configure background music for lobby and in-game modes. URLs must be direct audio file links
+        (MP3, OGG, WAV). One URL per line. Music is only played on the Display client.
+      </p>
+
+      <h3>Volume Levels</h3>
+      <div id="sounds-volumes">
+        <p class="muted">Loading…</p>
+      </div>
+
+      <h3>Lobby Music</h3>
+      <p class="hint">Played on shuffle-loop while no game is active. Falls back to Fallback Music if empty.</p>
+      <div class="sounds-subsection">
+        <textarea id="lobby-music-urls" class="music-urls" rows="3"
+                  placeholder="https://example.com/lobby-track.mp3"></textarea>
+        <button type="button" class="btn btn-secondary btn-sm music-preview-btn"
+                data-preview-source="lobby">▶ Preview first</button>
+      </div>
+
+      <h3>Theme Background Music</h3>
+      <p class="hint">Played on random infinite loop during a game. One URL per line per theme. Falls back to Fallback Music if empty.</p>
+      <div id="theme-music-sections">
+        <p class="muted">Loading themes…</p>
+      </div>
+
+      <h3>Fallback Music</h3>
+      <p class="hint">Used when lobby or theme music is not configured for the active context.</p>
+      <div class="sounds-subsection">
+        <textarea id="fallback-music-urls" class="music-urls" rows="3"
+                  placeholder="https://example.com/fallback-track.mp3"></textarea>
+        <button type="button" class="btn btn-secondary btn-sm music-preview-btn"
+                data-preview-source="fallback">▶ Preview first</button>
+      </div>
+    </section>
+
   </main>
 
   <script src="/shared/js/gameEvents.js"></script>

@@ -18,8 +18,20 @@
 
   // ── Audio: shared cross-browser player + mute toggle ──────────────────────
   // Kick off config fetch in parallel with Pixi init.
+  var _bgMusicReady = false;  // true once DerbyAudio.init() resolves with tracks loaded
   if (typeof DerbyAudio !== 'undefined') {
-    DerbyAudio.init().catch(function () { /* ignore */ });
+    DerbyAudio.init().then(function () {
+      _bgMusicReady = true;
+      // If a state message arrived before config was ready, start music now.
+      if (_gameStatus === null || _gameStatus === 'idle') {
+        DerbyAudio.startLobby();
+      } else if (_gameStatus === 'running') {
+        DerbyAudio.startGameMusic(_resolvedTheme);
+      } else if (_gameStatus === 'paused') {
+        DerbyAudio.startGameMusic(_resolvedTheme);
+        DerbyAudio.duckBackgroundMusic();
+      }
+    }).catch(function () { /* ignore */ });
     (function () {
       var btn = document.getElementById('audio-toggle');
       if (!btn) return;
@@ -68,6 +80,7 @@
   var countdownEffect = null;
 
   var _resolvedTheme  = null;   // concrete theme picked once 'auto' is encountered
+  var _gameStatus     = null;   // last known game status: 'idle'|'running'|'paused'|'finished'|null
 
   /**
    * Resolve a possibly-'auto' or unrecognised theme to a known concrete one,
@@ -118,6 +131,9 @@
   // ── Message handlers ──────────────────────────────────────────────────────────
 
   async function _handleState(state) {
+    var prevStatus = _gameStatus;
+    _gameStatus = state && state.status;
+
     // Resolve 'auto' to a concrete theme before any component sees state.config.theme
     if (state.config) {
       state.config.theme = _resolveTheme(state.config.theme);
@@ -132,6 +148,22 @@
       countdownEffect.hide();
     }
     await raceTrack.setState(state);
+
+    // ── Background music state machine ─────────────────────────────────────
+    if (typeof DerbyAudio !== 'undefined' && _bgMusicReady) {
+      if (_gameStatus === 'idle' && DerbyAudio.getBgMode() !== 'lobby') {
+        // Became idle (game ended/reset) or initial load in idle
+        DerbyAudio.stopBackgroundMusic();
+        DerbyAudio.startLobby();
+      } else if (_gameStatus === 'running' && prevStatus === null) {
+        // Display reconnected mid-game — start game music immediately
+        DerbyAudio.startGameMusic(_resolvedTheme);
+      } else if (_gameStatus === 'paused' && prevStatus === null) {
+        // Display reconnected to a paused game
+        DerbyAudio.startGameMusic(_resolvedTheme);
+        DerbyAudio.duckBackgroundMusic();
+      }
+    }
   }
 
   function _handleScored(payload) {
@@ -154,19 +186,41 @@
   function _handleWinner(payload) {
     if (winnerOverlay) winnerOverlay.show(payload.name || 'WINNER');
     if (raceTrack)     raceTrack.triggerScoringEffect(payload.playerId);
-    if (typeof DerbyAudio !== 'undefined') DerbyAudio.play(GameEvents.WINNER);
+    if (typeof DerbyAudio !== 'undefined') {
+      DerbyAudio.play(GameEvents.WINNER);
+      DerbyAudio.fadeOutBackgroundMusic(3000);
+    }
   }
 
   function _handleCountdown(payload) {
     if (countdownEffect) countdownEffect.show(payload.count);
     if (typeof DerbyAudio !== 'undefined') {
       DerbyAudio.play(payload.count > 0 ? GameEvents.COUNTDOWN_TICK : 'countdown_go');
+      if (payload.count === 0) {
+        // countdown_go — game is now live, switch from lobby to game music
+        DerbyAudio.startGameMusic(_resolvedTheme);
+      }
     }
   }
 
   function _handleGameEvent(payload) {
     if (typeof DerbyAudio !== 'undefined' && payload && payload.event) {
       DerbyAudio.play(payload.event);
+      // Background music state transitions driven by game lifecycle events
+      switch (payload.event) {
+        case GameEvents.GAME_PAUSED:
+          DerbyAudio.duckBackgroundMusic();
+          break;
+        case GameEvents.GAME_RESUMED:
+          DerbyAudio.unduckBackgroundMusic();
+          break;
+        case GameEvents.GAME_RESET:
+          DerbyAudio.stopBackgroundMusic();
+          DerbyAudio.startLobby();
+          break;
+        default:
+          break;
+      }
     }
   }
 
