@@ -12,9 +12,28 @@
  *   winner  → WinnerOverlay.show()
  */
 
-/* global PIXI, DisplayConnection, ThemeManager, RaceTrack, WinnerOverlay, CountdownEffect, GameEvents */
+/* global PIXI, DisplayConnection, ThemeManager, RaceTrack, WinnerOverlay, CountdownEffect, GameEvents, DerbyAudio, SoundDecision */
 
 (async function () {
+
+  // ── Audio: shared cross-browser player + mute toggle ──────────────────────
+  // Kick off config fetch in parallel with Pixi init.
+  if (typeof DerbyAudio !== 'undefined') {
+    DerbyAudio.init().catch(function () { /* ignore */ });
+    (function () {
+      var btn = document.getElementById('audio-toggle');
+      if (!btn) return;
+      function syncBtn() {
+        var muted = !DerbyAudio.isEnabled();
+        btn.classList.toggle('muted', muted);
+        btn.setAttribute('aria-pressed', muted ? 'true' : 'false');
+        btn.title = muted ? 'Audio muted — click to enable' : 'Audio on — click to mute';
+      }
+      btn.addEventListener('click', function () { DerbyAudio.toggle(); syncBtn(); });
+      DerbyAudio.onChange(syncBtn);
+      syncBtn();
+    }());
+  }
 
   // ── Pixi Application (fullscreen, resizes with window) ─────────────────────
   var app = new PIXI.Application();

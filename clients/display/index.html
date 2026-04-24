@@ -12,6 +12,15 @@
   <!-- Connection status indicator (REQ-006) -->
   <div id="status-dot" title="WebSocket status"></div>
 
+  <!-- Audio mute toggle -->
+  <button id="audio-toggle" type="button" aria-label="Toggle audio" title="Toggle audio">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path class="audio-icon-speaker" d="M4 9v6h4l5 4V5L8 9H4z"/>
+      <path class="audio-icon-wave" d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v8.06c1.48-.74 2.5-2.26 2.5-4.03zM14 3.23v2.06c3.39.49 6 3.39 6 6.71s-2.61 6.22-6 6.71v2.06c4.5-.5 8-4.31 8-8.77s-3.5-8.27-8-8.77z"/>
+      <line class="audio-icon-slash" x1="3" y1="3" x2="21" y2="21"/>
+    </svg>
+  </button>
+
   <!--
     Pixi.js v8 IIFE bundle — exposes window.PIXI
     gsap v3 — exposes window.gsap
@@ -22,6 +31,8 @@
 
   <!-- Display client modules (load order matters) -->
   <script src="/shared/js/gameEvents.js"></script>
+  <script src="/shared/js/soundDecision.js"></script>
+  <script src="/shared/js/AudioPlayer.js"></script>
   <script src="js/connection.js"></script>
   <script src="js/ThemeManager.js"></script>
   <script src="js/effects/ScoringEffect.js"></script>

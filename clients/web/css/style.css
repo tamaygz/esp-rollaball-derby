@@ -1333,3 +1333,10 @@ input:disabled, select:disabled {
 }
 
 
+
+/* ── Sounds config page ─────────────────────────────────────────── */
+.sounds-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+.sounds-table th, .sounds-table td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #e2e2e2; vertical-align: middle; }
+.sounds-table th { background: #f5f5f5; font-weight: 600; }
+.sounds-table input.sound-url { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; padding: 4px 6px; }
+#sounds-status.error { color: #b00020; }
