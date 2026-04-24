@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 90 72" fill="white">
+  <!-- Alien UFO — "The Warrior" — spiked dome ridge, battle scar, clenched fist -->
+  <defs>
+    <radialGradient id="dG" cx="36%" cy="26%" r="66%"><stop offset="0%" stop-color="#f8f8f8"/><stop offset="38%" stop-color="#d6d6d6"/><stop offset="80%" stop-color="#aaaaaa"/><stop offset="100%" stop-color="#909090"/></radialGradient>
+    <radialGradient id="aG" cx="32%" cy="22%" r="76%"><stop offset="0%" stop-color="#ffffff"/><stop offset="50%" stop-color="#ebebeb"/><stop offset="100%" stop-color="#c6c6c6"/></radialGradient>
+    <linearGradient id="htG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f4f4f4"/><stop offset="55%" stop-color="#d2d2d2"/><stop offset="100%" stop-color="#b2b2b2"/></linearGradient>
+    <linearGradient id="huG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#c2c2c2"/><stop offset="100%" stop-color="#7e7e7e"/></linearGradient>
+    <linearGradient id="rG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#e6e6e6"/><stop offset="35%" stop-color="#a8a8a8"/><stop offset="70%" stop-color="#c6c6c6"/><stop offset="100%" stop-color="#aeaeae"/></linearGradient>
+    <linearGradient id="cG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#d4d4d4"/><stop offset="100%" stop-color="#909090"/></linearGradient>
+    <radialGradient id="bG" cx="50%" cy="0%" r="100%"><stop offset="0%" stop-color="#ffffff"/><stop offset="55%" stop-color="#f2f2f2"/><stop offset="100%" stop-color="#eeeeee" stop-opacity="0"/></radialGradient>
+    <radialGradient id="anG" cx="33%" cy="28%" r="68%"><stop offset="0%" stop-color="#ffffff"/><stop offset="100%" stop-color="#c2c2c2"/></radialGradient>
+    <radialGradient id="irG" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#d8d8d8"/><stop offset="100%" stop-color="#b8b8b8"/></radialGradient>
+    <radialGradient id="pG" cx="32%" cy="28%" r="72%"><stop offset="0%" stop-color="#484848"/><stop offset="100%" stop-color="#161616"/></radialGradient>
+  </defs>
+  <!-- Speed lines -->
+  <rect x="1" y="44" width="17" height="3" rx="1.5" fill="#d8d8d8"/><rect x="1" y="50" width="13" height="2.4" rx="1.2" fill="#d0d0d0"/><rect x="1" y="39.5" width="11" height="2.2" rx="1.1" fill="#c8c8c8"/><rect x="1" y="55.5" width="9" height="2" rx="1" fill="#c2c2c2"/><rect x="1" y="35.5" width="7" height="1.6" rx="0.8" fill="#b8b8b8"/>
+  <circle cx="20" cy="45.5" r="1.5" fill="#d0d0d0"/><circle cx="20" cy="51" r="1.2" fill="#c8c8c8"/><circle cx="18" cy="56.5" r="1" fill="#c0c0c0"/>
+  <!-- Tractor beam -->
+  <ellipse cx="51" cy="70" rx="22" ry="3.5" fill="url(#bG)"/><ellipse cx="51" cy="68" rx="13" ry="2.4" fill="#f4f4f4"/><ellipse cx="51" cy="67" rx="6.5" ry="1.5" fill="#ffffff"/>
+  <!-- Saucer hull -->
+  <ellipse cx="51" cy="57.5" rx="33" ry="7.5" fill="url(#huG)"/>
+  <ellipse cx="51" cy="52" rx="36" ry="10.5" fill="url(#htG)"/>
+  <ellipse cx="43" cy="48.5" rx="13" ry="4" fill="#f8f8f8" opacity="0.5"/>
+  <ellipse cx="51" cy="52" rx="36" ry="10.5" fill="none" stroke="#bcbcbc" stroke-width="1.6"/>
+  <ellipse cx="51" cy="52" rx="28.5" ry="8" fill="none" stroke="#cacaca" stroke-width="1.0"/>
+  <ellipse cx="51" cy="52" rx="20" ry="5.6" fill="none" stroke="#d6d6d6" stroke-width="0.7"/>
+  <!-- Equatorial ridge -->
+  <ellipse cx="51" cy="47.5" rx="27.5" ry="5.8" fill="url(#rG)"/>
+  <ellipse cx="51" cy="45.5" rx="23.5" ry="3.4" fill="#e4e4e4"/>
+  <ellipse cx="51" cy="50.5" rx="25" ry="2.4" fill="#a6a6a6" opacity="0.45"/>
+  <!-- Dome glass -->
+  <ellipse cx="51" cy="27.5" rx="22" ry="20.5" fill="url(#dG)"/>
+  <ellipse cx="51" cy="27" rx="18" ry="17" fill="#e8e8e8" opacity="0.38"/>
+  <!-- Spiked dome ridge zigzag ring -->
+  <polygon points="30,34 33,29 36,33 39,27 42,32 45,26 48,31 51,25 54,31 57,26 60,32 63,27 66,33 69,29 72,34" fill="#d0d0d0" opacity="0.55"/>
+  <!-- Battle scar diagonal line across dome -->
+  <line x1="36" y1="17" x2="60" y2="37" stroke="#484848" stroke-width="1.8" stroke-linecap="round" opacity="0.65"/>
+  <line x1="37.5" y1="17" x2="61.5" y2="37" stroke="#d0d0d0" stroke-width="0.8" stroke-linecap="round" opacity="0.45"/>
+  <!-- Alien torso -->
+  <ellipse cx="51" cy="44" rx="11" ry="7.5" fill="url(#aG)"/>
+  <ellipse cx="51" cy="40.5" rx="9" ry="3.2" fill="#cccccc"/>
+  <ellipse cx="51" cy="39" rx="7.5" ry="1.9" fill="#e4e4e4"/>
+  <!-- Alien head -->
+  <ellipse cx="51" cy="24.5" rx="14" ry="15" fill="url(#aG)"/>
+  <!-- Ears -->
+  <polygon points="37,19 29.5,3.5 41,17.5" fill="#f0f0f0"/><polygon points="37,19 32,9 39,17.5" fill="#d2d2d2"/>
+  <polygon points="65,19 72.5,3.5 61,17.5" fill="#f0f0f0"/><polygon points="65,19 70,9 63,17.5" fill="#d2d2d2"/>
+  <!-- Eyes — intense narrowed -->
+  <ellipse cx="42" cy="22" rx="7.2" ry="8.5" fill="#f4f4f4"/>
+  <ellipse cx="60" cy="22" rx="7.2" ry="8.5" fill="#f4f4f4"/>
+  <ellipse cx="42" cy="22.5" rx="5.6" ry="6.8" fill="url(#irG)"/>
+  <ellipse cx="60" cy="22.5" rx="5.6" ry="6.8" fill="url(#irG)"/>
+  <ellipse cx="42.8" cy="23.5" rx="3.9" ry="4.8" fill="url(#pG)"/>
+  <ellipse cx="60.8" cy="23.5" rx="3.9" ry="4.8" fill="url(#pG)"/>
+  <circle cx="40" cy="19.5" r="2.6" fill="#ffffff"/>
+  <circle cx="58" cy="19.5" r="2.6" fill="#ffffff"/>
+  <circle cx="44.5" cy="27" r="1.3" fill="#c8c8c8"/>
+  <circle cx="62.5" cy="27" r="1.3" fill="#c8c8c8"/>
+  <!-- Stern V-shaped eyebrows (warrior expression) -->
+  <path d="M 35.5,14 L 42,17 L 48.5,14" fill="none" stroke="#383838" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M 53.5,14 L 60,17 L 66.5,14" fill="none" stroke="#383838" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Nose -->
+  <ellipse cx="51" cy="31.5" rx="2.4" ry="1.6" fill="#b6b6b6"/>
+  <!-- Determined frown -->
+  <path d="M 42,38.5 Q 51,35 60,38.5" stroke="#888888" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+  <!-- Rosy cheeks -->
+  <ellipse cx="37" cy="33.5" rx="5" ry="3" fill="#d6d6d6" opacity="0.62"/>
+  <ellipse cx="65" cy="33.5" rx="5" ry="3" fill="#d6d6d6" opacity="0.62"/>
+  <!-- Clenched fist arm raised right of head -->
+  <path d="M 60" y1="35" x2="75" y2="20" fill="none"/>
+  <line x1="62" y1="35" x2="74" y2="23" stroke="#d8d8d8" stroke-width="3.2" stroke-linecap="round"/>
+  <rect x="70" y="18" width="9" height="7" rx="2" fill="#d8d8d8"/>
+  <line x1="71" y1="20" x2="71" y2="24" stroke="#b8b8b8" stroke-width="0.8"/>
+  <line x1="73.5" y1="19.5" x2="73.5" y2="24.5" stroke="#b8b8b8" stroke-width="0.8"/>
+  <line x1="76" y1="20" x2="76" y2="24" stroke="#b8b8b8" stroke-width="0.8"/>
+  <!-- Antenna -->
+  <line x1="57" y1="22" x2="60" y2="10.5" stroke="#c8c8c8" stroke-width="2.8" stroke-linecap="round"/>
+  <circle cx="61" cy="9" r="5.5" fill="url(#anG)"/>
+  <circle cx="59" cy="7" r="2.2" fill="#f8f8f8"/>
+  <circle cx="61" cy="9" r="9.5" fill="none" stroke="#d0d0d0" stroke-width="1.4"/>
+  <circle cx="61" cy="9" r="14" fill="none" stroke="#c2c2c2" stroke-width="0.9"/>
+  <!-- Dome shine -->
+  <path d="M 32,26 Q 33,11 49,9.5 Q 43,14.5 36,27 Z" fill="#f8f8f8" opacity="0.80"/>
+  <circle cx="37.5" cy="16.5" r="3.4" fill="#ffffff" opacity="0.88"/>
+  <circle cx="44.5" cy="11.5" r="1.8" fill="#f6f6f6" opacity="0.82"/>
+  <path d="M 67,28.5 Q 67,43 51,46 Q 59,41 65,30 Z" fill="#a8a8a8" opacity="0.20"/>
+  <!-- Cockpit collar -->
+  <ellipse cx="51" cy="48.5" rx="24.5" ry="5.8" fill="url(#cG)"/>
+  <ellipse cx="51" cy="46.5" rx="21.5" ry="3.8" fill="#d2d2d2"/>
+  <circle cx="31" cy="47.5" r="1.6" fill="#e6e6e6"/>
+  <circle cx="51" cy="49.5" r="1.6" fill="#e6e6e6"/>
+  <circle cx="71" cy="47.5" r="1.6" fill="#e6e6e6"/>
+  <!-- Rim lights -->
+  <circle cx="16.5" cy="53.5" r="5.8" fill="#d6d6d6"/><circle cx="16.5" cy="53.5" r="4"/><circle cx="15.5" cy="51.8" r="1.6" fill="#f6f6f6"/>
+  <circle cx="32" cy="58.5" r="5" fill="#d6d6d6"/><circle cx="32" cy="58.5" r="3.4"/><circle cx="31" cy="57" r="1.4" fill="#f6f6f6"/>
+  <circle cx="51" cy="61" r="5" fill="#d6d6d6"/><circle cx="51" cy="61" r="3.4"/><circle cx="50" cy="59.5" r="1.4" fill="#f6f6f6"/>
+  <circle cx="70" cy="58.5" r="5" fill="#d6d6d6"/><circle cx="70" cy="58.5" r="3.4"/><circle cx="69" cy="57" r="1.4" fill="#f6f6f6"/>
+  <circle cx="85.5" cy="53.5" r="5.8" fill="#d6d6d6"/><circle cx="85.5" cy="53.5" r="4"/>
+</svg>

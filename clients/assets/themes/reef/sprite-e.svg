@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" width="640" height="640" fill="white">
+  <!-- Octopus — "The Chef" — toque + cooking spoon -->
+  <!-- Mantle -->
+  <ellipse cx="40" cy="28" rx="18" ry="22"/>
+  <!-- Cheeks -->
+  <ellipse cx="40" cy="44" rx="20" ry="9"/>
+  <!-- Eye sockets -->
+  <circle cx="33" cy="24" r="5.5"/>
+  <circle cx="47" cy="24" r="5.5"/>
+  <!-- Pupils -->
+  <circle cx="33" cy="24" r="2.8" fill="#666666"/>
+  <circle cx="47" cy="24" r="2.8" fill="#666666"/>
+  <!-- Eye highlights -->
+  <circle cx="31.5" cy="22.5" r="1.2" fill="#bbbbbb"/>
+  <circle cx="45.5" cy="22.5" r="1.2" fill="#bbbbbb"/>
+  <!-- Tentacles -->
+  <path d="M 24,46 C 16,52 10,58 8,68 C 7,72 9,74 11,72 C 12,68 16,62 22,56 C 26,52 26,50 24,46 Z"/>
+  <path d="M 27,49 C 20,56 16,64 15,72 C 14.5,75 17,76 18,73 C 19,68 22,60 28,54 C 30,52 30,50 27,49 Z"/>
+  <path d="M 33,52 C 29,60 27,68 28,76 C 28.5,79 31,79 31.5,76 C 32,70 33,62 36,55 C 37,52 36,51 33,52 Z"/>
+  <path d="M 38,53 C 36,61 36,69 38,77 C 38.5,80 41,80 41,77 C 41,69 40,61 39,53 C 39,52 38,52 38,53 Z"/>
+  <path d="M 43,53 C 44,61 44,69 42,77 C 41.5,80 44,80 44.5,77 C 46,69 45,61 44,53 C 44,52 43,52 43,53 Z"/>
+  <path d="M 47,52 C 51,60 53,68 52,76 C 51.5,79 49,79 48.5,76 C 48,70 47,62 44,55 C 43,52 44,51 47,52 Z"/>
+  <path d="M 53,49 C 60,56 64,64 65,72 C 65.5,75 63,76 62,73 C 61,68 58,60 52,54 C 50,52 50,50 53,49 Z"/>
+  <!-- Chef cooking spoon in arm-7 tentacle -->
+  <line x1="60" y1="58" x2="70" y2="46" stroke="#e0e0e0" stroke-width="2" stroke-linecap="round"/>
+  <ellipse cx="71.5" cy="44.5" rx="4.5" ry="3" transform="rotate(-40 71.5 44.5)" fill="#e0e0e0"/>
+  <ellipse cx="70.5" cy="43.5" rx="3" ry="1.8" transform="rotate(-40 70.5 43.5)" fill="#f4f4f4" opacity="0.7"/>
+  <path d="M 56,46 C 64,52 70,58 72,68 C 73,72 71,74 69,72 C 68,68 64,62 58,56 C 54,52 54,50 56,46 Z"/>
+  <!-- Sucker hints -->
+  <ellipse cx="38.5" cy="58" rx="1.2" ry="1" fill="#aaaaaa"/>
+  <ellipse cx="38.8" cy="63" rx="1.2" ry="1" fill="#aaaaaa"/>
+  <ellipse cx="39"   cy="68" rx="1.2" ry="1" fill="#aaaaaa"/>
+  <ellipse cx="43.5" cy="58" rx="1.2" ry="1" fill="#aaaaaa"/>
+  <ellipse cx="43.2" cy="63" rx="1.2" ry="1" fill="#aaaaaa"/>
+  <ellipse cx="43"   cy="68" rx="1.2" ry="1" fill="#aaaaaa"/>
+  <!-- Chef's toque on mantle top -->
+  <!-- Hat base band -->
+  <rect x="28" y="9" width="24" height="4" rx="1.5" fill="#e8e8e8"/>
+  <!-- Puffed dome cylinder -->
+  <rect x="31" y="0" width="18" height="10" rx="3" fill="#f0f0f0"/>
+  <!-- Puffed dome top ellipse -->
+  <ellipse cx="40" cy="0.5" rx="9" ry="3.5" fill="#f8f8f8"/>
+  <!-- Dome puffy crease lines -->
+  <line x1="35" y1="1" x2="34" y2="8" stroke="#d8d8d8" stroke-width="0.9" stroke-linecap="round"/>
+  <line x1="40" y1="0.5" x2="39" y2="9" stroke="#d8d8d8" stroke-width="0.9" stroke-linecap="round"/>
+  <line x1="45" y1="1" x2="44" y2="8" stroke="#d8d8d8" stroke-width="0.9" stroke-linecap="round"/>
+  <!-- Toque highlight on right side -->
+  <ellipse cx="43" cy="4" rx="4" ry="2.5" fill="#f8f8f8" opacity="0.55"/>
+</svg>

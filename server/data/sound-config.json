@@ -1,6 +1,6 @@
 {
   "urls": {
-    "zero_roll": "http://192.168.1.2:8123/local/sfx/Voicy_Ha-Ha.mp3",
+    "zero_roll": "http://192.168.1.2:8123/local/sfx/Voicy_Horn 2.mp3",
     "score_1": "http://192.168.1.2:8123/local/buzz/short-beep.mp3",
     "score_2": "http://192.168.1.2:8123/local/sfx/Voicy_Horn 2.mp3",
     "score_3": "http://192.168.1.2:8123/local/sfx/Kirmes Sprüche 11 (128kbit_AAC).m4a",
@@ -30,8 +30,10 @@
     "http://192.168.1.2:8123/local/sfx/delon_boomkin-circus-music-388517.mp3",
     "http://192.168.1.2:8123/local/sfx/Happy Traveller - Gack Winter (Offride) Video Bremer Freimarkt 2017 (128kbit_AAC).m4a",
     "http://192.168.1.2:8123/local/sfx/Kirmes Sprüche 11 (128kbit_AAC).m4a",
-    "http://192.168.1.2:8123/local/sfx/Kirmes Sprüche 13 (128kbit_AAC).m4a",
-    "http://192.168.1.2:8123/local/sfx/Kirmes Sprüche 11 (128kbit_AAC).m4a",
-    "http://192.168.1.2:8123/local/sfx/Kirmes Sprüche 11 (128kbit_AAC).m4a"
+    "http://192.168.1.2:8123/local/sfx/Tomb Raider- Theme (techno mix).mp3",
+    "http://192.168.1.2:8123/local/sfx/Benny Hill- Yakety sax05.WAV",
+    "http://192.168.1.2:8123/local/sfx/Theme- Speed Racer(1).wav",
+    "http://192.168.1.2:8123/local/sfx/T - STARWARS-CANTINA BAND.MP3",
+    "http://192.168.1.2:8123/local/sfx/monkeytheme01.wav"
   ]
 }

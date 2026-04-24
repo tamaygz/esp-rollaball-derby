@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" width="640" height="640" fill="white">
+  <!-- Octopus — "The Pirate" — tricorn hat, eyepatch, hook -->
+  <!-- Mantle -->
+  <ellipse cx="40" cy="28" rx="18" ry="22"/>
+  <!-- Cheeks -->
+  <ellipse cx="40" cy="44" rx="20" ry="9"/>
+  <!-- Eye sockets -->
+  <circle cx="33" cy="24" r="5.5"/>
+  <circle cx="47" cy="24" r="5.5"/>
+  <!-- Pupils -->
+  <circle cx="33" cy="24" r="2.8" fill="#666666"/>
+  <circle cx="47" cy="24" r="2.8" fill="#666666"/>
+  <!-- Eye highlights -->
+  <circle cx="31.5" cy="22.5" r="1.2" fill="#bbbbbb"/>
+  <circle cx="45.5" cy="22.5" r="1.2" fill="#bbbbbb"/>
+  <!-- Eyepatch over left eye -->
+  <ellipse cx="33" cy="24" r="6.5" fill="#2e2e2e"/>
+  <line x1="26.5" y1="20" x2="39.5" y2="20" stroke="#3a3a3a" stroke-width="1.5"/>
+  <!-- Tentacles -->
+  <path d="M 24,46 C 16,52 10,58 8,68 C 7,72 9,74 11,72 C 12,68 16,62 22,56 C 26,52 26,50 24,46 Z"/>
+  <path d="M 27,49 C 20,56 16,64 15,72 C 14.5,75 17,76 18,73 C 19,68 22,60 28,54 C 30,52 30,50 27,49 Z"/>
+  <path d="M 33,52 C 29,60 27,68 28,76 C 28.5,79 31,79 31.5,76 C 32,70 33,62 36,55 C 37,52 36,51 33,52 Z"/>
+  <path d="M 38,53 C 36,61 36,69 38,77 C 38.5,80 41,80 41,77 C 41,69 40,61 39,53 C 39,52 38,52 38,53 Z"/>
+  <path d="M 43,53 C 44,61 44,69 42,77 C 41.5,80 44,80 44.5,77 C 46,69 45,61 44,53 C 44,52 43,52 43,53 Z"/>
+  <path d="M 47,52 C 51,60 53,68 52,76 C 51.5,79 49,79 48.5,76 C 48,70 47,62 44,55 C 43,52 44,51 47,52 Z"/>
+  <path d="M 53,49 C 60,56 64,64 65,72 C 65.5,75 63,76 62,73 C 61,68 58,60 52,54 C 50,52 50,50 53,49 Z"/>
+  <!-- Hook replacing far-right tentacle tip -->
+  <path d="M 56,46 C 64,52 70,58 72,67 C 73,71 71,73 69,71 C 68,67 65,62 60,57" fill="#d0d0d0"/>
+  <!-- Hook curve at tip -->
+  <path d="M 58,56 C 55,58 54,62 57,63 C 60,64 63,61 62,58" fill="none" stroke="#d0d0d0" stroke-width="2.8" stroke-linecap="round"/>
+  <!-- Sucker hints -->
+  <ellipse cx="38.5" cy="58" rx="1.2" ry="1" fill="#aaaaaa"/>
+  <ellipse cx="38.8" cy="63" rx="1.2" ry="1" fill="#aaaaaa"/>
+  <ellipse cx="39"   cy="68" rx="1.2" ry="1" fill="#aaaaaa"/>
+  <ellipse cx="43.5" cy="58" rx="1.2" ry="1" fill="#aaaaaa"/>
+  <ellipse cx="43.2" cy="63" rx="1.2" ry="1" fill="#aaaaaa"/>
+  <ellipse cx="43"   cy="68" rx="1.2" ry="1" fill="#aaaaaa"/>
+  <!-- Tricorn hat on mantle top -->
+  <!-- Hat brim -->
+  <ellipse cx="40" cy="10" rx="20" ry="4.5" fill="#d8d8d8"/>
+  <!-- Hat crown (main body) -->
+  <rect x="32" y="1" width="16" height="10" rx="2" fill="#d0d0d0"/>
+  <!-- Three tricorn up-folded brim points -->
+  <path d="M 20,9 C 24,5 30,4 33,7" fill="#d0d0d0"/>
+  <path d="M 60,9 C 56,5 50,4 47,7" fill="#d0d0d0"/>
+  <path d="M 35,0 C 40,-3 45,0 45,0 L 40,2 Z" fill="#d0d0d0"/>
+  <!-- Hat highlights -->
+  <ellipse cx="37" cy="5" rx="5" ry="2.5" fill="#ebebeb" opacity="0.6"/>
+  <!-- Buckle on brim -->
+  <rect x="37" y="8.5" width="6" height="3" rx="0.8" fill="#c0c0c0"/>
+  <rect x="38.5" y="9.3" width="3" height="1.4" fill="#d8d8d8"/>
+</svg>

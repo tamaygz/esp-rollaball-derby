@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 112 84" fill="white">
+  <!-- Camel + Rider — "The Explorer" — pith helmet, binoculars -->
+  <defs>
+    <radialGradient id="bdG" cx="45%" cy="30%" r="62%"><stop offset="0%" stop-color="#f8f8f8"/><stop offset="40%" stop-color="#dedede"/><stop offset="72%" stop-color="#bcbcbc"/><stop offset="100%" stop-color="#969696"/></radialGradient>
+    <radialGradient id="hpG" cx="38%" cy="26%" r="60%"><stop offset="0%" stop-color="#f4f4f4"/><stop offset="45%" stop-color="#d4d4d4"/><stop offset="100%" stop-color="#a8a8a8"/></radialGradient>
+    <linearGradient id="nkG" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#d0d0d0"/><stop offset="35%" stop-color="#f0f0f0"/><stop offset="70%" stop-color="#e0e0e0"/><stop offset="100%" stop-color="#c0c0c0"/></linearGradient>
+    <radialGradient id="hdG" cx="65%" cy="35%" r="62%"><stop offset="0%" stop-color="#f4f4f4"/><stop offset="50%" stop-color="#d6d6d6"/><stop offset="100%" stop-color="#aeaeae"/></radialGradient>
+    <linearGradient id="lgG" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#c4c4c4"/><stop offset="36%" stop-color="#ebebeb"/><stop offset="64%" stop-color="#e2e2e2"/><stop offset="100%" stop-color="#b4b4b4"/></linearGradient>
+    <radialGradient id="rdG" cx="55%" cy="22%" r="62%"><stop offset="0%" stop-color="#f8f8f8"/><stop offset="45%" stop-color="#d4d4d4"/><stop offset="100%" stop-color="#a6a6a6"/></radialGradient>
+    <linearGradient id="khG" x1="1" y1="0.5" x2="0" y2="0"><stop offset="0%" stop-color="#eeeeee"/><stop offset="55%" stop-color="#d6d6d6"/><stop offset="100%" stop-color="#b6b6b6"/></linearGradient>
+  </defs>
+  <rect x="1" y="40" width="20" height="3" rx="1.5" fill="#d8d8d8"/><rect x="1" y="34" width="15" height="2.4" rx="1.2" fill="#d0d0d0"/><rect x="1" y="28" width="11" height="2" rx="1" fill="#c8c8c8"/><rect x="1" y="46" width="13" height="2" rx="1" fill="#c0c0c0"/><rect x="1" y="52" width="9" height="1.8" rx="0.9" fill="#b8b8b8"/>
+  <circle cx="22" cy="41.5" r="1.5" fill="#d0d0d0"/><circle cx="17" cy="47" r="1.2" fill="#c8c8c8"/>
+  <ellipse cx="55" cy="82" rx="42" ry="3.5" fill="#a0a0a0" opacity="0.35"/>
+  <path d="M 24,52 C 18,47 14,44 12,46 C 10,48 11,53 15,55 C 18,57 22,56 24,54 Z" fill="#d4d4d4"/><path d="M 22,51 C 17,48 14,46 13,48 Z" fill="#ececec" opacity="0.6"/>
+  <path d="M 31,60 L 37,60 L 35,80 L 29,80 Z" fill="url(#lgG)"/><ellipse cx="32" cy="80.5" rx="5.5" ry="2.2" fill="#383838"/><ellipse cx="34" cy="70" rx="3.5" ry="3" fill="#e0e0e0"/>
+  <path d="M 56,60 L 62,60 L 62,80 L 56,80 Z" fill="url(#lgG)"/><ellipse cx="59" cy="80.5" rx="5.5" ry="2.2" fill="#383838"/><ellipse cx="59" cy="70" rx="3.5" ry="3" fill="#e0e0e0"/>
+  <path d="M 25,49 C 26,41 40,36 56,37 C 68,38 75,44 75,52 C 75,59 70,65 60,67 C 46,69 28,66 23,60 C 21,57 21,53 22,50 C 23,49 24,48 25,49 Z" fill="url(#bdG)"/>
+  <path d="M 24,60 C 30,67 48,69 60,67 C 50,69 34,68 24,60 Z" fill="#909090" opacity="0.28"/><path d="M 27,40 C 44,35 62,36 70,42 C 60,37 44,36 27,40 Z" fill="#f8f8f8" opacity="0.60"/>
+  <ellipse cx="48" cy="43" rx="19" ry="14" fill="url(#hpG)"/><ellipse cx="48" cy="33" rx="11" ry="8" fill="url(#hpG)"/>
+  <ellipse cx="44" cy="27" rx="6" ry="4" fill="#f6f6f6" opacity="0.62"/><ellipse cx="52" cy="53" rx="10" ry="3.5" fill="#8a8a8a" opacity="0.24"/>
+  <path d="M 62,46 C 65,39 70,31 74,22 L 78,24 C 74,33 69,41 65,48 Z" fill="url(#nkG)"/>
+  <path d="M 63,44 C 66,37 70,30 74,22 C 71,28 67,36 64,44 Z" fill="#f0f0f0" opacity="0.58"/><path d="M 65,48 C 69,41 74,33 78,24 C 76,30 71,38 66,46 Z" fill="#a8a8a8" opacity="0.38"/>
+  <ellipse cx="82" cy="20" rx="10" ry="7" transform="rotate(-20 82 20)" fill="url(#hdG)"/><ellipse cx="79" cy="15" rx="5" ry="3" transform="rotate(-20 82 20)" fill="#f4f4f4" opacity="0.65"/>
+  <ellipse cx="92" cy="24" rx="7" ry="4" transform="rotate(-5 92 24)" fill="#e6e6e6"/><ellipse cx="89" cy="21" rx="3.8" ry="2.2" transform="rotate(-5 92 24)" fill="#f4f4f4" opacity="0.55"/><ellipse cx="93" cy="27" rx="5.5" ry="2.2" transform="rotate(-5 92 24)" fill="#aaaaaa" opacity="0.40"/>
+  <ellipse cx="97" cy="26" rx="2.2" ry="1.5" fill="#2e2e2e"/><circle cx="96.3" cy="25.2" r="0.7" fill="#e0e0e0"/>
+  <path d="M 97,28 C 98,29.5 100,29 101,28" fill="none" stroke="#888888" stroke-width="1.1" stroke-linecap="round"/>
+  <path d="M 101,28 C 102,27.5 103,26 103,25" fill="none" stroke="#cecece" stroke-width="0.9" stroke-linecap="round"/>
+  <circle cx="86" cy="17" r="3.5" fill="#2e2e2e"/><circle cx="84.8" cy="15.8" r="1.4" fill="#f0f0f0"/>
+  <polygon points="82,13 84,7 88,13" fill="#eeeeee"/><polygon points="83.5,13 84.5,9 87,13" fill="#b8b8b8"/>
+  <path d="M 55,18 C 47,14 38,13 30,18 C 24,22 22,28 24,34 C 28,30 32,23 38,19 C 43,16 50,17 55,18 Z" fill="url(#khG)"/><path d="M 54,19 C 47,16 40,15 34,18 C 30,21 28,25 30,29 Z" fill="#f0f0f0" opacity="0.55"/>
+  <path d="M 52,20 C 47,23 44,27 44,32 C 46,29 49,25 52,20 Z" fill="#d6d6d6" opacity="0.55"/>
+  <ellipse cx="52" cy="25" rx="9" ry="7" transform="rotate(-18 52 25)" fill="url(#rdG)"/><ellipse cx="49" cy="20" rx="4.5" ry="3" transform="rotate(-18 52 25)" fill="#f4f4f4" opacity="0.55"/><ellipse cx="55" cy="31" rx="6" ry="3.2" transform="rotate(-18 52 25)" fill="#c8c8c8" opacity="0.45"/>
+  <circle cx="58" cy="15" r="5.5" fill="#e8e8e8"/>
+  <!-- Pith/safari helmet — distinctive flat-top tropical pith -->
+  <ellipse cx="58" cy="15.5" rx="9" ry="2.5" fill="#d0d0d0"/>
+  <rect x="51" y="9" width="14" height="7" rx="2" fill="#d8d8d8"/>
+  <ellipse cx="58" cy="9" rx="7" ry="2" fill="#e4e4e4"/>
+  <ellipse cx="55" cy="10" rx="3.5" ry="1.5" fill="#f0f0f0" opacity="0.65"/>
+  <!-- Chin strap -->
+  <path d="M 50,16 C 52,19 56,20.5 58,20.5 C 60,20.5 62,19 64,17.5" fill="none" stroke="#b8b8b8" stroke-width="1" stroke-linecap="round"/>
+  <!-- Rider face -->
+  <circle cx="60" cy="17.5" r="1.4" fill="#2e2e2e"/><circle cx="59.4" cy="16.8" r="0.6" fill="#f0f0f0"/>
+  <!-- Binoculars held up to face -->
+  <rect x="62" y="16" width="9" height="5" rx="1.5" fill="#d0d0d0"/>
+  <circle cx="64.5" cy="18.5" r="2.2" fill="#2e2e2e"/><circle cx="68.5" cy="18.5" r="2.2" fill="#2e2e2e"/>
+  <ellipse cx="64" cy="17.5" rx="1.3" ry="0.9" fill="#484848"/><ellipse cx="68" cy="17.5" rx="1.3" ry="0.9" fill="#484848"/>
+  <rect x="65.5" y="17.5" width="2" height="2" fill="#c0c0c0"/>
+  <!-- Arm extending to hold binoculars -->
+  <path d="M 62,20 C 62,19 62,18 62,17" fill="none" stroke="#d0d0d0" stroke-width="2.2" stroke-linecap="round"/>
+  <path d="M 78,24 C 86,26 93,26 97,27" fill="none" stroke="#c4c4c4" stroke-width="1.2" stroke-linecap="round"/>
+  <path d="M 27,62 L 33,62 L 31,80 L 25,80 Z" fill="url(#lgG)"/><ellipse cx="28" cy="80.5" rx="5.5" ry="2.2" fill="#2e2e2e"/><ellipse cx="30" cy="71" rx="3.5" ry="3" fill="#d8d8d8"/>
+  <path d="M 62,62 L 68,62 L 68,80 L 62,80 Z" fill="url(#lgG)"/><ellipse cx="65" cy="80.5" rx="5.5" ry="2.2" fill="#2e2e2e"/><ellipse cx="65" cy="71" rx="3.5" ry="3" fill="#d8d8d8"/>
+</svg>

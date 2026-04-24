@@ -8,7 +8,7 @@
     "trackBg":     "track-bg.svg",
     "finishFlag":  "finish-flag.svg"
   },
-  "spriteVariants": ["sprite.svg", "sprite-b.svg", "sprite-c.svg", "sprite-d.svg"],
+  "spriteVariants": ["sprite.svg", "sprite-b.svg", "sprite-c.svg", "sprite-d.svg", "sprite-e.svg", "sprite-f.svg", "sprite-g.svg"],
   "spriteViewBox": "0 0 100 72",
   "palette": {
     "sky":           "#5FA8D3",

@@ -8,7 +8,7 @@
     "trackBg":    "track-bg.svg",
     "finishFlag": "finish-flag.svg"
   },
-  "spriteVariants": ["sprite.svg", "sprite-b.svg", "sprite-c.svg", "sprite-d.svg"],
+  "spriteVariants": ["sprite.svg", "sprite-b.svg", "sprite-c.svg", "sprite-d.svg", "sprite-e.svg", "sprite-f.svg", "sprite-g.svg"],
   "spriteViewBox": "0 0 90 72",
   "palette": {
     "deepSpace":  "#03001C",
