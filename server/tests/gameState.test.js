@@ -231,7 +231,7 @@ describe('GameState — auto-theme resolution', () => {
     addConnectedPlayer(game);
     game.start();
     assert.notEqual(game.config.theme, 'auto');
-    assert.ok(['horse', 'camel'].includes(game.config.theme));
+    assert.ok(['horse', 'camel', 'reef'].includes(game.config.theme));
   });
 
   test('start() preserves explicit theme unchanged', () => {
@@ -480,5 +480,28 @@ describe('GameState — rank-change events', () => {
     player.lastScoredAt = null;
     const r0 = game.score(player.id, 0);
     assert.ok(r0.events.includes('zero_roll'));
+  });
+});
+
+// ─── Sequence counter (T11) ───────────────────────────────────────────────────
+
+describe('GameState — seq counter', () => {
+  test('nextSeq() is monotonically increasing from 1', () => {
+    const game = makeGame();
+    assert.equal(game.getSeq(), 0);
+    assert.equal(game.nextSeq(), 1);
+    assert.equal(game.nextSeq(), 2);
+    assert.equal(game.nextSeq(), 3);
+    assert.equal(game.getSeq(), 3);
+  });
+
+  test('reset() resets seq to 0', () => {
+    const game = makeGame();
+    game.nextSeq();
+    game.nextSeq();
+    assert.equal(game.getSeq(), 2);
+    game.reset();
+    assert.equal(game.getSeq(), 0);
+    assert.equal(game.nextSeq(), 1);
   });
 });

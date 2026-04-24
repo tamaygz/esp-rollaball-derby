@@ -1,5 +1,6 @@
 #include "led.h"
 #include <Arduino.h>
+#include <derby_logger.h>
 
 // ─── Constructor ──────────────────────────────────────────────────────────────
 // Member init order mirrors declaration order in led.h:
@@ -28,7 +29,7 @@ void LedManager::begin(const LedConfig& cfg) {
     uint16_t count = min(cfg.ledCount, static_cast<uint16_t>(LED_MAX_COUNT));
 
     if (!_controller.begin(count, cfg.pin)) {
-        Serial.printf("[LED] ERROR: LedController::begin failed (%u LEDs, pin %u)\n",
+        DERBY_LOG_F("[LED] ERROR: LedController::begin failed (%u LEDs, pin %u)\n",
                       count, cfg.pin);
         return;
     }
@@ -44,7 +45,7 @@ void LedManager::begin(const LedConfig& cfg) {
     // Sync the device identity color so scoring effects use it.
     _mapper.setDeviceColor(_getDeviceColor());
 
-    Serial.printf("[LED] Initialised: %u LEDs, pin=%u, brightness=%u\n",
+    DERBY_LOG_F("[LED] Initialised: %u LEDs, pin=%u, brightness=%u\n",
                   count, cfg.pin, cfg.brightness);
 
     _playAmbient(_state);
@@ -65,10 +66,10 @@ void LedManager::applyConfig(const LedConfig& cfg) {
     // (different pin may switch between DMA and UART1 methods).
     if (count != _config.ledCount || pin != _config.pin) {
         if (!_controller.begin(count, pin)) {
-            Serial.printf("[LED] ERROR: LedController::begin failed during applyConfig\n");
+            DERBY_LOG_F("[LED] ERROR: LedController::begin failed during applyConfig\n");
             return;
         }
-        Serial.printf("[LED] Strip re-initialised: %u LEDs, pin=%u\n", count, pin);
+        DERBY_LOG_F("[LED] Strip re-initialised: %u LEDs, pin=%u\n", count, pin);
     }
 
     _controller.setBrightness(cfg.brightness);
@@ -80,7 +81,7 @@ void LedManager::applyConfig(const LedConfig& cfg) {
     // Sync the device identity color so scoring effects use it.
     _mapper.setDeviceColor(_getDeviceColor());
 
-    Serial.printf("[LED] Config applied: %u LEDs, brightness=%u\n", count, cfg.brightness);
+    DERBY_LOG_F("[LED] Config applied: %u LEDs, brightness=%u\n", count, cfg.brightness);
 
     // Replay the current ambient effect so it fills the new LED count.
     _playAmbient(_state);
@@ -129,32 +130,32 @@ void LedManager::playTestEffect(const LedTestEffectMessage& msg) {
     EffectParams p;
     p.color      = RgbColor(msg.r, msg.g, msg.b);
     p.brightness = msg.brightness;
-    p.durationMs = 0; // infinite — admin manually stops by changing state
+    p.durationMs = msg.durationMs; // 0 = indefinite; >0 = auto-stop after this many ms
 
     if (strcmp(msg.effectName, "blink") == 0) {
         uint16_t half = (msg.speedMs > 0) ? (msg.speedMs / 2) : 500;
         _blinkEffect.setParams(p);
         _blinkEffect.setBlinkParams(half, half, 0);
-        _animator.playEffect(&_blinkEffect);
+        _animator.playEffect(&_blinkEffect, AnimationManager::PRIORITY_ADMIN);
 
     } else if (strcmp(msg.effectName, "pulse") == 0) {
         uint16_t period = (msg.speedMs > 0) ? msg.speedMs : 1000;
         _pulseEffect.setParams(p);
         _pulseEffect.setPeriod(period);
-        _animator.playEffect(&_pulseEffect);
+        _animator.playEffect(&_pulseEffect, AnimationManager::PRIORITY_ADMIN);
 
     } else if (strcmp(msg.effectName, "rainbow") == 0) {
         uint16_t speed = (msg.speedMs > 0) ? msg.speedMs : 3000;
         p.brightness = (msg.brightness > 0) ? msg.brightness : 180;
         _rainbowEffect.setParams(p);
         _rainbowEffect.setCycleSpeed(speed);
-        _animator.playEffect(&_rainbowEffect);
+        _animator.playEffect(&_rainbowEffect, AnimationManager::PRIORITY_ADMIN);
 
     } else if (strcmp(msg.effectName, "chase") == 0) {
         uint8_t speed = (msg.speedMs > 0) ? min((uint16_t)100, (uint16_t)(1000 / msg.speedMs * 10)) : 20;
         _chaseEffect.setParams(p);
         _chaseEffect.setChaseParams(5, speed);
-        _animator.playEffect(&_chaseEffect);
+        _animator.playEffect(&_chaseEffect, AnimationManager::PRIORITY_ADMIN);
 
     } else if (strcmp(msg.effectName, "sparkle") == 0) {
         // Use the requested color as sparkle color; background stays dark.
@@ -165,12 +166,12 @@ void LedManager::playTestEffect(const LedTestEffectMessage& msg) {
             0.08f,                                  // 8% density per frame
             8                                       // fade speed
         );
-        _animator.playEffect(&_sparkleEffect);
+        _animator.playEffect(&_sparkleEffect, AnimationManager::PRIORITY_ADMIN);
 
     } else {
         // "solid" and any unknown effect name → solid color
         _solidEffect.setParams(p);
-        _animator.playEffect(&_solidEffect);
+        _animator.playEffect(&_solidEffect, AnimationManager::PRIORITY_ADMIN);
     }
 }
 
@@ -187,6 +188,14 @@ void LedManager::loop() {
     if (!_animator.isPlaying() && !_gameActive) {
         _playAmbient(_state);
     }
+}
+
+// ─── restoreAmbient ────────────────────────────────────────────────────────────
+
+void LedManager::restoreAmbient() {
+    if (!_begun) return;
+    _animator.stop();
+    _playAmbient(_state);
 }
 
 // ─── _playAmbient ──────────────────────────────────────────────────────────────
@@ -207,7 +216,7 @@ void LedManager::_playAmbient(LedState state) {
             p.brightness = _config.brightness;
             _blinkEffect.setParams(p);
             _blinkEffect.setBlinkParams(100, 100, 0);
-            _animator.playEffect(&_blinkEffect);
+            _animator.playEffect(&_blinkEffect, AnimationManager::PRIORITY_AMBIENT);
             break;
 
         case LedState::WIFI_ONLY:
@@ -216,7 +225,7 @@ void LedManager::_playAmbient(LedState state) {
             p.brightness = _config.brightness;
             _blinkEffect.setParams(p);
             _blinkEffect.setBlinkParams(500, 500, 0);
-            _animator.playEffect(&_blinkEffect);
+            _animator.playEffect(&_blinkEffect, AnimationManager::PRIORITY_AMBIENT);
             break;
 
         case LedState::WS_CONNECTED:
@@ -225,7 +234,7 @@ void LedManager::_playAmbient(LedState state) {
             p.brightness = _config.brightness;
             _pulseEffect.setParams(p);
             _pulseEffect.setPeriod(2000);
-            _animator.playEffect(&_pulseEffect);
+            _animator.playEffect(&_pulseEffect, AnimationManager::PRIORITY_AMBIENT);
             break;
     }
 }

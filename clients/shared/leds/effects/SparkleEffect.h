@@ -113,10 +113,8 @@ public:
     // Seed random number generator with microseconds
     randomSeed(micros());
     
-    Serial.print("[SparkleEffect] Started: density=");
-    Serial.print(_density);
-    Serial.print(", fadeSpeed=");
-    Serial.println(_fadeSpeed);
+    DERBY_LOG_F("[SparkleEffect] Started: density=%u, fadeSpeed=%u\n",
+                _density, _fadeSpeed);
   }
   
   /**

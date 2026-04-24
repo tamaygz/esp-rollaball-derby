@@ -1,6 +1,7 @@
 #include "MatrixDisplay.h"
 #include "font5x3.h"
 #include <Arduino.h>
+#include <derby_logger.h>
 
 // ─── Lifecycle ────────────────────────────────────────────────────────────────
 
@@ -20,7 +21,7 @@ bool MatrixDisplay::begin(const LedConfig& cfg) {
     _pixelCount = min((uint16_t)(cfg.ledCount), (uint16_t)MAX_PIXELS);
 
     if (_pixelCount == 0) {
-        Serial.println("[MATRIX] ledCount=0 — matrix subsystem inactive");
+        DERBY_LOG_LN("[MATRIX] ledCount=0 — matrix subsystem inactive");
         _available = false;
         return false;
     }
@@ -35,8 +36,8 @@ bool MatrixDisplay::begin(const LedConfig& cfg) {
     }
 
     _available = true;
-    Serial.printf("[MATRIX] Init: %u pixels, pin=%u, rows=%u, cols=%u\n",
-                  _pixelCount, cfg.pin, _rows, _cols);
+    DERBY_LOG_F("[MATRIX] Init: %u pixels, pin=%u, rows=%u, cols=%u\n",
+               _pixelCount, cfg.pin, _rows, _cols);
     return true;
 }
 

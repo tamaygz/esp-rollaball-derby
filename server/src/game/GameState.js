@@ -20,6 +20,7 @@ class GameState {
     };
     this.players = new Map();
     this.startedAt = null;
+    this._seq = 0;
 
     this._usedNames = new Set();
     this._allNames = this._loadNames();
@@ -56,6 +57,14 @@ class GameState {
 
   getStatus() {
     return this.status;
+  }
+
+  getSeq() {
+    return this._seq;
+  }
+
+  nextSeq() {
+    return ++this._seq;
   }
 
   getConfig() {
@@ -109,6 +118,7 @@ class GameState {
   reset() {
     this.status = 'idle';
     this.startedAt = null;
+    this._seq = 0;
     this._usedNames.clear();
     this._nameCounter = 0;
     for (const player of this.players.values()) {

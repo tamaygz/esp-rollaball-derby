@@ -56,6 +56,8 @@ class BotManager {
 
     this._bots.set(botId, bot);
 
+    console.log(`[BotManager] Bot added: ${botId} (${bot.playerName})`);
+
     // Auto-start if game is already running
     if (this.gameState.getStatus() === 'running') {
       this._startBot(bot);
@@ -88,6 +90,7 @@ class BotManager {
 
     this.connectionManager.broadcastState();
     this.connectionManager.broadcastPositions();
+    console.log(`[BotManager] Bot removed: ${botId}`);
     return true;
   }
 
@@ -142,6 +145,7 @@ class BotManager {
     this._bots.clear();
     this.connectionManager.broadcastState();
     this.connectionManager.broadcastPositions();
+    console.log('[BotManager] All bots removed');
   }
 
   // ── Internal timer logic ──────────────────────────────────────────────────

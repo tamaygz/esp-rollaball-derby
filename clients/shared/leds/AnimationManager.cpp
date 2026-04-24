@@ -4,10 +4,12 @@
 
 #include "AnimationManager.h"
 #include <Arduino.h>
+#include <derby_logger.h>
 
 AnimationManager::AnimationManager(LedController* controller) 
   : _controller(controller)
   , _currentEffect(nullptr)
+  , _activePriority(PRIORITY_AMBIENT)
   , _transitionEffect(nullptr)
   , _transitionState(TRANSITION_IDLE)
   , _transitionDurationMs(0)
@@ -26,9 +28,7 @@ void AnimationManager::begin() {
   resetStats();
   updateFrameInterval();
   
-  Serial.print("[AnimationManager] Initialized @ ");
-  Serial.print(_targetFPS);
-  Serial.println(" FPS");
+  DERBY_LOG_F("[AnimationManager] Initialized @ %u FPS\n", _targetFPS);
 }
 
 void AnimationManager::loop() {
@@ -61,11 +61,10 @@ void AnimationManager::loop() {
     
     // Check if effect completed
     if (_currentEffect->isComplete()) {
-      Serial.print("[AnimationManager] Effect '");
-      Serial.print(_currentEffect->getName());
-      Serial.println("' completed");
+      DERBY_LOG_F("[AnimationManager] Effect '%s' completed\n", _currentEffect->getName());
       _currentEffect->reset();
       _currentEffect = nullptr;
+      _activePriority = PRIORITY_AMBIENT;  // reset gate so next request fires
       // Clear strip so LEDs don't stay frozen on the last frame
       _controller->clear();
       _controller->show();
@@ -81,15 +80,23 @@ void AnimationManager::loop() {
   _stats.frameCount++;
 }
 
-void AnimationManager::playEffect(LedEffect* effect) {
+void AnimationManager::playEffect(LedEffect* effect, uint8_t priority) {
   if (effect == nullptr) {
-    Serial.println("[AnimationManager] Error: null effect pointer");
+    DERBY_LOG_LN("[AnimationManager] Error: null effect pointer");
     return;
   }
-  
+
+  // ── Priority gate ──────────────────────────────────────────────────────────────────
+  // Drop the request silently if a higher-priority effect is already running.
+  if (_currentEffect != nullptr && priority < _activePriority) {
+    DERBY_LOG_F("[AnimationManager] Effect '%s' dropped (priority %u < active %u)\n",
+                effect->getName(), priority, _activePriority);
+    return;
+  }
+
   // Cancel any pending transition
   if (_transitionState != TRANSITION_IDLE) {
-    Serial.println("[AnimationManager] Cancelling transition");
+    DERBY_LOG_LN("[AnimationManager] Cancelling transition");
     _transitionState = TRANSITION_IDLE;
     if (_transitionEffect != nullptr) {
       _transitionEffect->reset();
@@ -99,26 +106,22 @@ void AnimationManager::playEffect(LedEffect* effect) {
   
   // Stop current effect if any
   if (_currentEffect != nullptr) {
-    Serial.print("[AnimationManager] Replacing effect '");
-    Serial.print(_currentEffect->getName());
-    Serial.print("' with '");
-    Serial.print(effect->getName());
-    Serial.println("'");
+    DERBY_LOG_F("[AnimationManager] Replacing effect '%s' with '%s'\n",
+                 _currentEffect->getName(), effect->getName());
     _currentEffect->reset();
   } else {
-    Serial.print("[AnimationManager] Playing effect '");
-    Serial.print(effect->getName());
-    Serial.println("'");
+    DERBY_LOG_F("[AnimationManager] Playing effect '%s'\n", effect->getName());
   }
   
   // Start new effect
   _currentEffect = effect;
+  _activePriority = priority;
   _currentEffect->begin();
 }
 
 void AnimationManager::transitionTo(LedEffect* effect, uint16_t durationMs) {
   if (effect == nullptr) {
-    Serial.println("[AnimationManager] Error: null effect pointer");
+    DERBY_LOG_LN("[AnimationManager] Error: null effect pointer");
     return;
   }
   
@@ -136,19 +139,14 @@ void AnimationManager::transitionTo(LedEffect* effect, uint16_t durationMs) {
   
   // If already transitioning, cancel and start new transition
   if (_transitionState != TRANSITION_IDLE) {
-    Serial.println("[AnimationManager] Interrupting previous transition");
+    DERBY_LOG_LN("[AnimationManager] Interrupting previous transition");
     if (_transitionEffect != nullptr) {
       _transitionEffect->reset();
     }
   }
   
-  Serial.print("[AnimationManager] Transitioning from '");
-  Serial.print(_currentEffect->getName());
-  Serial.print("' to '");
-  Serial.print(effect->getName());
-  Serial.print("' over ");
-  Serial.print(durationMs);
-  Serial.println("ms");
+  DERBY_LOG_F("[AnimationManager] Transitioning from '%s' to '%s' over %ums\n",
+              _currentEffect->getName(), effect->getName(), durationMs);
   
   // Set up transition
   _transitionEffect = effect;
@@ -160,11 +158,10 @@ void AnimationManager::transitionTo(LedEffect* effect, uint16_t durationMs) {
 
 void AnimationManager::stop() {
   if (_currentEffect != nullptr) {
-    Serial.print("[AnimationManager] Stopping effect '");
-    Serial.print(_currentEffect->getName());
-    Serial.println("'");
+    DERBY_LOG_F("[AnimationManager] Stopping effect '%s'\n", _currentEffect->getName());
     _currentEffect->reset();
     _currentEffect = nullptr;
+    _activePriority = PRIORITY_AMBIENT;
     _controller->clear();
     _controller->show();
   }
@@ -182,19 +179,16 @@ void AnimationManager::setTargetFPS(uint8_t fps) {
   // Clamp to valid range
   if (fps < MIN_FPS) {
     fps = MIN_FPS;
-    Serial.print("[AnimationManager] FPS clamped to minimum: ");
-    Serial.println(MIN_FPS);
+    DERBY_LOG_F("[AnimationManager] FPS clamped to minimum: %u\n", (unsigned)MIN_FPS);
   } else if (fps > MAX_FPS) {
     fps = MAX_FPS;
-    Serial.print("[AnimationManager] FPS clamped to maximum: ");
-    Serial.println(MAX_FPS);
+    DERBY_LOG_F("[AnimationManager] FPS clamped to maximum: %u\n", (unsigned)MAX_FPS);
   }
   
   _targetFPS = fps;
   updateFrameInterval();
   
-  Serial.print("[AnimationManager] Target FPS set to ");
-  Serial.println(_targetFPS);
+  DERBY_LOG_F("[AnimationManager] Target FPS set to %u\n", _targetFPS);
 }
 
 uint8_t AnimationManager::getTargetFPS() const {
@@ -218,7 +212,7 @@ void AnimationManager::resetStats() {
   _stats.totalElapsedMs = 0;
   _frameTimeAccumUs = 0;
   
-  Serial.println("[AnimationManager] Statistics reset");
+  DERBY_LOG_LN("[AnimationManager] Statistics reset");
 }
 
 void AnimationManager::updateFrameInterval() {
@@ -245,11 +239,8 @@ void AnimationManager::updateStats(uint32_t frameTimeUs) {
     
     // Log warning if frame time exceeds budget by 50%
     if (frameTimeUs > (_frameIntervalUs * 3 / 2)) {
-      Serial.print("[AnimationManager] Warning: Slow frame (");
-      Serial.print(frameTimeUs / 1000);
-      Serial.print("ms, budget=");
-      Serial.print(_frameIntervalUs / 1000);
-      Serial.println("ms)");
+      DERBY_LOG_F("[AnimationManager] Warning: Slow frame (%ums, budget=%ums)\n",
+                    frameTimeUs / 1000, _frameIntervalUs / 1000);
     }
   }
 }
@@ -293,7 +284,7 @@ void AnimationManager::updateTransition(uint32_t deltaMs) {
       } else {
         // Fade out complete, switch to fade in
         _transitionState = TRANSITION_FADING_IN;
-        Serial.println("[AnimationManager] Transition: fade out complete");
+        DERBY_LOG_LN("[AnimationManager] Transition: fade out complete");
         
         // Clean up old effect
         if (_currentEffect != nullptr) {
@@ -316,7 +307,7 @@ void AnimationManager::updateTransition(uint32_t deltaMs) {
         // Fade in complete, transition done
         _transitionBrightness = 255;
         _transitionState = TRANSITION_COMPLETE;
-        Serial.println("[AnimationManager] Transition: fade in complete");
+        DERBY_LOG_LN("[AnimationManager] Transition: fade in complete");
       }
       break;
       
@@ -324,7 +315,7 @@ void AnimationManager::updateTransition(uint32_t deltaMs) {
       // Clean up and return to idle
       _transitionState = TRANSITION_IDLE;
       _transitionBrightness = 255;
-      Serial.println("[AnimationManager] Transition: complete");
+      DERBY_LOG_LN("[AnimationManager] Transition: complete");
       break;
       
     default:

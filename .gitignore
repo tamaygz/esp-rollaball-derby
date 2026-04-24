@@ -5,3 +5,8 @@ test-results/
 **/.playwright
 **/web-install/**
 
+.agents/**
+
+# Runtime environment files — use .template versions as defaults
+server/data/led-config.json
+server/data/sound-config.json

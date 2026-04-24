@@ -42,4 +42,20 @@ router.get('/debug-player', (req, res) => {
   });
 });
 
+router.get('/logs', (req, res) => {
+  res.render('admin/logs', {
+    title: 'Roll-a-Ball Derby — Live Log',
+    active: 'logs',
+    wsStatus: true,
+  });
+});
+
+router.get('/sounds', (req, res) => {
+  res.render('admin/sounds', {
+    title: 'Roll-a-Ball Derby — Sounds',
+    active: 'sounds',
+    wsStatus: false,
+  });
+});
+
 module.exports = router;

@@ -1,11 +1,16 @@
 'use strict';
 
 const { randomUUID } = require('crypto');
+const path = require('path');
+
+const GameEvents    = require(path.join(__dirname, '..', '..', '..', 'clients', 'shared', 'js', 'gameEvents'));
+const SoundDecision = require(path.join(__dirname, '..', '..', '..', 'clients', 'shared', 'js', 'soundDecision'));
 
 const VALID_TYPES    = new Set(['sensor', 'web', 'motor', 'display']);
 const HARDWARE_TYPES = new Set(['sensor', 'motor']);
 const HTML_TAG_PATTERN = /<[^>]*>/g;
 const CHIPID_PATTERN   = /^[A-Fa-f0-9]{4,16}$/;
+const LOG_MESSAGE_MAX  = 300;
 
 const AUTO_RESET_DELAY_MS = 15_000;
 const COUNTDOWN_TICK_MS   = 1_000;
@@ -101,6 +106,11 @@ class ConnectionManager {
 
     this.clients.set(clientId, { ws, type: null, playerId: null, id: clientId });
 
+    const remote = ws && ws._socket && ws._socket.remoteAddress
+      ? ws._socket.remoteAddress.replace(/^::ffff:/, '')
+      : 'unknown';
+    console.log(`[ConnectionManager] Client connected: ${clientId} (${remote})`);
+
     ws.on('message', (data) => this._handleMessage(clientId, ws, data));
     ws.on('close', () => this._handleDisconnect(clientId));
     ws.on('error', () => this._handleDisconnect(clientId));
@@ -182,10 +192,15 @@ class ConnectionManager {
   }
 
   broadcastAll(msg) {
-    const json = JSON.stringify(msg);
+    const envelope = { ...msg, seq: this.gameState.nextSeq() };
+    const json = JSON.stringify(envelope);
     for (const { ws } of this.clients.values()) {
       if (ws.readyState === 1 /* OPEN */) {
-        ws.send(json);
+        try {
+          ws.send(json);
+        } catch (error) {
+          console.error('[ConnectionManager] Failed to broadcast message:', error.message);
+        }
       }
     }
   }
@@ -214,10 +229,10 @@ class ConnectionManager {
   }
 
   broadcastScored(player, points, events) {
-    // Play the most significant sound: lead/last/streak events take priority over score.
-    const PRIORITY_EVENTS = ['took_lead', 'became_last', 'streak_three', 'streak_zero'];
-    const soundEvent = (events || []).find((e) => PRIORITY_EVENTS.includes(e)) || `score_${points}`;
-    this._soundManager?.play(soundEvent);
+    // Unified sound decision — same logic the browser clients use, so every
+    // player/device hears/handles the same event.
+    const soundEvent = SoundDecision.pickScoredSound({ events: events || [], points });
+    if (soundEvent) this._soundManager?.play(soundEvent);
 
     this.broadcastAll({
       type: 'scored',
@@ -271,7 +286,12 @@ class ConnectionManager {
     let sentCount = 0;
     for (const client of this.clients.values()) {
       if (client.type === deviceType && client.ws.readyState === 1 /* OPEN */) {
-        const payload = { ...config };
+        // Use per-device override if available, otherwise use the chiptype-aware type config.
+        // getConfigForDevice resolves chiptype-specific defaults (e.g. sensor-esp32) first.
+        let effectiveConfig = this.ledConfigManager
+          ? this.ledConfigManager.getConfigForDevice(deviceType, client.chipId || null, client.chipType || null) || config
+          : config;
+        const payload = { ...effectiveConfig };
         // Include per-device color if available
         if (this.ledConfigManager && client.playerId) {
           const player = this.gameState.players.get(client.playerId);
@@ -301,9 +321,10 @@ class ConnectionManager {
    * @param {string} deviceId - Device client ID
    * @param {string} effectName - Effect name
    * @param {Object} params - Effect parameters
+   * @param {number} [durationMs=0] - Auto-stop duration in ms (0 = indefinite)
    * @returns {boolean} Success status
    */
-  sendTestEffect(deviceId, effectName, params) {
+  sendTestEffect(deviceId, effectName, params, durationMs = 0) {
     const client = this.clients.get(deviceId);
     if (!client || client.ws.readyState !== 1 /* OPEN */) {
       return false;
@@ -313,6 +334,7 @@ class ConnectionManager {
       type: 'test_effect',
       payload: {
         effectName,
+        durationMs,
         params
       }
     });
@@ -321,7 +343,26 @@ class ConnectionManager {
       client.ws.send(msg);
       return true;
     } catch (error) {
-      console.error(`[ConnectionManager] Failed to send test effect to ${deviceId}:`, error.message);
+      console.error('[ConnectionManager] Failed to send test effect to', deviceId + ':', error.message);
+      return false;
+    }
+  }
+
+  /**
+   * Send stop_effect to a specific device, ending any active test effect.
+   * @param {string} deviceId - Device client ID
+   * @returns {boolean} Success status
+   */
+  sendStopEffect(deviceId) {
+    const client = this.clients.get(deviceId);
+    if (!client || client.ws.readyState !== 1 /* OPEN */) {
+      return false;
+    }
+    try {
+      client.ws.send(JSON.stringify({ type: 'stop_effect' }));
+      return true;
+    } catch (error) {
+      console.error('[ConnectionManager] Failed to send stop_effect to', deviceId + ':', error.message);
       return false;
     }
   }
@@ -333,6 +374,82 @@ class ConnectionManager {
    */
   getDeviceById(deviceId) {
     return this.clients.get(deviceId) || null;
+  }
+
+  /**
+   * Get the connected client object for a device identified by chipId + deviceType.
+   * Returns the first open client that matches, or null if not connected.
+   *
+   * @param {string} chipId      - Device chip ID
+   * @param {string} deviceType  - Device type ('sensor', 'motor', …)
+   * @returns {Object|null} Client object or null
+   */
+  getConnectedDevice(chipId, deviceType) {
+    for (const client of this.clients.values()) {
+      if (client.chipId === chipId && client.type === deviceType && client.ws.readyState === 1) {
+        return client;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Send an `led_config` message to a single connected device identified by
+   * chipId + deviceType.  Resolves chiptype-aware defaults and appends
+   * `deviceColor` from the player's colorIndex before sending.
+   *
+   * Centralises all per-device targeted WS sends so routes stay thin.
+   *
+   * @param {string} chipId      - Device chip ID
+   * @param {string} deviceType  - Device type ('sensor', 'motor', …)
+   * @returns {boolean} true if the message was sent; false if device is not connected
+   * @throws {Error} if ledConfigManager has not been wired up (configuration error)
+   */
+  sendLedConfigToDevice(chipId, deviceType) {
+    if (!this.ledConfigManager) {
+      throw new Error('sendLedConfigToDevice: ledConfigManager is not set');
+    }
+    const client = this.getConnectedDevice(chipId, deviceType);
+    if (!client) return false;
+
+    const config = this.ledConfigManager.getConfigForDevice(deviceType, chipId, client.chipType || null);
+    if (!config) return false;
+
+    const payload = { ...config };
+    if (client.playerId) {
+      const player = this.gameState.players.get(client.playerId);
+      if (player && player.colorIndex !== undefined) {
+        payload.deviceColor = this.ledConfigManager.getColorHex(player.colorIndex);
+      }
+    }
+    client.ws.send(JSON.stringify({ type: 'led_config', timestamp: Date.now(), payload }));
+    return true;
+  }
+
+  /**
+   * Broadcast a log entry to all connected web and display clients.
+   * Called both for server-side log lines (from log.js) and for device log
+   * messages received over WebSocket (from _handleLog).
+   *
+   * @param {{ source, senderName, senderType, level?, message, ts }} entry
+   */
+  broadcastLog(entry) {
+    const msg = JSON.stringify({ type: 'log_line', payload: entry });
+    for (const [clientId, client] of this.clients.entries()) {
+      if (
+        (client.type === 'web' || client.type === 'display') &&
+        client.ws.readyState === 1 /* OPEN */
+      ) {
+        try {
+          client.ws.send(msg);
+        } catch (error) {
+          // Use process.stderr directly to avoid re-entering the console interceptor
+          // (console.error is patched by log.js and calls broadcastLog, which would loop).
+          process.stderr.write(`[ConnectionManager] Failed to broadcast log_line to ${clientId}: ${error.message}\n`);
+          this.clients.delete(clientId);
+        }
+      }
+    }
   }
 
   // ─── Private ──────────────────────────────────────────────────────────────────
@@ -410,7 +527,7 @@ class ConnectionManager {
 
     // Send LED config to reconnected device (with device color)
     if (this.ledConfigManager && type !== 'display') {
-      const ledConfig = this.ledConfigManager.getConfigForDeviceType(type);
+      const ledConfig = this.ledConfigManager.getConfigForDeviceType(type, existing.chipType || null);
       if (ledConfig && ledConfig.ledCount > 0) {
         const configPayload = { ...ledConfig };
         if (existing.colorIndex !== undefined) {
@@ -431,6 +548,7 @@ class ConnectionManager {
       envelope = JSON.parse(data.toString());
     } catch {
       this._send(ws, { type: 'error', payload: { message: 'Invalid JSON' } });
+      console.warn('[ConnectionManager] Invalid JSON from', clientId);
       return;
     }
 
@@ -438,6 +556,7 @@ class ConnectionManager {
 
     if (typeof type !== 'string') {
       this._send(ws, { type: 'error', payload: { message: 'Missing message type' } });
+      console.warn('[ConnectionManager] Missing message type from', clientId);
       return;
     }
 
@@ -452,22 +571,37 @@ class ConnectionManager {
         case 'button':
           this._handleButton(clientId, ws, payload || {});
           break;
+        case 'log':
+          this._handleLog(clientId, payload || {});
+          break;
         default:
           this._send(ws, { type: 'error', payload: { message: 'Unknown message type' } });
+          console.warn('[ConnectionManager] Unknown message type from', clientId + ':', type);
       }
     } catch (err) {
       this._send(ws, { type: 'error', payload: { message: err.message } });
+      console.error('[ConnectionManager] Handler error for', clientId + ':', err.message);
     }
   }
 
   _handleRegister(clientId, ws, payload) {
-    const { type, playerName, playerId: reconnectId, ledCount, chipType, chipId, motorCount, motorColors, capabilities } = payload;
+    const { type, playerName, playerId: reconnectId, ledCount, chipType, chipId, motorCount, motorColors, capabilities, lastSeq } = payload;
+
+    // If the client reports the last seq it saw, log a gap warning so we can
+    // detect missed messages during reconnects (non-blocking, informational only).
+    if (typeof lastSeq === 'number') {
+      const currentSeq = this.gameState.getSeq();
+      if (lastSeq < currentSeq - 1) {
+        console.warn(`[WS] seq gap on register: client lastSeq=${lastSeq}, server seq=${currentSeq}`);
+      }
+    }
 
     if (!VALID_TYPES.has(type)) {
       this._send(ws, {
         type: 'error',
         payload: { message: `Invalid type. Must be one of: ${[...VALID_TYPES].join(', ')}` },
       });
+      console.warn('[ConnectionManager] Invalid register type from', clientId + ':', type);
       return;
     }
 
@@ -513,6 +647,7 @@ class ConnectionManager {
     if (reconnectId && type !== 'display') {
       const existing = this.gameState.reconnectPlayer(reconnectId);
       if (existing) {
+        console.log(`[ConnectionManager] Client ${clientId} reconnected as ${reconnectId} (${type})`);
         this._finalizeReconnect(ws, client, existing, reconnectId, { type, chipId: validatedChipId, sanitized, ledCount, chipType });
         return;
       }
@@ -526,6 +661,7 @@ class ConnectionManager {
       if (previousPlayerId) {
         const existing = this.gameState.reconnectPlayer(previousPlayerId);
         if (existing) {
+          console.log(`[ConnectionManager] Device ${validatedChipId} reconnected as ${previousPlayerId} (${type})`);
           this._finalizeReconnect(ws, client, existing, previousPlayerId, { type, chipId: validatedChipId, sanitized, ledCount, chipType });
           return;
         }
@@ -579,6 +715,8 @@ class ConnectionManager {
       client.playerId = null;
     }
 
+    console.log(`[ConnectionManager] Client registered: ${clientId} (${type})`);
+
     // Build response with LED validation warning if applicable
     const response = {
       type: 'registered',
@@ -599,7 +737,7 @@ class ConnectionManager {
 
     // Send LED config to newly registered device (with device color)
     if (this.ledConfigManager && type !== 'display') {
-      const ledConfig = this.ledConfigManager.getConfigForDeviceType(type);
+      const ledConfig = this.ledConfigManager.getConfigForDevice(type, validatedChipId || null, chipType || null);
       if (ledConfig && ledConfig.ledCount > 0) {
         const configPayload = { ...ledConfig };
         if (colorIndex !== undefined) {
@@ -639,6 +777,38 @@ class ConnectionManager {
     } catch (err) {
       this._send(ws, { type: 'error', payload: { message: err.message } });
     }
+  }
+
+  _handleLog(clientId, payload) {
+    const client = this.clients.get(clientId);
+    if (!client) return;
+
+    // Accept log messages only from hardware devices (sensors, motors).
+    if (!HARDWARE_TYPES.has(client.type)) return;
+
+    const rawMessage = typeof payload.message === 'string' ? payload.message : '';
+    if (!rawMessage) return;
+    let message = rawMessage;
+    if (message.length > LOG_MESSAGE_MAX) {
+      message = message.slice(0, LOG_MESSAGE_MAX - 3) + '...';
+    }
+
+    // Resolve a human-readable sender name from the associated player record.
+    const player = client.playerId
+      ? this.gameState.players.get(client.playerId)
+      : null;
+    const senderName = player ? player.name : (client.chipType || client.type || 'device');
+    const source = client.chipId || client.playerId || clientId;
+    const level = typeof payload.level === 'string' ? payload.level : undefined;
+
+    this.broadcastLog({
+      source,
+      senderName,
+      senderType: client.type,
+      level,
+      message,
+      ts: Date.now(),
+    });
   }
 
   _handleButton(clientId, ws, payload) {
@@ -698,7 +868,9 @@ class ConnectionManager {
     try {
       this.gameState.setPlayerColorIndex(client.playerId, firstLaneColor);
       if (this.ledConfigManager && client.chipId) {
-        this.ledConfigManager.assignColor(client.chipId, firstLaneColor);
+        this.ledConfigManager.updateDeviceColor(client.chipId, firstLaneColor).catch((err) => {
+          console.error('[ConnectionManager] Failed to persist motor lane color:', err.message);
+        });
       }
     } catch (_) { /* player may not exist yet — ignore */ }
   }
@@ -708,6 +880,7 @@ class ConnectionManager {
     // client reconnected and the server reused an existing player entry).
     const client = this.clients.get(clientId);
     const playerId = client ? client.playerId : null;
+    const clientType = client ? client.type : null;
     this.clients.delete(clientId);
 
     // Only disconnect the player if no other active client is now responsible for
@@ -722,6 +895,7 @@ class ConnectionManager {
         this.gameState.disconnectPlayer(playerId);
       }
     }
+    console.log(`[ConnectionManager] Client disconnected: ${clientId}${clientType ? ` (${clientType})` : ''}`);
     this.broadcastState();
   }
 }

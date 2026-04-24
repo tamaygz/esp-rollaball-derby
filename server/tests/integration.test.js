@@ -809,3 +809,176 @@ describe('Integration — Motor WebSocket', () => {
     assert.equal(player.name, 'MotorPlayer');
   });
 });
+
+// ─── LED Per-device Override ──────────────────────────────────────────────────
+
+describe('Integration — LED per-device override routing', () => {
+  const os   = require('os');
+  const fs   = require('fs/promises');
+  const LedConfigManager = require('../src/config/LedConfigManager');
+  const createLedRoutes  = require('../src/routes/leds');
+
+  let server, port, connectionManager, gameState;
+  const _tmpFiles = [];
+
+  before(async () => {
+    await new Promise((resolve) => {
+      const app = express();
+      app.use(express.json());
+
+      gameState = new GameState();
+      const tmpPath = path.join(os.tmpdir(), `led-override-test-${Date.now()}.json`);
+      _tmpFiles.push(tmpPath);
+      const ledConfigManager = new LedConfigManager(tmpPath);
+      // Prime in-memory config (no file I/O)
+      ledConfigManager.config = JSON.parse(JSON.stringify(ledConfigManager.defaultConfig));
+      // Stub saveConfig to be in-memory only — no temp-file atomics in tests
+      ledConfigManager.saveConfig = async function (config) {
+        ledConfigManager.config = config;
+        return true;
+      };
+
+      connectionManager = new ConnectionManager(gameState, ledConfigManager);
+
+      app.use('/api/leds', (req, res, next) =>
+        createLedRoutes(ledConfigManager, connectionManager)(req, res, next)
+      );
+
+      server = http.createServer(app);
+      const wss = new WebSocketServer({ server });
+      wss.on('connection', (ws) => connectionManager.handleConnection(ws));
+
+      server.listen(0, '127.0.0.1', () => {
+        port = server.address().port;
+        resolve();
+      });
+    });
+  });
+
+  after(async () => {
+    server.close();
+    await Promise.all(_tmpFiles.map((f) => fs.unlink(f).catch(() => {})));
+  });
+
+  function restRequest(method, urlPath, body) {
+    return new Promise((resolve, reject) => {
+      const data = body ? JSON.stringify(body) : null;
+      const req = http.request(
+        {
+          hostname: '127.0.0.1',
+          port,
+          path: urlPath,
+          method,
+          headers: {
+            'Content-Type': 'application/json',
+            ...(data ? { 'Content-Length': Buffer.byteLength(data) } : {}),
+          },
+        },
+        (res) => {
+          let raw = '';
+          res.on('data', (c) => (raw += c));
+          res.on('end', () => {
+            try { resolve({ status: res.statusCode, body: JSON.parse(raw) }); }
+            catch (_) { resolve({ status: res.statusCode, body: raw }); }
+          });
+        }
+      );
+      req.on('error', reject);
+      if (data) req.write(data);
+      req.end();
+    });
+  }
+
+  test('PUT /api/leds/config/:type/:chipId delivers led_config only to target device', async () => {
+    // Connect two sensor clients, each with a distinct chipId
+    const ws1 = await wsConnect(port);
+    const ws2 = await wsConnect(port);
+
+    ws1.send(JSON.stringify({
+      type: 'register',
+      payload: { type: 'sensor', playerName: 'SensorA', chipId: 'AABBCCDD' },
+    }));
+    ws2.send(JSON.stringify({
+      type: 'register',
+      payload: { type: 'sensor', playerName: 'SensorB', chipId: '11223344' },
+    }));
+
+    // Wait for both to finish registration (each receives a 'registered' message)
+    await waitForMessage(ws1, (m) => m.type === 'registered', 2000);
+    await waitForMessage(ws2, (m) => m.type === 'registered', 2000);
+
+    // Track any led_config received by ws2 (should remain empty)
+    const ws2LedConfigs = [];
+    ws2.on('message', (data) => {
+      const msg = JSON.parse(data.toString());
+      if (msg.type === 'led_config') ws2LedConfigs.push(msg);
+    });
+
+    // PUT override for chipId belonging to ws1 only.
+    // Set up the ws1 listener BEFORE the PUT so we don't miss the WS push
+    // that the server sends as part of the PUT handler (race-free).
+    // Match specifically on ledCount=45 to skip any initial led_config from registration.
+    const ws1LedConfigPromise = waitForMessage(
+      ws1,
+      (m) => m.type === 'led_config' && m.payload?.ledCount === 45,
+      2000
+    );
+
+    const override = {
+      ledCount: 45,
+      gpioPin: 2,
+      topology: 'strip',
+      brightness: 70,
+      defaultEffect: 'blink',
+    };
+    const putRes = await restRequest('PUT', '/api/leds/config/sensor/AABBCCDD', override);
+    assert.equal(putRes.status, 200, 'PUT should succeed');
+    assert.equal(putRes.body.success, true);
+
+    // ws1 should receive led_config
+    const ws1Msg = await ws1LedConfigPromise;
+    assert.ok(ws1Msg, 'target device should receive led_config');
+    assert.equal(ws1Msg.payload.ledCount, 45);
+    assert.equal(ws1Msg.payload.gpioPin, 2);
+
+    // Give ws2 a small window to receive any spurious message
+    await new Promise((r) => setTimeout(r, 100));
+    assert.equal(ws2LedConfigs.length, 0, 'non-target device must not receive led_config');
+
+    ws1.close();
+    ws2.close();
+  });
+});
+
+// ─── Sequence number on WS registration (T11) ────────────────────────────────
+
+describe('Integration — register with optional lastSeq', () => {
+  test('register with lastSeq in payload completes normally', async () => {
+    const { server, port } = await startServer();
+
+    const ws = new WebSocket(`ws://127.0.0.1:${port}`);
+    await new Promise((resolve, reject) => {
+      ws.on('open', resolve);
+      ws.on('error', reject);
+    });
+
+    ws.send(JSON.stringify({
+      type: 'register',
+      payload: { type: 'sensor', playerName: 'SeqTestPlayer', lastSeq: 5 },
+    }));
+
+    const msg = await new Promise((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error('register timeout')), 2000);
+      ws.on('message', (data) => {
+        clearTimeout(timer);
+        resolve(JSON.parse(data.toString()));
+      });
+    });
+
+    assert.equal(msg.type, 'registered', 'should receive registered response');
+    assert.ok(msg.payload.id, 'registered payload must include id');
+
+    ws.close();
+    await new Promise((resolve) => server.close(resolve));
+  });
+});

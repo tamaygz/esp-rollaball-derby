@@ -1,5 +1,6 @@
 #include "stepper_motor.h"
 #include <Arduino.h>
+#include <derby_logger.h>
 
 // AccelStepper HALF4WIRE constructor expects pins in the order:
 // motorPin1=IN1, motorPin3=IN2, motorPin2=IN3, motorPin4=IN4
@@ -19,7 +20,7 @@ bool StepperMotor::begin() {
         pinMode(_limitPin, INPUT_PULLUP);
     }
 
-    Serial.printf("[MOTOR] StepperMotor ready, lim_pin=%u\n", (unsigned)_limitPin);
+    DERBY_LOG_F("[MOTOR] StepperMotor ready, lim_pin=%u\n", (unsigned)_limitPin);
     return true;
 }
 
@@ -32,7 +33,7 @@ void StepperMotor::update() {
             _stepper.setCurrentPosition(0);
             _homing = false;
             _homed  = true;
-            Serial.println("[MOTOR] Homed via limit switch");
+            DERBY_LOG_LN("[MOTOR] Homed via limit switch");
             release();
         } else {
             _stepper.runSpeed();   // constant-speed run toward negative direction
@@ -62,13 +63,13 @@ void StepperMotor::home() {
         _homing = true;
         _homed  = false;
         _stepper.setSpeed(-300.0f);  // slow crawl toward home
-        Serial.println("[MOTOR] Homing via limit switch");
+        DERBY_LOG_LN("[MOTOR] Homing via limit switch");
     } else {
         // No limit switch — simply call current position 0
         _stepper.stop();
         _stepper.setCurrentPosition(0);
         _homed = true;
-        Serial.println("[MOTOR] Homed (no limit switch — zeroed position)");
+        DERBY_LOG_LN("[MOTOR] Homed (no limit switch — zeroed position)");
         release();
     }
 }
