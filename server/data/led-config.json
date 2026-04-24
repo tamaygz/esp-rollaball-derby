@@ -1,7 +1,7 @@
 {
   "sensor": {
     "ledCount": 8,
-    "gpioPin": 3,
+    "gpioPin": 2,
     "topology": "strip",
     "brightness": 80,
     "defaultEffect": "sparkle"
