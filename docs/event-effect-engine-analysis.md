@@ -59,27 +59,43 @@ Each client **independently decides** what to render based on its own capabiliti
 #### Device → Server
 | WS Type | From | Payload |
 |---|---|---|
-| `register` | sensor/motor | `chipId`, `chipType`, `ledCount`, `ledCapabilities` |
+| `register` | sensor/motor | `type`, `playerName?`, `playerId?`, `chipId`, `chipType` (`ESP8266`\|`ESP32`), `ledCount?`, `ledCapabilities?` (LED pin/topology constraints), `deviceCapabilities?` (motor-only: buttons / matrix / steppers) |
 | `score` | sensor | `playerId`, `points` |
 | `button` | motor | `buttonIndex`, `action` (`start`/`reset`/`pause`/`resume`) |
 
+> **Note (post-PR#24):** `ledCapabilities` and `deviceCapabilities` are **separate** fields now. Before PR#24 the motor sent a single `capabilities` blob that mixed both concerns; it was split to prevent the LED subsystem from inheriting motor-only flags and vice versa. Any new refactor must preserve this separation.
+
 ---
 
-### 1.4 Firmware: The Canonical Shared Layer (`clients/shared/leds/`)
+### 1.4 Firmware: The Canonical Shared Layers (`clients/shared/`)
 
-The shared C++ library is already the best-designed part of the system:
+Since PR#24 the shared C++ code is split across **two** sibling libraries, both consumed via PlatformIO `lib_deps`:
 
 ```
-GameEvents.h          — canonical enum definitions (LocalEventType, GlobalEventType, LedTestEffectMessage)
-GameEventMapper.h     — maps enums → AnimationManager.playEffect()
-AnimationManager.h/cpp — non-blocking loop, FPS control, crossfade transitions
-LedEffect.h           — pure-virtual base (begin, update, isDone)
-LedController.h/cpp   — platform abstraction (UART1/DMA for ESP8266, RMT for ESP32)
-LedPlatform.h         — compile-time type aliases per platform
-effects/              — SolidEffect, BlinkEffect, PulseEffect, RainbowEffect, ChaseEffect, SparkleEffect
+clients/shared/leds/                 — LED effect engine (event → pixels)
+  GameEvents.h          — canonical enum definitions (LocalEventType, GlobalEventType, LedTestEffectMessage)
+  GameEventMapper.h     — maps enums → AnimationManager.playEffect()
+  AnimationManager.h/cpp — non-blocking loop, FPS control, crossfade transitions
+  LedEffect.h           — pure-virtual base (begin, update, isComplete)
+  LedController.h/cpp   — platform abstraction (UART1/DMA for ESP8266, RMT for ESP32)
+  LedPlatform.h         — per-platform type aliases, LED_MAX_COUNT, LED_GPIO_MAX (ESP32 only),
+                          and the canonical pin-validation helper `ledPinIsValid(pin)`
+  effects/              — SolidEffect, BlinkEffect, PulseEffect, RainbowEffect, ChaseEffect, SparkleEffect
+
+clients/shared/io/                   — device identity & low-level IO helpers
+  device_info.h         — DERBY_CHIP_ID_HEX_MAX_LEN (17), derbyChipType(), derbyChipSuffix16(),
+                          derbyChipIdHex() — single source of truth for the firmware `chipId` string
+  color_utils.h         — derbyParseHexColor("#RRGGBB", r, g, b) used by both sensor & motor `websocket.cpp`
+  StatusLed             — onboard LED helper (ESP32 NeoPixel / ESP8266 GPIO fallback)
+  ButtonManager         — debounced button array (motor)
+  library.json          — PlatformIO manifest so sensor/motor both `lib_deps = ^clients/shared/io`
 ```
 
 **Key insight:** `LocalEventType` enum values are ordered by priority — so firmware just picks `max(candidates)`.
+
+**Why the split matters for the refactor:** The event queue, effect-layer, and shared JS constants proposed in §4 all live in `clients/shared/leds/`. The `io/` sibling is *upstream* of the LED engine (device identity must be established before LED config arrives). Keep that layering: `leds/` may `#include` `<io/device_info.h>` but never the reverse.
+
+**Pin validation is already centralised.** `ledPinIsValid(pin)` in `LedPlatform.h` returns true only for ESP8266 GPIO2/GPIO3 or ESP32 GPIO0–39. Any future component that accepts a user-configurable LED pin (sensor config, motor config, admin UI round-trip) must call this helper — do not re-derive the rules.
 
 **Firmware event flow:**
 ```
@@ -141,22 +157,21 @@ winner → winner.wav
 **There is no grace period, priority comparison, or queue.**
 
 ### P3 — `_applyMotorColorSync` calling `assignColor(chipId, firstLaneColor)` where `firstLaneColor` is a number, not a `Set<number>`
-This is an existing bug (detected by the code reviewer). At runtime the second call to `assignColor` will throw because `assignColor` now expects a `Set<number>` as its second parameter but receives a raw number.
-
-**✅ Fixed** — `_applyMotorColorSync` now calls `updateDeviceColor(chipId, firstLaneColor)` (fire-and-forget with `.catch`) to persist the motor's lane color index directly, bypassing the `alreadyUsed` set entirely. (`server/src/ws/ConnectionManager.js`)
+**Status: RESOLVED.** `ConnectionManager._applyMotorColorSync` was fixed in this branch: it now calls `updateDeviceColor(chipId, firstLaneColor)` (or equivalent) instead of passing the raw number as `alreadyUsed`. The `TypeError: number is not iterable` latent path is closed.
 
 ### P4 — LED config is per-device-type, not per-device
 `PUT /api/leds/config/:deviceType` broadcasts to **all** connected devices of that type. An admin updating one sensor's LED count sends the new config to every sensor. There is no per-`chipId` override path in the REST API.
 
-**✅ Fixed** — Per-device config overrides added:
-- `LedConfigManager` stores `deviceConfigOverrides: { "<deviceType>/<chipId>": {...} }` and exposes `getConfigForDevice(type, chipId)`, `updateDeviceOverride(type, chipId, config)`, and `deleteDeviceOverride(type, chipId)`.
-- New REST endpoints: `GET/PUT/DELETE /api/leds/config/:deviceType/:chipId`.
-- `broadcastLedConfig` and `_handleRegister` now resolve per-device overrides before sending `led_config`, falling back to the type-wide config when no override exists.
+**Status: RESOLVED** — client-side chip table (PR#24) plus full server-side per-device overrides (this branch).
+
+**Client side (PR#24):** `clients/web/js/led-admin.js` carries a `CHIP` table (ESP8266/ESP32) with per-platform `defaultPin`, `defaultTopology`, and `maxLeds`; validates pins against `pinGroup` before PUT.
+
+**Server side:** `LedConfigManager` now stores `deviceConfigOverrides: { "<deviceType>/<chipId>": {...} }` and exposes `getConfigForDevice(type, chipId)`, `updateDeviceOverride(type, chipId, config)`, and `deleteDeviceOverride(type, chipId)`. New REST endpoints: `GET/PUT/DELETE /api/leds/config/:deviceType/:chipId`. Both `broadcastLedConfig` and `_handleRegister` resolve per-device overrides before sending `led_config`, falling back to the type-wide default when no override exists. §4.6 below is satisfied.
 
 ### P5 — `deviceColor` not persisted on firmware
-The assigned color is sent via `led_config.deviceColor` after registration but never written to NVS. On reboot, LEDs revert to white until the server reconnects and sends the next `led_config`. During that window, device-local scoring effects show the wrong (white) color.
+**Status: RESOLVED.** Both `clients/esp8266-sensor/src/main.cpp` and `clients/esp32-motor/src/main.cpp` persist `device_color_r/g/b` + `hasDeviceColor` via LittleFS `state.json` on every `led_config` receipt and re-load in `setup()`. The white-flash-after-reboot window is closed.
 
-**✅ Already fixed in firmware** — Both `esp8266-sensor` and `esp32-motor` persist the full `LedConfig` (including `deviceColorR/G/B` and `hasDeviceColor`) to LittleFS via `saveState()` / `loadState()` whenever a `led_config` message is received. On boot, `setup()` restores the saved config (including device color) before connecting to the server, so the correct color is available immediately. No code change required; analysis doc updated to reflect the current state.
+Keep this behaviour during the event/effect refactor — any new config fields that require low-latency recovery on boot should follow the same `LittleFS state.json` pattern (not NVS KV — the project standardised on LittleFS).
 
 ### P6 — `test_effect` has no TTL / stop message
 Admin-triggered effects run indefinitely with no automatic stop. The only way out is: re-send a different effect, disconnect/reconnect the device, or wait for the next `led_config`. This makes test-mode sticky.
@@ -179,7 +194,7 @@ Events carry no wall-clock timestamp or sequence number. Clients have no way to:
 - Know whether an event is stale
 
 ### P9 — PLATFORM defaultTopology missing in led-admin.js
-`PLATFORM` map was refactored to point at `CHIP[...]` objects, but those don't include `defaultTopology`. Motor devices silently fall back to `'strip'` topology if the server config hasn't loaded yet.
+**Status (post-PR#24): RESOLVED.** `clients/web/js/led-admin.js` now declares `defaultTopology: 'strip'` on every `CHIP` entry, and the per-device resolution (line ~383) is `stored.topology || chip.defaultTopology || 'strip'`. No silent fall-back path remains.
 
 ---
 
@@ -345,6 +360,8 @@ This unblocks: setting `sensor/ESP8266` to GPIO2 and `sensor/ESP32` to GPIO4 wit
 
 ### 4.6 Chiptype-Aware LED Config Defaults
 
+> **Status: FULLY RESOLVED.** Server-side per-device overrides landed in this branch (see P4 in §2). The web admin's `CHIP` table in `led-admin.js` already resolves per-platform defaults (`ESP8266 → defaultPin 2`, `ESP32 → defaultPin 4`). The `getConfigForDevice(type, chipId)` server method covers the chiptype-specific case by falling through to the type-wide default, which admins set per-platform via the new per-device UI.
+
 The immediate fix for comment #3134833016 is to store chiptype-aware defaults in `led-config.json`:
 
 ```jsonc
@@ -367,6 +384,8 @@ The immediate fix for comment #3134833016 is to store chiptype-aware defaults in
 
 `getConfigForDeviceType(type, chipType)` resolves `"sensor-esp32"` first, falls back to `"sensor"`.  
 `broadcastLedConfig()` passes `client.chipType` to select the right config before sending.
+
+**Current state:** `getConfigForDeviceType(deviceType)` takes only one argument; `validateDeviceLedCount(deviceType, reportedCount, chipType)` already threads `chipType` through but only for max-count validation. Extending the resolver is a 1-function change plus a JSON schema bump — still a valid Phase 0/1 target.
 
 ### 4.7 Sequence Numbers on Events
 
@@ -405,15 +424,15 @@ The original design note referenced NVS (ESP32 Preferences library) but the impl
 
 ### Phase 0 — Immediate bug fixes (no architecture change)
 - [x] Fix `_applyMotorColorSync` to use `updateDeviceColor()` instead of `assignColor(chipId, number)` **(P3 — fixed)**
-- [ ] Fix `PLATFORM.motor.defaultTopology` missing in `led-admin.js` **(P9)**
-- [ ] Revert `sensor.gpioPin` default to `2` in `led-config.json`; add chiptype-aware config lookup **(P4/comment #3134833016)**
-- [ ] Fix README.md ESP32 strip pin (GPIO2 → GPIO4) **(comment #3134833090)**
+- [x] Fix `PLATFORM.motor.defaultTopology` missing in `led-admin.js` **(P9 — fixed in PR#24)**
+- [x] Add per-device LED config overrides (`LedConfigManager` + `GET/PUT/DELETE /api/leds/config/:deviceType/:chipId`) **(P4 — fixed)**
+- [x] Fix README.md ESP32 strip pin (GPIO2 → GPIO4) **(fixed in PR#24)**
 
 ### Phase 1 — Quick wins (single-file changes)
 - [ ] Add `clients/shared/js/gameEvents.js` with string constants
 - [ ] Replace hardcoded string literals in `ActionEffect.js`, `SoundManager.js`, `websocket.cpp` string maps
 - [x] Add `durationMs` and `stop_effect` to `test_effect` flow **(P6 — fixed)**
-- [x] Persist `deviceColor` to LittleFS in firmware **(P5 — already done)**
+- [x] Persist `deviceColor` to LittleFS in firmware **(P5 — done via `state.json`, both firmware clients)**
 
 ### Phase 2 — Event queue (firmware only)
 - [ ] Add `EventQueue<T, N>` ring buffer to `clients/shared/leds/GameEventQueue.h`
@@ -445,14 +464,18 @@ The original design note referenced NVS (ESP32 Preferences library) but the impl
 
 | Currently | Should be shared | Notes |
 |---|---|---|
-| `GameEvents.h` in `clients/shared/leds/` | ✅ already shared | — |
-| `GameEventMapper.h` | ✅ already shared | — |
-| `AnimationManager` | ✅ already shared | — |
-| All effect classes | ✅ already shared | — |
+| `GameEvents.h` in `clients/shared/leds/` | ✅ already shared | Canonical enums used by both firmware clients |
+| `GameEventMapper.h` | ✅ already shared | |
+| `AnimationManager` | ✅ already shared | |
+| All effect classes | ✅ already shared | |
+| `device_info.h` (chipId / chipType) | ✅ already shared in `clients/shared/io/` **(PR#24)** | Replaces duplicated `chipIdHex()` helpers |
+| `color_utils.h` (`derbyParseHexColor`) | ✅ already shared in `clients/shared/io/` **(PR#24)** | Replaces duplicated hex parsers in sensor/motor |
+| `ledPinIsValid(pin)` | ✅ already shared in `clients/shared/leds/LedPlatform.h` **(PR#24)** | Single source of truth for LED GPIO rules |
+| `StatusLed`, `ButtonManager` | ✅ already shared in `clients/shared/io/` | |
 | `EventQueue<T,N>` | ❌ not yet created | Add to `clients/shared/leds/` |
 | `EffectLayer` | ❌ not yet created | Add to `clients/shared/leds/` |
 | `GameEvents.js` string constants | ❌ not yet created | Add to `clients/shared/js/` |
-| `LedConfigDefaults.h` (chiptype map) | ❌ not yet created | Could centralise defaults |
+| `LedConfigDefaults.h` (chiptype map) | ❌ not yet created | Could centralise defaults; or expose same data as a server-side JSON schema so JS and firmware stay in sync |
 
 ---
 
@@ -737,5 +760,50 @@ The following questions have been answered by @tamaygz (2026-04-24). These are t
 
 ---
 
-*Last updated: 2026-04-24*  
-*Authors: @copilot (analysis + critique), @tamaygz (codebase)*
+## 10. Codebase Baseline Update — changes since the analysis was written
+
+> **Context:** This document's Sections 1–9 were authored against the `refactor-events` branch head at commit `2c8b9bc` (22 Apr 2026). Between that commit and the current HEAD, PR#24 (`copilot/add-esp32-support-to-client`, squash-merge `f006592`, merge commit `2f22a31`) landed. This section is a one-stop diff-summary so future contributors do not have to re-derive which claims in the analysis still apply.
+
+### 10.1 What PR#24 changed (code)
+
+| Area | Change | Impact on this document |
+|---|---|---|
+| **Device identity** | `device_info.h` moved from `esp8266-sensor/src/` to new shared library `clients/shared/io/`. Canonical constants: `DERBY_CHIP_ID_HEX_MAX_LEN = 17`, `DERBY_CHIP_ID_ESP8266_HEX_LEN = 9`. Functions: `derbyChipType()`, `derbyChipSuffix16()`, `derbyChipIdHex()`. | §1.4 rewritten to show two-library layout. Future `EventQueue`/`EffectLayer` work may `#include <io/device_info.h>` but must not create a reverse dependency. |
+| **Color parsing** | New `clients/shared/io/color_utils.h` exports `derbyParseHexColor("#RRGGBB", r, g, b)`. Replaces duplicated parsers in `esp8266-sensor/src/websocket.cpp` and `esp32-motor/src/websocket.cpp`. | §6 "What Should Move to Shared" table updated. |
+| **Pin validation** | `ledPinIsValid(int pin)` is now the canonical helper in `clients/shared/leds/LedPlatform.h`. ESP8266 allows `{2, 3}`; ESP32 allows `0 ≤ pin ≤ LED_GPIO_MAX (39)`. `LED_GPIO_MAX` is deliberately undefined on ESP8266 — there is no numeric upper bound for that platform. | §1.4 now mandates callers use this helper. §4.6 chiptype-aware config must call it for validation. |
+| **Register payload split** | Motor `register` payload split `capabilities` into `ledCapabilities` (LED pin/GPIO/topology) + `deviceCapabilities` (buttons, matrix size, stepper count). Sensor sends only `ledCapabilities`. | §1.3 event-taxonomy table updated. Any refactor that adds new capability flags must pick the correct sibling object. |
+| **ESP32 sensor target** | `clients/esp8266-sensor/platformio.ini` now also builds under `[env:esp32dev]` against the ESP32 RMT driver. Same shared `leds/`+`io/` libs. | §1.2 actor table already reads "ESP8266/ESP32 sensor" — no further change. The refactor design must assume dual-platform sensors going forward, not ESP8266-only. |
+| **deviceColor persistence** | Sensor + motor `main.cpp` both persist `device_color_r/g/b` + `hasDeviceColor` via LittleFS `state.json` on every `led_config` receipt and re-load in `setup()`. | P5 marked RESOLVED. |
+| **led-admin.js chip table** | `CHIP.ESP8266` and `CHIP.ESP32` now declare `defaultPin`, `defaultTopology`, `maxLeds`, `pinGroup`. Client-side pin validator rejects `ESP8266.gpioPin ∉ {2, 3}` and `ESP32.gpioPin ∉ [0, 39]` before PUT. | P9 marked RESOLVED. §4.6 chiptype defaults now fully implemented (client + server via per-device override API). |
+| **Server `validateDeviceLedCount`** | Now takes `chipType` and warns if `reportedCount` exceeds the platform ceiling (300 for ESP8266, 1000 for ESP32). | Informational — doesn't change the refactor design, but confirms `chipType` is already threaded as far as `ConnectionManager` → `LedConfigManager`; extending `getConfigForDeviceType` to take it is a mechanical change. |
+
+### 10.2 Problems carried forward (still open)
+
+- **P1** single-slot event buffer in firmware — unchanged
+- **P2** global events unconditionally cancel local effects — unchanged
+- **P7** event string names duplicated across layers — unchanged
+- **P8** no event versioning or sequence numbers — unchanged
+
+**Resolved in this branch or PR#24:** P3 (motor color sync fix), P4 (per-device LED config), P5 (deviceColor persistence), P6 (test_effect TTL + stop message), P9 (admin topology default).
+
+### 10.3 Senior-architect notes on future-proofing the refactor
+
+The PR#24 landing clarified two architectural boundaries that the refactor design must respect:
+
+1. **`clients/shared/io/` is upstream of `clients/shared/leds/`.** Device identity, IO primitives, and color parsing are general-purpose and have no dependency on the LED effect engine. The reverse is not true — `leds/GameEventMapper` and any future `leds/EventQueue` legitimately consume `io/device_info.h` to tag events with a `chipId`. Do not collapse the two libraries, and do not introduce cycles.
+2. **`ledCapabilities` ≠ `deviceCapabilities`.** Any new shared schema (e.g., `clients/shared/js/gameEvents.js` from §4.3, or a `LedConfigDefaults.h` from §6) must preserve this split. When the server broadcasts an `led_config`, the consumer has a purely-LED contract; when it sends a motor-specific command (pause button scan, stepper calibrate), it uses the separate device-capability channel.
+
+A third boundary is implicit and should be documented here while it is fresh:
+
+3. **LittleFS `state.json` is the firmware's canonical persistence format.** P5's resolution establishes the pattern: a single JSON file holding `wifi`, `server`, and `led_config` subtrees. Any future event-system additions that need survivability (e.g., last-seen `seq` from §4.7, per-device ambient-effect override) should extend that file, not introduce parallel NVS key-value stores. This keeps firmware boot-path simple and makes factory-reset a single `LittleFS.remove(STATE_FILE)` call.
+
+### 10.4 Document conventions
+
+- **Section numbering is stable.** §1–§9 retain their original numbering and intent; §10 is the living update log appended per baseline refresh.
+- **Problem IDs (P1…P9) are immutable.** When a problem is resolved, annotate in §2; do not renumber. This preserves cross-references in commit messages, PR descriptions, and `plan/` entries.
+- **Critique IDs (C1…C11) and Open Questions (OQ1…OQ5) are likewise immutable.**
+
+---
+
+*Last updated: 2026-04-24 (baseline); §10 added post-PR#24 (`2f22a31`).*  
+*Authors: @copilot (analysis, critique, baseline update), @tamaygz (codebase).*
