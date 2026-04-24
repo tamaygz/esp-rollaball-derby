@@ -456,12 +456,16 @@ The original design note referenced NVS (ESP32 Preferences library) but the impl
 
 ---
 
-## 7. What NOT to Change
+## 7. Architectural Constraints (what must stay)
 
-- **Server-is-authoritative** model — already correct. Do not move game logic to clients.
-- **Display client multi-effect fan-out** — GSAP/Pixi do not have the same single-active-effect constraint as the LED firmware. Keep `ActionEffect.js` firing all events in parallel.
-- **`scored` broadcast to all clients** — even though only the owning device reacts locally, the display client and sound manager need the full event for all players. Keep the global broadcast.
-- **JSON / WebSocket protocol** — adding optional fields (`seq`, `durationMs`) is backward-compatible. Avoid breaking message type renames.
+These constraints are structural — they reflect correct design that must not be accidentally removed during refactoring.
+
+- **Server-is-authoritative** — Sensors send intents (`score`), server computes `events[]`, all clients react. Do not move game logic to clients.
+- **Display client multi-effect fan-out** — GSAP/Pixi do not have the single-active-effect constraint of LED firmware. `ActionEffect.js` must continue to fire all events in parallel; do not apply firmware-style priority gating to it.
+- **`scored` broadcast to all clients** — the full event list must reach every client type (display, sound manager, firmware) even though each reacts differently.
+- **JSON / WebSocket protocol** — Protocol changes are acceptable but must be coordinated: update server + all client types in the same PR. No orphaned fields or dead message types.
+
+> **Philosophy:** The goal is a clean, modern codebase — not a frozen one. Any of the above constraints may be revisited if a strictly better architecture is proposed with a concrete migration plan. They are not sacred.
 
 ---
 
@@ -473,7 +477,7 @@ The original design note referenced NVS (ESP32 Preferences library) but the impl
 │  GameState (seq counter) ──► events[] ──► ConnectionManager              │
 │  broadcastScored / broadcastGameEvent / broadcastWinner                  │
 │    all carry {type, seq, payload}                                        │
-│  LedConfigManager: type defaults + per-chipId overrides                  │
+│  LedConfigManager: type defaults + per-chipId overrides ✅               │
 │  SoundManager: event→wav mapping                                         │
 └──────────────┬───────────────────┬──────────────────────────────────────┘
                │  WS               │  WS (same broadcast)
@@ -481,11 +485,11 @@ The original design note referenced NVS (ESP32 Preferences library) but the impl
    │ ESP8266/ESP32 Sensor │  │       Display Client (Pixi.js)          │
    │  EventQueue (local)  │  │  ActionEffect.js — multi-event fan-out  │
    │  EventQueue (global) │  │  WinnerOverlay / CountdownEffect        │
-   │  EffectLayer[0]=amb  │  │  (no single-active constraint)          │
-   │  EffectLayer[1]=game │  └─────────────────────────────────────────┘
-   │  EffectLayer[2]=admin│
-   │  AnimationManager×3  │
-   │  NVS: deviceColor    │
+   │  AnimationManager    │  │  (no single-active constraint)          │
+   │   + priority gate    │  └─────────────────────────────────────────┘
+   │   AMBIENT=0/GAME=1   │
+   │   ADMIN=2            │
+   │  LittleFS: ledConfig │
    └─────────────────────┘
 
    ┌─────────────────────────────────────────┐
@@ -495,9 +499,10 @@ The original design note referenced NVS (ESP32 Preferences library) but the impl
    │  + positions → stepper motors           │
    └─────────────────────────────────────────┘
 
-   shared C++: GameEvents.h, GameEventMapper.h, AnimationManager,
-               EffectLayer (new), EventQueue (new), all effects
-   shared JS:  GameEvents.js (new)
+   shared C++: GameEvents.h, GameEventMapper.h (table-driven),
+               AnimationManager (priority gate), EventQueue (new),
+               all effects — reusable by esp-buzzwire
+   shared JS:  GameEvents.js (new, dual-format shim)
 ```
 
 ---
@@ -718,15 +723,17 @@ The analysis doc (§1.4) uses `isDone()` but the actual `LedEffect.h` API uses `
 
 ---
 
-### Open Questions (decision required before Phase 3)
+### Open Questions — Resolved
 
-| # | Question | Options | Recommended |
-|---|---|---|---|
-| OQ1 | Single animator + priority gate vs. multi-layer compositor? | A: priority gate / B: compositor | **A for ESP8266, B for ESP32** |
-| OQ2 | Should `GAME_PAUSED` effect live in Layer 1 (ambient) or Layer 2 (game event)? | Layer 1 (persistent until resumed) vs Layer 2 (transient) | **Layer 1** — it must survive other game events |
-| OQ3 | Should firmware replay events after reconnect? | Yes (risky) / No — full state sync only | **No — full state sync** |
-| OQ4 | Three-layer or four-layer model? | 3 (ambient/game/admin) vs 4 (diagnostic/ambient/game/admin) | **3 for firmware, 4 conceptually** |
-| OQ5 | `GameEvents.js` — dual-format shim or two separate files? | Shim / separate `gameEvents.cjs` + `gameEvents.js` | **Shim** — one source of truth |
+The following questions have been answered by @tamaygz (2026-04-24). These are the definitive decisions for the refactor.
+
+| # | Question | **Decision** |
+|---|---|---|
+| OQ1 | Single animator + priority gate vs. multi-layer compositor? | **Option A (priority gate) for all platforms** — keep it simple, avoid per-layer pixel buffers. On ESP32, upgrade to Option B only if blending is explicitly required by a future feature. |
+| OQ2 | Should `GAME_PAUSED` effect live in Layer 1 (ambient) or Layer 2 (game event)? | **Layer 1 (ambient)** — it must persist through scoring events and survive until `GAME_RESUMED`. |
+| OQ3 | Should firmware replay events after reconnect? | **No** — full state sync only (`state` snapshot on reconnect). Firmware discards events with `seq ≤ _lastSeenSeq`. Display client may opt in to replay via `"replayMissed": true` in `register`. |
+| OQ4 | Three-layer or four-layer model? | **Three layers in firmware (Ambient / Game / Admin)** — Diagnostic and Ambient are collapsed into a single state-machine-driven ambient layer on ESP8266. Four-layer model remains the conceptual reference only. |
+| OQ5 | `GameEvents.js` — dual-format shim or two separate files? | **Dual-format shim** (C4 fix) — one file, one source of truth, works with both `<script src>` (browser) and `require()` (Node.js). |
 
 ---
 

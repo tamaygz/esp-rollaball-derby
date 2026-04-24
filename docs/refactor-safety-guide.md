@@ -1,49 +1,51 @@
 # Refactor Safety Guide — Event / Effect Engine
 
 > **Purpose:** Companion to [event-effect-engine-analysis.md](./event-effect-engine-analysis.md).
-> Covers everything needed to execute the refactor *without* breaking existing functionality:
-> backward-compatibility contracts, regression tests, rollback plans, and per-phase acceptance criteria.
+> Covers everything needed to execute the refactor safely and reach a clean, modern codebase:
+> modernisation policy, regression tests, rollback plans, and per-phase acceptance criteria.
 
 ---
 
-## 1. Backward-Compatibility Contract
+## 1. Modernisation Policy
+
+**Goal:** A clean, top-modern state. Legacy patterns, outdated APIs, and redundant code should be removed or upgraded — not preserved for backward compatibility. Every phase should leave the codebase strictly better than it found it.
 
 ### 1.1 WebSocket Protocol
 
-The server–client WebSocket protocol is the primary integration boundary. All clients (firmware, display, web admin) parse incoming JSON independently. Breaking this contract breaks the whole system.
+The server–client WebSocket protocol is the primary integration boundary. All clients are maintained in this repo, so coordinated protocol changes are acceptable — all sides are updated together in the same PR or phase.
 
-| Change type | Classification | Examples |
+| Change type | Policy | Examples |
 |---|---|---|
-| Add **optional** field to existing payload | ✅ Non-breaking | `+seq`, `+durationMs`, `+layer` |
-| Add new `type` value that old clients ignore | ✅ Non-breaking | New `stop_effect`, `ack` messages |
-| Remove or rename a `type` value | ❌ **Breaking** | `scored` → `score_event` |
-| Remove a payload field clients already read | ❌ **Breaking** | Removing `events[]` from `scored` |
-| Change the string values inside `events[]` | ❌ **Breaking** | `took_lead` → `lead_taken` |
-| Change numeric encoding to binary | ❌ **Breaking** | — |
+| Add optional field to existing payload | ✅ Fine — add freely | `+seq`, `+durationMs`, `+layer` |
+| Add new `type` value | ✅ Fine | New `stop_effect`, `ack` messages |
+| Rename a `type` value | ✅ Acceptable — update all clients in same PR | `scored` → `score_event` if cleaner |
+| Remove a payload field | ✅ Acceptable — remove dead code across all clients | Remove unused fields from `scored` |
+| Clean up string values inside `events[]` | ✅ Acceptable — update `GameEvents.h`, `GameEvents.js`, firmware, display, admin together | Rename for clarity |
+| Change encoding | ✅ If a better approach exists, migrate it | — |
 
-**Rule:** Every field added in Phases 1–5 must be optional with a safe default. Existing clients that do not read the new field must continue to work as before.
+**Rule:** Changes to the protocol must touch all four layers (server, firmware, display client, web admin) in the same PR. Leave no orphaned field or dead message type.
 
 ---
 
 ### 1.2 REST API
 
-| Endpoint | Current clients | Contract |
-|---|---|---|
-| `PUT /api/leds/config/:deviceType` | Web admin LED page | **Keep as-is.** New per-chipId endpoints are additive. |
-| `POST /api/game/start` etc. | Web admin | No change planned. |
-| `GET /api/health` | Monitoring | No change planned. |
+| Endpoint | Policy |
+|---|---|
+| `PUT /api/leds/config/:deviceType` | Modernise as needed. Remove deprecated overloads. |
+| `POST /api/game/start` etc. | Clean up response shapes for consistency. |
+| `GET /api/health` | Keep stable — external monitoring may depend on it. |
 
 ---
 
 ### 1.3 Firmware Shared Library (`clients/shared/leds/`)
 
-| Symbol | Contract |
+| Symbol | Policy |
 |---|---|
-| `LedEffect::begin()`, `update()`, `isComplete()`, `reset()` | **Public API — do not rename or change signatures.** |
-| `EffectParams` struct fields | **Closed to removal.** New fields may be added with default values. |
-| `GameEvents.h` enum names and values | **Closed to renaming.** New values may be added at the end of each enum. |
-| `GameEventMapper::onLocalEvent()` / `onGlobalEvent()` | Public API — signature fixed. Internal implementation may change. |
-| `AnimationManager::playEffect()`, `transitionTo()`, `stop()` | **Public API — do not rename or change signatures.** |
+| `LedEffect::begin()`, `update()`, `isComplete()`, `reset()` | Public API — change only if a strictly better interface is adopted consistently across all effects. |
+| `EffectParams` struct fields | Remove unused fields; add new ones as needed. Keep the struct lean. |
+| `GameEvents.h` enum names and values | Rename for clarity if the new name is cleaner — update all call sites. |
+| `GameEventMapper` switch statement | **Replace with table-driven registration (C3 in analysis §9).** The switch is a known OCP violation. |
+| `AnimationManager::playEffect()`, `transitionTo()`, `stop()` | Upgrade to priority-gate signature (C1 / Option A). Old signature is not preserved. |
 
 ---
 
@@ -61,10 +63,10 @@ npm test
 All existing tests must pass. Record the count:
 
 ```
-# Expected (as of 2026-04-24): 103 pass, 3 fail (pre-existing), 106 total
+# As of 2026-04-24: 103 pass, 3 fail (pre-existing), 106 total
 ```
 
-The 3 pre-existing failures are **not your responsibility** to fix before the refactor, but must be documented so they are not confused with regressions you introduced. Record the exact count before starting each phase.
+The 3 pre-existing failures are being fixed in a **separate dedicated PR** (spawned as an isolated task — see [isolated-tasks.md](./isolated-tasks.md)) so they are resolved before any phase of the event refactor begins. Each subsequent phase must maintain or improve on the passing test count — never regress it.
 
 ### 2.2 Manual Hardware Smoke Test (per firmware project)
 
@@ -95,6 +97,8 @@ Run this checklist on a real device before every firmware change, and again afte
 ---
 
 ## 3. Phase-by-Phase Acceptance Criteria and Rollback Plans
+
+> **Verification method:** At the end of each phase, acceptance criteria are verified using GitHub MCP tools (CI workflow status, test run logs) and the hardware smoke checklists below. Phase sign-off is not manual — it is confirmed against actual CI output.
 
 ### Phase 0 — Immediate bug fixes
 
@@ -237,6 +241,8 @@ Firmware and clients do not need reflashing — `seq` was never a required field
 
 ## 4. Testing Infrastructure
 
+> **Philosophy:** Moderate — cover the highest-risk paths without building a heavyweight test harness. Focus on pure-logic units (EventQueue, priority gate) that are easy to run natively and hard to debug on hardware. Do not replicate integration tests that are better done via hardware smoke tests.
+
 ### 4.1 Firmware Unit Tests (PlatformIO native)
 
 Add a `test` environment to each firmware's `platformio.ini`:
@@ -289,17 +295,25 @@ After each phase, run the full hardware smoke checklist (§2.2) and display clie
 
 ## 5. Generalisation Checklist
 
+> **Reference project:** [`tamaygz/esp-buzzwire` (feat-web branch)](https://github.com/tamaygz/esp-buzzwire/tree/feat-web) will need the same shared LED/effect components. Use it as a north star for generalisation decisions — any shared module extracted from this project should be immediately usable in buzzwire without modification.
+>
+> Key patterns already proven in buzzwire that apply here:
+> - **Single `config.h`** — one file for all pins and tuning constants; runtime config in a separate `cfg` struct
+> - **Pure-function LED API** (`ledsIdle()`, `ledsFail()`, etc.) backed by non-blocking millis() logic — same as our `LedEffect` hierarchy
+> - **FSM with `enterState()`** — explicit transitions, single state variable, logged on Serial — mirrors what we want in `GameState` FSM
+> - **Small, named modules** (`game.cpp`, `leds.cpp`, `matrix.cpp`, `sensors.cpp`, `promode.cpp`) — one concern per file, each under ~200 lines
+
 As the refactor progresses, evaluate each piece of new code against this checklist to ensure it is built for long-term maintainability:
 
 | Concern | Question to ask | Phase where it matters |
 |---|---|---|
-| **SRP** | Does each class/module have exactly one reason to change? | All |
-| **OCP** | Can new event types / effects be added without modifying existing code? | P2–P3 |
+| **SRP** | Does each class/module have exactly one reason to change? Keep files small (target < 200 lines). | All |
+| **OCP** | Can new event types / effects be added without modifying existing code? (Table-driven mapper, not switch.) | P2–P3 |
 | **DIP** | Do high-level modules depend on abstractions, not concretions? | P3 |
 | **Single source of truth** | Is every event name / config key defined in exactly one place? | P1 |
 | **Zero dynamic allocation** | Does new firmware code use only stack and pre-allocated static objects? | P2–P3 |
 | **SRAM budget** | Is the SRAM delta for each phase below 10% of the baseline? | P3 |
-| **Backward compatibility** | Does the change conform to the WebSocket contract (§1.1)? | P1, P4, P5 |
+| **Reusability** | Can this module be dropped into esp-buzzwire without changes? | P2–P3 |
 | **Testability** | Is the new code testable without hardware (native environment or node --test)? | All |
 | **Observability** | Does new code emit structured Serial / console log messages for diagnostics? | All |
 | **Graceful degradation** | Does the system behave sensibly when a component is absent or reconnects? | P3, P5 |
@@ -308,17 +322,22 @@ As the refactor progresses, evaluate each piece of new code against this checkli
 
 ## 6. Separation of Concerns Map (current → target)
 
+> **Design principles:** Scope each concern separately. Keep source files small (target < 200 lines). Name files and symbols clearly so intent is obvious without reading implementation. Make every module reusable and extendable by design — if it cannot be dropped into esp-buzzwire as-is, it is not yet sufficiently separated.
+
 | Concern | Currently lives in | Target (after refactor) |
 |---|---|---|
 | Event name constants (JS) | Inline string literals in 4 files | `clients/shared/js/gameEvents.js` (single source) |
 | Event name constants (C++) | `GameEvents.h` | `GameEvents.h` — already correct ✅ |
-| Event → effect mapping | `GameEventMapper.h` switch statement | `GameEventMapper.h` registration table (C3) |
-| Effect priority / interruption policy | None (last write wins) | Priority gate / `EffectLayer` in `AnimationManager` |
-| LED config per device | Type-wide only | Type-wide default + per-chipId override (P4) |
-| Device color persistence | Lost on reboot | NVS `"deviceColor"` key (P1) |
-| Game lifecycle FSM | Implicit in `GameState.status` string | Same — but document valid transitions explicitly |
+| Event → effect mapping | `GameEventMapper.h` switch statement | `GameEventMapper.h` **registration table** (C3 — replaces switch entirely) |
+| Effect priority / interruption policy | None (last write wins) | **Priority gate** in `AnimationManager` (C1 Option A) |
+| LED config per device | Type-wide only | Type-wide default + per-chipId override (P4 ✅ done) |
+| Device color persistence | Lost on reboot | LittleFS `saveState()` in both firmware (P5 ✅ done) |
+| Game lifecycle FSM | Implicit in `GameState.status` string | Explicit transitions with `enterState()`-style logging |
 | Sequence numbering / dedup | None | `GameState._seq` counter + client-side dedup (P5) |
-| Test effect TTL | None (sticky forever) | `durationMs` field + `stop_effect` message (P1) |
+| Test effect TTL | None (sticky forever) | `durationMs` field + `stop_effect` message (P6 ✅ done) |
+| Shared LED effects (C++) | `clients/shared/leds/` | Same — keep as reusable library, usable by esp-buzzwire |
+| `EventQueue<T,N>` template | Not yet created | `clients/shared/leds/EventQueue.h` (P2) |
+| `EffectLayer` / priority gate | Not yet created | `clients/shared/leds/EffectLayer.h` (P3) |
 
 ---
 
